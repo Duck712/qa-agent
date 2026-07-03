@@ -169,6 +169,7 @@ Viết `TEST-PLAN.md` theo template; requirement chưa cover → mục Gaps. GAT
 1. **Dedupe**: grep `testcases/` theo feature + hành vi.
 2. **Quyết định**: trùng rõ → REUSE (ghi vào danh sách trình user, không tạo file); na ná khó chắc → hỏi user; chưa có → bước 3.
 3. **Đối chiếu knowledge base**: mở checklist tương ứng đối tượng (form/auth/upload/API) + `bug-patterns.md` → bổ sung case từ kinh nghiệm user.
+3b. **Áp kỹ thuật thiết kế**: đối chiếu `skills/tester-techniques.md` (boundary value, equivalence partitioning, decision table, state transition) để đảm bảo bộ TC đủ theo kỹ thuật, không chỉ đủ theo checklist đối tượng.
 4. **CREATE NEW**: lấy `tc_next_id` → viết theo template, `status: DRAFT` → tăng id.
 5. **Tự lint**: đủ section, có refs, steps cụ thể, narrative không dính implementation detail (§4.10).
 6. **Priority theo rủi ro**: P1 tiền/dữ liệu/bảo mật/luồng cốt lõi, P2 luồng quan trọng + edge dễ gặp, P3 edge hiếm, P4 cosmetic.
@@ -176,13 +177,13 @@ Viết `TEST-PLAN.md` theo template; requirement chưa cover → mục Gaps. GAT
 Trình bảng `| TC | Tiêu đề | Loại | Ưu tiên | Refs | new/reuse |`. GATE: TC OK → `READY`; bị chê → sửa trình lại.
 
 ### 7e. Coverage Review (gate TC_APPROVED)
-Sinh `rounds/R<N>/coverage-review.md` theo template: matrix mỗi AC/requirement ↔ TC cover nó. Rule: `count TC ≥ count AC` per feature. Còn gap → trình user quyết: viết thêm TC hay chấp nhận (ghi decision). GATE pass → `ROUND_OPEN`.
+Sinh `rounds/R<N>/coverage-review.md` theo template: matrix mỗi AC/requirement ↔ TC cover nó. Rule: `count TC ≥ count AC` per feature. Còn gap → trình user quyết: viết thêm TC hay chấp nhận (ghi decision). Khi cân nhắc gap này, áp `skills/test-lead-judgement.md §1-3` (risk-based prioritization, cắt phạm vi có trách nhiệm). GATE pass → `ROUND_OPEN`.
 
 ### 7f. Mở round (ROUND_OPEN)
 Tăng `current_round` → N; tạo `rounds/R<N>/` + `evidence/` + `bugs/`; viết `scope.md` (chỉ TC READY, theo mục tiêu: feature mới / regression / smoke) + bug `FIXED` round trước cần verify. Trình. GATE → vai TESTER.
 
 ### 7g. Báo cáo round (REPORTED)
-Tổng hợp execution-log + bugs → `reports/REPORT-R<N>.md` theo template, **bắt buộc có Recommendation**:
+Tổng hợp execution-log + bugs → `reports/REPORT-R<N>.md` theo template, **bắt buộc có Recommendation**. Áp `skills/test-lead-judgement.md §4` (thứ tự câu hỏi: còn P1 mở? coverage lỗ ở luồng cốt lõi? có workaround?) để quyết định:
 
 | Điều kiện | Recommendation |
 |---|---|
@@ -192,7 +193,21 @@ Tổng hợp execution-log + bugs → `reports/REPORT-R<N>.md` theo template, **
 
 User override NO-GO → GO/CONDITIONAL → ghi decision kèm tên người chịu trách nhiệm.
 
-**Sau khi user chốt report — vòng lặp tự học**: đề xuất 1-3 "lesson learned" từ round (bug pattern mới, case bị bỏ sót, đánh giá sai severity...) dưới dạng nội dung sẵn sàng ghi vào `~/.claude/qa-knowledge/lessons/` hoặc bổ sung vào checklist/bug-patterns. User duyệt → ghi file; không duyệt → bỏ. KHÔNG tự ghi khi user chưa duyệt. GATE → chốt round.
+**Sau khi user chốt report — vòng lặp tự học (2 tầng)**:
+
+1. **Tầng 1 — tự động, không cần hỏi**: rút 1-3 "lesson learned" từ round (bug pattern
+   mới, case bị bỏ sót, đánh giá sai severity, nhận định riêng của agent...) → TỰ GHI
+   ngay vào `~/.claude/qa-knowledge/lessons/R<N>-<YYYY-MM-DD>.md` (append-only, mỗi
+   round 1 file, không sửa file lesson cũ). Đây là nhật ký thô, không ảnh hưởng cách
+   agent test cho tới khi qua Tầng 2.
+2. **Tầng 2 — có gate, cần user duyệt**: đề xuất đưa lesson nào ở Tầng 1 vào
+   `checklists/*.md` hoặc `bug-patterns.md` (nơi thực sự dùng để đối chiếu khi viết
+   TC/chạy test). Trình từng đề xuất cho user. Duyệt → agent tự Edit file checklist/
+   bug-patterns tương ứng, thêm dòng mới. Không duyệt → giữ nguyên ở lessons/, không
+   đưa vào checklist.
+
+KHÔNG bao giờ tự sửa `checklists/*.md` hoặc `bug-patterns.md` mà chưa qua Tầng 2.
+GATE → chốt round.
 
 ---
 
