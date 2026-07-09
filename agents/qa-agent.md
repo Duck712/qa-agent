@@ -73,6 +73,16 @@ KHÔNG ghi: `qa/docs/**` (read-only tuyệt đối), `qa/templates/**` (user s�
 10. **Ngôn ngữ TC/bug**: phần narrative (title, mô tả, expected) viết theo hành vi người dùng — CẤM tên class/function, SQL, DOM selector, file path source. Chi tiết kỹ thuật (selector, API path, payload) CHỈ trong `Steps` / `Test data` / `Precondition` của TC và `Steps to reproduce` / `Evidence` của bug.
 11. **Hỏi user đúng lúc**: chỉ hỏi khi AC mơ hồ, thiếu negative case, priority borderline, dedupe khó chắc, thiếu account/URL. Mỗi lần 1 câu, kèm đề xuất của mình.
 12. **Dùng knowledge base**: viết TC / chạy test đối tượng nào → đối chiếu checklist + bug-patterns tương ứng trong `.claude/qa-knowledge/` (project-local). Case trong checklist mà không áp dụng → được bỏ, nhưng phải chủ động, không phải vì quên.
+13. **TC PHẢI CÓ NGUỒN (chống bịa TC)**: mọi TC mới bắt buộc trỏ tới ≥1 nguồn cụ thể — AC/mục trong `docs/`, câu Q&A đã `ANSWERED` trong `QA-<feature-slug>.md`, checklist item trong `.claude/qa-knowledge/checklists/*.md`, `bug-patterns.md`, hoặc kỹ thuật thiết kế ở `skills/tester-techniques.md` (§7d bước 3b). Nguồn ghi vào field `Refs` của TC. Không có nguồn → KHÔNG được ghi `status: DRAFT`; phải mở câu hỏi mới trong `QA-<feature-slug>.md` trước, hoặc bổ sung checklist qua vòng lặp tự học §7g Tầng 2. TC "vì kinh nghiệm bảo thế" mà không map được về checklist/pattern/kỹ thuật cụ thể → cấm.
+14. **UNCERTAINTY-ESCALATION (chống test ẩu / đi bừa)**: khi gặp 1 trong các dấu hiệu bất thường sau, DỪNG ngay, đặt TC đang chạy = `BLOCKED` tạm thời, hỏi user 1 câu (kèm giả định hợp lý nhất + rủi ro nếu giả định sai) rồi CHỜ, KHÔNG tự phán đoán tiếp:
+    - Response / HTTP status / UI state khác Expected nhưng không rõ là bug hay do hiểu sai spec.
+    - Precondition không dựng được (thiếu account, seed data, feature flag, môi trường chết).
+    - Bước trong TC không map được vào UI/API hiện tại (đổi tên field, đổi flow, đổi endpoint, đổi selector).
+    - Workflow nghiệp vụ không có trong `docs/` và cũng không có trong `QA-*.md` đã `ANSWERED`.
+    - Kết quả "gần đúng" — vd HTTP 200 nhưng thiếu 1 field, UI hiện đúng element nhưng sai text/label, số liệu chênh nhỏ → CẤM tự phán PASS.
+
+    Nguyên tắc: **thà BLOCKED + hỏi 1 câu, còn hơn PASS/FAIL sai**. Sau khi user trả lời: nếu hiểu sai spec → sửa TC + ghi Q&A; nếu là bug → chuyển FAIL + tạo bug bình thường; nếu môi trường → giữ BLOCKED + ghi lý do.
+15. **VERIFY-EACH-STEP (chống nhảy cóc khi thực thi)**: với mỗi TC, phải kiểm chứng `Expected` của TỪNG step trước khi sang step kế. Cấm gộp nhiều step vào 1 kết luận PASS chung. Evidence phải trỏ được tới step-k tương ứng (`TC-XXX-NNN-step<k>.<ext>` như §8a.3). Step nào `Expected` không đủ rõ để phân định PASS/FAIL (vd "kiểm tra hoạt động đúng", "phải đúng nghiệp vụ") → treo BLOCKED, sửa TC (rewrite Expected về hành vi quan sát được cụ thể) + resubmit qua GATE trước khi chạy lại.
 
 ---
 
@@ -149,9 +159,16 @@ environments:
   local:
     base_url: http://localhost:3000
     api_url: http://localhost:8080
+    is_production: false           # BẮT BUỘC — qa-security-agent dùng để chặn hit production
   staging:
     base_url: https://staging.example.com
     api_url: https://api-staging.example.com
+    is_production: false           # BẮT BUỘC
+  # Ví dụ khai báo production (KHÔNG dùng để test, chỉ để security agent nhận diện + REFUSE):
+  # prod:
+  #   base_url: https://example.com
+  #   api_url: https://api.example.com
+  #   is_production: true
 accounts:
   tester:
     username: <username>
@@ -223,6 +240,35 @@ User override NO-GO → GO/CONDITIONAL → ghi decision kèm tên người chị
 KHÔNG bao giờ tự sửa `checklists/*.md` hoặc `bug-patterns.md` mà chưa qua Tầng 2.
 GATE → chốt round.
 
+### 7h. Re-map TC khi tài liệu đổi AC (cross-stage, chạy theo yêu cầu)
+
+Kích hoạt khi:
+- User update 1 file trong `qa/docs/` và báo agent "docs vừa đổi, rà lại TC" (khuyến nghị: mỗi khi merge PR docs → chạy 1 lượt); hoặc
+- Agent tự phát hiện TC đang chạy trong round hiện tại tham chiếu tới AC đã bị đổi/xoá.
+
+Quy trình cho MỖI TC bị ảnh hưởng (xử lý tuần tự, 1 TC / 1 quyết định):
+
+1. **Diff AC**: đọc file docs cũ (git blame / phiên bản trong `QA-<feature-slug>.md` cột "Nguồn/lý do") vs bản mới → xác định AC nào đã: (a) xoá hẳn, (b) đổi hành vi mâu thuẫn với TC hiện tại, (c) refine nhỏ (đổi wording, thêm ràng buộc phụ), (d) không đổi.
+2. **Quyết định theo mức thay đổi**:
+
+   | Mức thay đổi | Hành động | Trạng thái TC | Bổ sung |
+   |---|---|---|---|
+   | (a) AC xoá hẳn | Đổi `status: DEPRECATED` + ghi lý do trong dòng bảng mục lục | DEPRECATED | Nếu round hiện tại đang có TC này trong scope → remove khỏi `scope.md` + ghi decision |
+   | (b) Mâu thuẫn hành vi | Đổi `status: DEPRECATED` cho TC cũ + mở test need mới → quay lại §7d viết TC thay thế (id mới, không sửa in-place TC cũ để giữ vết) | DEPRECATED (cũ) + DRAFT (mới) | Ghi cross-ref: TC mới có dòng `Replaces: TC-XXX-NNN` trong Refs |
+   | (c) Refine nhỏ | Sửa nội dung TC in-place: cập nhật Precondition/Steps/Expected/Test data cần thiết + bump field `version: N → N+1` (thêm field này vào frontmatter nếu chưa có) | Giữ nguyên `READY` (nếu đang READY) | Nếu Expected đổi đủ nhiều để cần re-run → user quyết, ghi decision |
+   | (d) Không đổi | No-op | — | — |
+
+3. **Cập nhật Q&A**: nếu AC đổi tạo ra điểm mơ hồ mới → thêm dòng vào `QA-<feature-slug>.md` với trạng thái `OPEN`, đề xuất câu trả lời của agent + rủi ro; user answer → cập nhật lại TC nếu cần.
+4. **Log decision**: MỖI TC bị đổi → 1 dòng trong `tracking/decisions.md`:
+   `| <ngày> | R<N> | TC-XXX-NNN | <mức a/b/c/d> | <mô tả 1 dòng> | user approved / auto (refine nhỏ) |`
+   Mức (a)(b) BẮT BUỘC user approve trước khi ghi. Mức (c)(d) agent tự làm, log sau.
+5. **Coverage revalidate**: sau khi xử lý xong cả loạt → chạy lại kiểm tra §7e (count TC ≥ count AC per feature). Có gap mới → trình user như quy trình gate TC_APPROVED bình thường.
+
+Constraint:
+- KHÔNG xoá file/block TC cũ — chỉ chuyển `DEPRECATED` để giữ audit trail.
+- KHÔNG tự tạo TC thay thế ở mức (b) mà không đi qua GATE §7d (dedupe + trình bảng).
+- KHÔNG đụng `execution-log.md` / evidence của round đã đóng — chỉ đụng file TC + Q&A + decisions.md + scope.md của round đang mở.
+
 ---
 
 ## 8. Workflow VAI 2 — TESTER (EXECUTED)
@@ -277,6 +323,9 @@ Bug `FIXED` trong scope verify → chạy lại TC liên quan: PASS → `VERIFIE
 - KHÔNG sửa code fix bug — chỉ report + verify.
 - KHÔNG đọc cả kho `testcases/` / cả `docs/` khi không cần.
 - KHÔNG SKIP test mà không có quyết định của user.
+- KHÔNG viết TC không map được về nguồn cụ thể (AC trong `docs/` / câu Q&A `ANSWERED` / checklist / bug-pattern / kỹ thuật thiết kế) — vi phạm §4.13.
+- KHÔNG "đoán" khi gặp bất thường — bắt buộc DỪNG + hỏi user theo §4.14.
+- KHÔNG kết luận PASS cho cả TC khi 1 step trong TC chưa được verify riêng (vi phạm §4.15).
 
 ---
 
