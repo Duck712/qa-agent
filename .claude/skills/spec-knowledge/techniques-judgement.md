@@ -1,0 +1,41 @@
+# Mẹo nghề — ngoài bốn kỹ thuật thiết kế TC
+
+> Bốn kỹ thuật (phân vùng, biên, bảng quyết định, chuyển trạng thái) ở skill `spec-testcase-design`.
+> Verdict là phép tính theo ngưỡng (`/spec-certify`), không phải phán đoán. File này giữ phần còn lại.
+
+## 1. Khám phá có kỷ luật (exploratory)
+
+Không "mò vô định". Trước khi bắt đầu, xác định trong 1–2 câu:
+- **Charter**: đang thăm dò vùng nào? (vd "luồng thanh toán khi kết hợp mã giảm giá + đổi số lượng giữa chừng")
+- **Thời gian**: giới hạn (vd 30 phút), hết giờ dừng và ghi lại đã đi qua đâu.
+- Ghi chú **ngay** khi thấy điều bất thường, kể cả chưa chắc là bug.
+
+Trong SPEC, khám phá chỉ là **nguồn phát hiện**, không thay TC: thấy lỗi → ghi bug (có bằng chứng) + đề xuất TC mới cho release sau (hoặc bổ sung ở pha P nếu còn trong phạm vi).
+
+## 2. Viết bug chất lượng cao
+
+- **Tối giản repro**: thử bỏ bớt từng bước xem lỗi còn không → bộ bước còn lại là tối thiểu.
+- **Triệu chứng, không kết luận hộ**: "API trả 500 khi X", không phải "chắc backend quên validate" — nghi ngờ khu vực code thì ghi riêng, ghi rõ là suy đoán.
+- **1 bug = 1 vấn đề**.
+- Luôn kèm: request/response thật, thời điểm (giờ phút), môi trường + bản deploy, tài khoản/vai đã dùng.
+- **Severity theo hậu quả, không theo tần suất**: mất dữ liệu / lộ quyền / sai tiền dù chỉ tái hiện 3/10 lần vẫn là S1 — ghi tỉ lệ tái hiện vào bug.
+
+## 3. Soi AC / yêu cầu mơ hồ (pha S)
+
+Câu sau đây **không đủ để viết TC** — ghi `HANDOVER §Lỗ hổng` và hỏi QC (còn pha S):
+- "Xử lý đúng", "hiển thị hợp lý", "tối ưu trải nghiệm" → hỏi: đúng là gì, cụ thể bằng con số/hành vi quan sát được.
+- Chỉ có happy path, không nói gì về lỗi → hỏi: input sai/thiếu thì hệ thống làm gì (đây chính là nguồn của TC `Kiểu: abnormal`).
+- Có 2 cách hiểu → đưa **cả 2 cách hiểu** kèm đề xuất của mình + rủi ro nếu chọn sai, không tự đoán 1 cách.
+- Hai tài liệu mâu thuẫn nhau → trích cả hai, hỏi cái nào thắng.
+
+## 4. Cắt phạm vi có trách nhiệm (pha S)
+
+**Rủi ro = Xác suất lỗi × Thiệt hại nếu lỗi.** Khi không đủ thời gian test hết:
+- Ưu tiên: (1) luồng cốt lõi vừa thay đổi · (2) tiền / dữ liệu / bảo mật · (3) regression của bug từng xảy ra · (4) sau đó mới tới ca hiếm.
+- Thứ bị cắt → `TEST-PLAN §3` out-of-scope **có lý do**, QC chốt. Không im lặng bỏ qua.
+
+## 5. Viết REPORT cho người không rành kỹ thuật
+
+- Kết luận trước, chi tiết sau: dòng đầu là verdict + 1 câu lý do.
+- Số cụ thể, không tính từ mơ hồ ("khá ổn") — "23/25 TC PASS, 2 FAIL đều S3".
+- Tin xấu nói ngay đầu, không chôn giữa báo cáo.
