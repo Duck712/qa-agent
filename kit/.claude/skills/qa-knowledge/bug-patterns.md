@@ -11,17 +11,17 @@
 8. **Lỗi chỉ xuất hiện với data thật số lượng lớn** (1000+ bản ghi): chậm, timeout, UI vỡ — seed data lớn trước khi test list.
 9. **Message lỗi generic "Có lỗi xảy ra"** che mất lỗi thật → luôn mở DevTools/Network xem response gốc.
 10. **Ký tự unicode nhiều byte làm sai đếm độ dài** (FE đếm 1 emoji = 1, DB varchar đếm = 4).
-11. **Luật nghiệp vụ chỉ chặn ở UI** (tối thiểu N người, bắt buộc chọn…) → gọi thẳng API là vượt được. *(bài học Kairo)*
-12. **Token/link dùng một lần dùng lại được** (mời, kích hoạt, đặt lại mật khẩu) sau khi đã dùng hoặc sau khi tài khoản đã active → ghi đè dữ liệu. Thử dùng lại mọi link một lần. *(bài học Kairo)*
-13. **Bản ghi trùng treo vĩnh viễn**: mời trùng email, tạo trùng tên → không bị chặn, để lại trạng thái `pending` không ai xử. *(bài học Kairo)*
-14. **Sửa một trường làm mất trường khác** (PUT ghi đè cả object, form không gửi lại danh sách con) → sau mỗi lần sửa, kiểm lại MỌI trường không đụng tới. *(bài học Kairo)*
-15. **Sự kiện lặp / phạm vi "chỉ lần này" vs "cả chuỗi"** bị bỏ qua, cắt mất giây/múi giờ khi lưu → nhân đôi hoặc mất buổi. *(bài học Kairo)*
-16. **Link sinh tự động trỏ sai host** (localhost, tên miền dev, tên miền không tồn tại) → mở thử mọi link trong email/thông báo. *(bài học Kairo)*
-17. **Trạng thái realtime không dọn khi client biến mất** (đóng tab, mất mạng) → đếm sai người online/trong cuộc, "đang gọi" treo. *(bài học Kairo)*
-18. **Lọt thông tin qua kênh phụ**: không đọc được nội dung nhưng đoán được sự tồn tại (đếm, thông báo, lịch sử, mã lỗi khác nhau 403 vs 404). *(bài học Kairo)*
-19. **Tên dành riêng không bị chặn** (`admin`, `api`, `www`, trùng tên miền hạ tầng) khi cho người dùng đặt tên không gian/subdomain. *(bài học Kairo)*
-20. **Hành động bị chặn đúng nhưng không để lại vết** trong nhật ký kiểm toán, hoặc vết thiếu bên bị chạm. *(bài học Kairo)*
-21. **Hàng rào có lỗ đúng chỗ hay dùng nhất** (chặn SSRF mọi dải nội bộ trừ `127.0.0.1`/`localhost`) → thử đủ biến thể: `127.0.0.1`, `localhost`, `0.0.0.0`, `[::1]`, IP thập phân, DNS trỏ nội bộ. *(bài học Kairo)*
-22. **Đích tới bị xoá/vô hiệu nhưng hành động vẫn nhận** (gọi/mời/giao việc cho người đã rời tổ chức). *(bài học Kairo)*
+11. **Luật nghiệp vụ chỉ chặn ở UI** (tối thiểu N người, bắt buộc chọn…) → gọi thẳng API là vượt được.
+12. **Token/link dùng một lần dùng lại được** (mời, kích hoạt, đặt lại mật khẩu) sau khi đã dùng hoặc sau khi tài khoản đã active → ghi đè dữ liệu. Thử dùng lại mọi link một lần.
+13. **Bản ghi trùng treo vĩnh viễn**: mời trùng email, tạo trùng tên → không bị chặn, để lại trạng thái `pending` không ai xử.
+14. **Sửa một trường làm mất trường khác** (PUT ghi đè cả object, form không gửi lại danh sách con) → sau mỗi lần sửa, kiểm lại MỌI trường không đụng tới.
+15. **Sự kiện lặp / phạm vi "chỉ lần này" vs "cả chuỗi"** bị bỏ qua, cắt mất giây/múi giờ khi lưu → nhân đôi hoặc mất buổi.
+16. **Link sinh tự động trỏ sai host** (localhost, tên miền dev, tên miền không tồn tại) → mở thử mọi link trong email/thông báo.
+17. **Trạng thái realtime không dọn khi client biến mất** (đóng tab, mất mạng) → đếm sai người online/trong cuộc, "đang gọi" treo.
+18. **Lọt thông tin qua kênh phụ**: không đọc được nội dung nhưng đoán được sự tồn tại (đếm, thông báo, lịch sử, mã lỗi khác nhau 403 vs 404).
+19. **Tên dành riêng không bị chặn** (`admin`, `api`, `www`, trùng tên miền hạ tầng) khi cho người dùng đặt tên không gian/subdomain.
+20. **Hành động bị chặn đúng nhưng không để lại vết** trong nhật ký kiểm toán, hoặc vết thiếu bên bị chạm.
+21. **Hàng rào có lỗ đúng chỗ hay dùng nhất** (chặn SSRF mọi dải nội bộ trừ `127.0.0.1`/`localhost`) → thử đủ biến thể: `127.0.0.1`, `localhost`, `0.0.0.0`, `[::1]`, IP thập phân, DNS trỏ nội bộ.
+22. **Đích tới bị xoá/vô hiệu nhưng hành động vẫn nhận** (gọi/mời/giao việc cho người đã rời tổ chức).
 23. **Thông báo/sự kiện nhân đôi** cho một hành động (hai webhook, hai thông báo cùng phút).
 24. **Tài liệu tự mâu thuẫn**: AC, design, API doc nói ba kiểu → ghi thành điểm mơ hồ trước khi viết TC, đừng chọn đại.

@@ -74,7 +74,7 @@ trong `qa-targets`, cần một dự án thật để kiểm.
 | Dùng chung | `kit/.claude/skills/qa-knowledge/` trong repo này | Bài học dùng được cho dự án khác → hỏi người dùng → thêm vào checklist/bug-patterns → các dự án nhận qua `install.py --update` |
 
 Kho chung đã có 13 checklist (form, đăng nhập/phân quyền, upload, API, ca bất thường, thanh toán, thông báo, realtime,
-tìm kiếm/danh sách, ngày giờ/lịch, CLI, job/dữ liệu, AI/LLM) và 24 kiểu lỗi dev hay mắc (12 kiểu rút từ bug thật của dự án Kairo).
+tìm kiếm/danh sách, ngày giờ/lịch, CLI, job/dữ liệu, AI/LLM) và 24 kiểu lỗi dev hay mắc.
 
 ## Cấu trúc
 
