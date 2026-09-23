@@ -14,7 +14,7 @@ Trước khi gọi tool:
 3. `mobile_list_apps` thấy bundle id / package name.
 4. Build trỏ đúng môi trường test (xem màn cấu hình/network) — sai → toàn bộ TC mobile `BLOCKED`.
 
-Không thấy tool `mobile_*` → server mobile có thể đang tắt ở mức máy; xem CLAUDE.md toàn cục của máy
+Không thấy tool `mobile_*` → server mobile có thể đang tắt theo cấu hình máy của người dùng
 (vd phải mở phiên bằng lệnh riêng) — không tự sửa cấu hình toàn cục.
 
 ## Tool hay dùng
@@ -32,7 +32,7 @@ lại trước mỗi lần chạm) · `mobile_click_on_screen_at_coordinates` ·
 - **Phân quyền**: tuần tự trên một máy — A tạo, đăng xuất, B mở bản ghi của A qua deep link/API.
 - **Màn nhỏ / xoay / bàn phím**: thiết bị nhỏ nhất trong dải hỗ trợ, landscape giữa form, ô nhập cuối màn bị bàn phím che?
 - **Hình thức**: frame từ `list_elements` (vùng chạm đo được từ frame, so ngưỡng người dùng/tài liệu chốt — tham khảo WCAG 2.2 AA 24×24 CSS px, Apple HIG 44pt, Material 48dp) + screenshot đối chiếu token.
-- **Hiệu năng**: bấm giờ launch → màn đầu tương tác được, n ≤ 10.
+- **Hiệu năng**: bấm giờ launch → màn đầu tương tác được, theo nhịp đã chốt (`qa-targets` §3 mục 4).
 - **Gián đoạn**: cuộc gọi/thông báo đến (Android emulator `adb emu gsm call 0123456789`, kết thúc `adb emu gsm cancel 0123456789`), quyền bị từ chối, pin yếu, chế độ tối, cỡ chữ lớn.
 
 ## Bằng chứng tối thiểu

@@ -28,14 +28,16 @@ Bạn kiểm **bảo mật ở mức chấp nhận** — sản phẩm có tự b
 quét ồ ạt, dừng đọc ngay khi đã chứng minh được lỗ (một bản ghi là đủ, che dữ liệu cá nhân). Mỗi phép thử ghi
 **nguồn** (mục OWASP / cheat sheet / CVE). Không chắc → `INCONCLUSIVE`, không nâng thành lỗi.
 
-**Kịch bản** (chỉ mục có TC được giao)
+**Kịch bản** (chỉ mục có TC được giao; mã theo **OWASP Top 10:2021**)
 1. **A01 Kiểm soát truy cập** — IDOR trên endpoint phụ (export, download, autocomplete, file đính kèm), đổi id sang tenant khác (đọc-thử), endpoint quản trị bằng vai thường/chưa đăng nhập.
 2. **A02 Mã hoá** — `curl -sI`, `openssl s_client` (hoặc `testssl.sh`): TLS ≥ 1.2, HSTS, cookie `Secure`/`HttpOnly`/`SameSite`.
 3. **A03 Chèn mã** — vài đầu vào tiêu biểu vào tìm kiếm/lọc/form/tham số CLI, chỉ quan sát server coi là dữ liệu thường. Không dùng câu lệnh ghi/xoá.
 4. **A05 Cấu hình** — CSP, X-Frame-Options/frame-ancestors, X-Content-Type-Options, Referrer-Policy; lộ stack trace; `/.env`, `/.git`, trang debug (chỉ `HEAD`/`GET`, không dò hàng loạt).
 5. **A06 Thư viện có CVE** — `npm audit --json` / `pip-audit` / `osv-scanner` / `grype` trên lockfile repo nguồn hoặc consumer (library).
 6. **A07 Xác thực & phiên** — đăng nhập sai số lần vừa đủ vượt ngưỡng khoá tài liệu nêu (không nêu → hỏi), trên tài khoản test, xem có khoá/429; token sau đăng xuất; token hết hạn; link đặt lại mật khẩu dùng lại.
-7. **A09 Dữ liệu nhạy cảm** — response/log/output CLI trả thừa trường nhạy cảm (hash mật khẩu, token, PII người khác).
+7. **A02/A04 Lộ dữ liệu nhạy cảm** — response/log/output CLI trả thừa trường nhạy cảm (hash mật khẩu, token, PII người khác).
+7b. **A09 Ghi log & giám sát** — hành động nhạy cảm (đăng nhập sai, đổi quyền, truy cập bị chặn) có để lại nhật ký kiểm toán
+   đủ bên bị chạm không (`qa-knowledge/bug-patterns.md` #20); log không chứa secret/PII.
 8. **A10 SSRF** — tính năng nhận URL (webhook, import, xem trước link): `127.0.0.1`, `localhost`, `0.0.0.0`, `[::1]`, IP thập phân, metadata đám mây — **trên staging**.
 9. **Secret** — `gitleaks detect` hoặc `trufflehog git file://<repo> --no-verification` trên repo nguồn, cả lịch sử.
    **Không** dùng chế độ xác minh (`--only-verified`): nó gọi dịch vụ thật bằng secret tìm được — hướng ra ngoài, phải

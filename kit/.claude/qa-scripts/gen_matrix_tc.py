@@ -64,9 +64,9 @@ def main() -> int:
     blocks, skipped, unknown = [], 0, []
     for action, cells in rows:
         for role, cell in zip(roles, cells):
-            first = re.split(r"[\s(]", cell.strip(), maxsplit=1)[0].lower()   # "✗ (403)" → "✗"
+            first = re.split(r"[\s(]", cell.strip(), maxsplit=1)[0].lower()   # "✗ (403)" → "✗" (chú thích mã chặn được)
             if first not in DENY:
-                if first not in ALLOW:
+                if cell.strip().lower() not in ALLOW:                     # "✓ (chỉ của mình)", "Có điều kiện" → phải hỏi
                     unknown.append(f"{action} × {role} = `{cell or '(trống)'}`")
                 continue
             key = f"Ô ma trận: {action} × {role} = ✗"

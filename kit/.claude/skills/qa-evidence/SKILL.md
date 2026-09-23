@@ -16,7 +16,7 @@ description: >
 qa/evidence/
 ├── _inbox/<vai>/            ← MCP đổ ảnh thô (không commit)
 └── <run-id>/<TC-ID>/        ← đã phân loại — RUNLOG trỏ vào ĐÂY
-    ├── 01-buoc1.png · 01-snapshot.txt
+    ├── 01-buoc1.png · 01-snapshot.md
     ├── 02-request.txt · 02-response.json · 02-status.txt
     ├── 03-stdout.txt · 03-stderr.txt · 03-exit.txt
     └── ghi-chu.md            (tuỳ chọn: một dòng bối cảnh, đường dẫn video)
@@ -43,7 +43,7 @@ nằm rải rác ở /tmp là rò rỉ, và RUNLOG không trỏ được tới).
 | tương-thích | Cấu hình/phiên bản đang chạy (trình duyệt/OS/runtime/bản cũ) + kết quả trên từng cấu hình; dữ liệu cũ: bản ghi trước/sau nâng cấp |
 | cross-target | Cặp: hành động ở A + kết quả ở B + network của B |
 | hình-thức | Giá trị đo + selector/phần tử + màn (`color: rgb(37,99,235) @ button.cta`) |
-| hiệu-năng | Từng lần đo + median/max kèm n (p95 chỉ khi n ≥ 20) + cách đo + thời điểm |
+| hiệu-năng | Từng lần đo + median/max kèm n (phân vị chỉ khi người dùng chốt cỡ mẫu) + cách đo + thời điểm |
 | bảo-mật | Request + response nguyên văn (che dữ liệu) + mục OWASP/CVE; secret: file + dòng + loại, **không** ghi giá trị |
 | thủ công (người dùng làm) | Ảnh/video/ghi chú người dùng gửi + ghi rõ "người dùng thực hiện" |
 
@@ -66,7 +66,7 @@ Thiếu bằng chứng đúng loại → `BLOCKED`, không phải `PASS`.
 Câu nào "không" → chưa được ghi PASS.
 
 ## 5. qa-evidence-check
-Trước khi báo cáo: bốc ≥ 30% dòng PASS (mức soi của kit — người dùng muốn khác thì chốt; tối thiểu 5, hoặc tất cả nếu ít hơn; ưu tiên phân quyền, cross, hình thức,
+Trước khi báo cáo: bốc mẫu dòng PASS theo tỉ lệ người dùng chốt (SCOPE §6 dòng `Soi bằng chứng — tỉ lệ bốc mẫu PASS`; chưa có → đề xuất và hỏi trước khi soi; ưu tiên phân quyền, cross, hình thức,
 hiệu năng, ai, bảo mật và mọi TC R1) + **mọi** dòng FAIL, mở thư mục và **đọc thật**. Dấu hiệu lệch: thư mục rỗng · file 0 byte · ảnh trùng nhau giữa nhiều TC · timestamp giống hệt cả
 chục TC · không có dấu môi trường · TC hình thức không có số đo · phân quyền không có response · AI thiếu lượt.
 Lệch → **trình người dùng**; người dùng quyết chạy lại TC hay hạ về `BLOCKED` (ghi DECISIONS). Ghi

@@ -41,6 +41,7 @@
 - Bug mở không được phép: 
 - Tỉ lệ PASS tối thiểu: 
 - Tỉ lệ BLOCKED tối đa: 
+- Soi bằng chứng — tỉ lệ bốc mẫu PASS: <!-- vd 30% (luôn soi mọi FAIL và nhóm ưu tiên) -->
 
 ## 7. Quyền đặc biệt
 <!-- "có" chỉ khi người dùng cho phép rõ ràng — trích nguyên văn vào DECISIONS. -->

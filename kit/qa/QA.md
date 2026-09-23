@@ -31,6 +31,7 @@
 <!-- local · dev · staging · production (cách ly) · môi trường riêng cho hiệu năng (nếu có) -->
 - Môi trường: 
 - Bản đang kiểm: 
+- Số tester song song / giới hạn worker (quy ước máy/đội): 
 
 ## Tài khoản & dữ liệu test
 <!-- KHÔNG ghi mật khẩu thật ở đây — ghi tên biến trong qa/.env (không commit). -->

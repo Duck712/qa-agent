@@ -7,7 +7,7 @@
 
 Không "mò vô định". Trước khi bắt đầu, xác định trong 1–2 câu:
 - **Charter**: đang thăm dò vùng nào? (vd "luồng thanh toán khi kết hợp mã giảm giá + đổi số lượng giữa chừng")
-- **Thời gian**: giới hạn (vd 30 phút), hết giờ dừng và ghi lại đã đi qua đâu.
+- **Thời gian**: do người dùng chốt (`qa-testcase-design/ky-thuat/kinh-nghiem.md` §3), hết giờ dừng và ghi lại đã đi qua đâu.
 - Ghi chú **ngay** khi thấy điều bất thường, kể cả chưa chắc là bug.
 
 Làm theo phiên có charter, ghi chép và debrief — chi tiết + các "tour": `qa-testcase-design/ky-thuat/kinh-nghiem.md` §3, khuôn `qa/runs/_EXPLORE-TEMPLATE.md`.

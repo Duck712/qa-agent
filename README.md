@@ -11,16 +11,16 @@ quy trình của đội và ghi lại ở `qa/QA.md` để phiên sau làm tiế
 
 ## Bốn điều luôn đúng
 
-Và một nguyên tắc bao trùm: **agent không tự ý làm thay người dùng** — không tự đặt tiêu chí đạt, mức rủi ro, ngưỡng,
-số lần chạy; không tự đổi trạng thái/severity bug, tự chạy lại hay hạ kết quả, tự cài công cụ, tự sửa repo sản phẩm.
-Kit không có con số mặc định: thiếu thì đề xuất và hỏi; chưa chốt tiêu chí thì kết luận là `CHƯA KẾT LUẬN`.
-
 | | |
 |---|---|
 | **Không bịa** | Mọi TC, kết luận, bug trỏ về nguồn: tài liệu, code, câu trả lời của người dùng, checklist, hoặc điều tự quan sát. Được đọc cả tài liệu lẫn code để phân tích và biết cách test; code lệch tài liệu → hỏi cái nào đúng |
 | **Chưa rõ thì hỏi** | Tài liệu mơ hồ, kết quả không rõ bug hay hiểu sai, bước TC không khớp sản phẩm, thiếu môi trường/tài khoản, muốn làm điều chưa được nhờ → **dừng và hỏi**, kèm điều đã thấy + các cách hiểu + đề xuất. Không tự suy diễn, không tự ý làm |
 | **Bằng chứng thật** | PASS/FAIL phải có `qa/evidence/<run>/<TC>/` đúng loại (ảnh + URL, response nguyên văn, stdout + exit code, transcript AI…). Không có → BLOCKED |
 | **An toàn môi trường** | Chỉ tài khoản/dữ liệu test mang prefix, không bắn thông báo tới người thật, không tiêu tiền thật, không chạm thẳng DB production, không load test trên môi trường dùng chung |
+
+Nguyên tắc bao trùm: **agent không tự ý làm thay người dùng** — không tự đặt tiêu chí đạt, mức rủi ro, ngưỡng,
+số lần chạy; không tự đổi trạng thái/severity bug ngoài các chuyển được phép ghi ở `qa/BUGS.md`, tự chạy lại hay hạ kết quả, tự cài công cụ, tự sửa repo sản phẩm.
+Kit không có con số mặc định: thiếu thì đề xuất và hỏi; chưa chốt tiêu chí thì kết luận là `CHƯA KẾT LUẬN`.
 
 ## Cài
 

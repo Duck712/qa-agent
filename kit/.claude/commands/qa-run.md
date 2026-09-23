@@ -12,7 +12,7 @@ Phạm vi: $ARGUMENTS
    `retest BUG-…` = TC tái hiện ghi ở trường `TC:` của bug (bug từ khám phá chưa có TC → viết TC tái hiện với
    `Nguồn: BUG-…`, người dùng duyệt, rồi mới retest) ·
    `explore` = không có TC, phiên theo khuôn `qa/runs/_EXPLORE-TEMPLATE.md` (charter, thời lượng, ghi chép, debrief —
-   `qa-testcase-design/ky-thuat/kinh-nghiem.md` §3), mỗi phát hiện một dòng `EXPLORE-<n>` ·
+   `qa-testcase-design/ky-thuat/kinh-nghiem.md` §3), mỗi **phiên** một dòng `EXPLORE-<n>` (phát hiện liệt kê trong `ghi-chep.md` của phiên) ·
    `regression` chọn theo phân tích ảnh hưởng (`qa-knowledge/analysis-review.md` §8) chứ không chỉ theo tag.
    Trình danh sách + môi trường + tài khoản sẽ dùng → **người dùng xác nhận** rồi mới chạy
    (trừ khi họ đã nói rõ phạm vi và "chạy luôn").
@@ -20,16 +20,16 @@ Phạm vi: $ARGUMENTS
    với mọi dòng `CHƯA CHẠY`; script chép tiêu chí đạt từ SCOPE §6 vào đầu RUNLOG (đóng băng cho run này — không sửa
    sau khi đã chạy). Điền bản đang kiểm, môi trường. SCOPE §6 còn trống → **không tự điền**: nếu người dùng
    đã nhờ chạy ngay thì chạy để thu bằng chứng (run ra `CHƯA KẾT LUẬN`), đề xuất tiêu chí và hỏi khi báo kết quả; nếu
-   chưa nhờ chạy ngay thì hỏi tiêu chí trước. Tiêu chí chốt sau khi đã chạy → làm theo skill `qa` §2 (hậu tố
-   `(chốt sau khi chạy — DECISIONS #n)`, hoặc tạo run mới chạy lại — người dùng chọn). Trước run `all`/`reg`:
+   chưa nhờ chạy ngay thì hỏi tiêu chí trước. Tiêu chí chốt sau khi đã chạy → làm theo skill `qa` §2 (sửa dòng tiêu đề
+   khối thành `- Tiêu chí (chốt sau khi chạy — DECISIONS #n; …):`, hoặc tạo run mới chạy lại — người dùng chọn). Trước run `all`/`reg`:
    `python3 .claude/qa-scripts/qa_check.py tc --strict` phải sạch. Cần dữ liệu test → seed theo skill `qa` §7 và ghi Nhật ký.
 4. **Kiểm môi trường sống** trước (URL trả lời, đăng nhập được, build đúng bản, lệnh chạy được). Chết/lệch → dừng,
    báo người dùng, hỏi chờ hay đánh `BLOCKED`.
-5. **Chạy**: ≤ 5 TC **và** một target → tự làm. TC `Loại: cross-target` hoặc workflow xuyên target → phiên chính tự
+5. **Chạy**: việc nhỏ (vài TC trên một target — người dùng thấy tự làm được) → tự làm. TC `Loại: cross-target` hoặc workflow xuyên target → phiên chính tự
    chạy, hoặc giao **một** qa-tester đủ các target (mỗi target một cách vào trong prompt) — không tách hai nửa.
    Bản đang kiểm đổi giữa run (dev deploy lại) → dừng, hỏi người dùng: chạy lại TC đã xong trên bản mới hay mở run mới;
    TC đã chạy trên bản cũ ghi bản vào cột Lý do và Nhật ký. Nhiều hơn → chia nhóm theo target × góc nhìn, spawn `qa-tester`
-   (≤ 3 song song; mobile/desktop native tuần tự; nhóm phá-đầu-vào/phân-quyền/bảo-mật chạy cuối, dọn dữ liệu sau).
+   (số tester song song theo `QA.md §Môi trường` — chưa có thì hỏi; mobile/desktop native tuần tự; nhóm phá-đầu-vào/phân-quyền/bảo-mật chạy cuối, dọn dữ liệu sau).
    Bảo mật → `qa-security`, chỉ khi SCOPE §7 cho phép (kết quả `INCONCLUSIVE` ghi RUNLOG thành
    `BLOCKED (inconclusive: …)` + câu hỏi). Mỗi prompt tester gửi đủ: target + loại + cách vào, góc nhìn, TC-ID + file,
    run-id, **đường dẫn tuyệt đối** thư mục bằng chứng `qa/evidence/<run-id>/`, tài khoản, prefix, môi trường.

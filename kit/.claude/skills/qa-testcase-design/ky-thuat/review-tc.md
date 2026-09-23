@@ -1,7 +1,7 @@
 # Review bộ test case · ma trận truy vết
 
 ## 1. Ba lớp review
-1. **Hình thức** — `python3 .claude/qa-scripts/qa_check.py tc`: trường bắt buộc, ID, normal+abnormal mỗi REQ, kỳ vọng mơ hồ, R1 < 2 kỹ thuật.
+1. **Hình thức** — `python3 .claude/qa-scripts/qa_check.py tc`: trường bắt buộc, ID, normal+abnormal mỗi REQ, kỳ vọng mơ hồ, REQ R1 có kỹ thuật thuộc < 2 họ.
 2. **Truy vết** — `python3 .claude/qa-scripts/qa_check.py trace` (thêm `--write` để ghi `qa/TRACE.md`): REQ × TC normal/abnormal × kỹ thuật × kết quả run gần nhất × bug. Đọc cột trống.
 3. **Nội dung** — checklist §2, do người review (agent hoặc tester) đọc từng TC.
 

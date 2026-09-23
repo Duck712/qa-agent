@@ -10,6 +10,7 @@ S=qa/sandbox/$RUN/consumer; mkdir -p $S && cd $S
 # Python: python3 -m venv .venv && .venv/bin/pip install <goi>==<version>
 # Java:   pom/gradle tối thiểu phụ thuộc <group:artifact:version>
 ```
+Cài chính gói đang kiểm vào sandbox là bản thân phép test; cài thêm công cụ khác (test runner, type checker…) → hỏi.
 Mỗi TC một file ví dụ (`tc-xxx-001.mjs` / `.py`) viết theo **tài liệu công khai** — tài liệu nói gì, dùng đúng thế.
 
 ## Công thức
@@ -17,7 +18,7 @@ Mỗi TC một file ví dụ (`tc-xxx-001.mjs` / `.py`) viết theo **tài liệ
 - **API công khai**: mỗi hàm/lớp trong tài liệu chạy đúng ví dụ tài liệu (ví dụ trong README chạy được là TC rẻ nhất).
 - **Lỗi**: đầu vào sai → ném lỗi đúng loại, thông điệp rõ; không nuốt lỗi; không `process.exit`/`sys.exit` trong thư viện.
 - **Biên**: null/undefined/None, chuỗi rỗng, số rất lớn, unicode, danh sách rỗng, đầu vào rất lớn.
-- **Tương thích**: các runtime/version trong phạm vi (Node 18/20/22, Python 3.9–3.13) · nâng từ version trước theo changelog, có breaking change không khai.
+- **Tương thích**: các runtime/version trong phạm vi (theo phạm vi đã chốt, vd Node 18/20/22, Python 3.9–3.13) · nâng từ version trước theo changelog, có breaking change không khai.
 - **Đồng thời / tài nguyên**: gọi song song, dùng lại client, đóng kết nối, rò bộ nhớ trong vòng lặp dài (đo thô).
 - **SDK gọi dịch vụ**: timeout, retry, lỗi mạng, xác thực sai, phân trang — kết hợp công thức `api.md`.
 - **Bảo mật cơ bản** (khi được phép): `npm audit` / `pip-audit` trên consumer, secret không bị log.

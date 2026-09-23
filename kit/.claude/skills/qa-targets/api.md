@@ -29,8 +29,8 @@ endpoint, method, middleware quyền) — endpoint có trong code mà không có
   bên ngoài cần gọi tới được URL công khai → **hỏi** người dùng (tunnel, hoặc dùng log webhook của cổng/staging); không
   tự dựng tunnel hay mở cổng máy dùng chung ra ngoài.
 - **Tương thích**: gọi version cũ (`/v1`) và client cũ; so với bề mặt API ghi lần trước (lưu `qa/API-SURFACE.md` nếu đội cần theo dõi).
-- **Rate limit**: tối đa 20 lời gọi, giãn cách; thấy 429 là xác nhận có chặn, dừng.
-- **Hiệu năng**: `-w '%{time_total}'` lặp n ≤ 20, giãn ≥ 1s, báo median + max kèm n (không gọi là p95 khi n < 20); ngưỡng do tài liệu/người dùng cho.
+- **Rate limit**: số lời gọi vừa đủ vượt ngưỡng tài liệu nêu (không nêu → hỏi; vượt trần an toàn `qa-targets` §3 mục 4 → hỏi), thấy 429 là xác nhận có chặn, dừng.
+- **Hiệu năng**: `-w '%{time_total}'` lặp theo nhịp đã chốt (`qa-targets` §3 mục 4), báo median + max kèm n; ngưỡng do tài liệu/người dùng cho.
 
 ## Bằng chứng tối thiểu
 Request (method, URL, header đã che, body) + response nguyên văn (mã + header + body) + thời điểm.

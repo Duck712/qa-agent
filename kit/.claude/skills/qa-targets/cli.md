@@ -24,7 +24,7 @@ cp $S/out.json $D/01-out.json 2>/dev/null
   `python3 -c "import subprocess,signal,time,sys; p=subprocess.Popen(sys.argv[1:]); time.sleep(2); p.send_signal(signal.SIGINT); print('exit', p.wait())" tool convert big.csv --out out.json`
   → không để file dở/khoá treo, chạy lại được.
 - **Cài đặt**: cài sạch, nâng cấp từ bản cũ, gỡ; chạy trên shell/OS khác nếu trong phạm vi.
-- **Hiệu năng**: `/usr/bin/time -l` (macOS) / `-v` (Linux) với 3 kích thước đầu vào.
+- **Hiệu năng**: `/usr/bin/time -l` (macOS) / `-v` (Linux) với vài kích thước đầu vào (số lượng đề xuất và hỏi).
 
 ## Bằng chứng tối thiểu
 Lệnh nguyên văn + stdout + stderr + exit code + file output (hoặc checksum nếu lớn) + version tool (`tool --version`).

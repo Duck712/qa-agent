@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """guard_readonly.py — hook PreToolUse: không ghi vào các đường dẫn khai ở `qa/QA.md §Nguồn chỉ đọc`.
 
-Dòng `- Chỉ đọc: src, docs, ../product-repo` (phân tách bằng `,` hoặc `;`; chú thích trong ngoặc được bỏ; tương đối so
-với thư mục dự án). Chặn Write/Edit/MultiEdit/NotebookEdit có file_path trong đó, và lệnh Bash có dấu hiệu ghi vào đó:
-chuyển hướng, tee, sed/perl -i, rm/mv/touch/…, cp/rsync/install (cả -t/--target-directory), dd of=, curl -o, wget -O,
-unzip -d, tar -x -C, find -delete/-exec, xargs với lệnh ghi, git ghi (cả -C, -c, --work-tree, đường dẫn sau --),
-`bash -c "…"`, `python -c` mở file để ghi, biến gán trước trong cùng lệnh. Tách lệnh theo ; && || | xuống dòng nằm
-ngoài dấu nháy. Đọc thuần, cp LẤY từ đó, git chỉ liệt kê đi qua. Thư mục qa/ LUÔN ghi được.
+Dòng `- Chỉ đọc: src, docs, ../product-repo` (phân tách `,` hoặc `;`; chú thích trong ngoặc được bỏ; tương đối so với
+thư mục dự án). Chặn Write/Edit/MultiEdit/NotebookEdit có file_path trong đó, và lệnh Bash có dấu hiệu ghi vào đó:
+chuyển hướng, tee, sed/perl -i (cả cờ gộp), rm/mv/touch/…, cp/rsync/install (-t, --target-directory), dd of=,
+curl -o/--output, wget -O, unzip -d, tar -x -C, find -delete/-exec, xargs với lệnh ghi, git làm đổi cây thư mục (cả
+-C, -c, --work-tree, pathspec, chạy ở gốc repo khi thư mục chỉ đọc nằm bên trong), `bash -c`/`sh -lc`, `python -c` mở
+file để ghi, `$(…)`/`…`, biến gán/export trước, glob. Tiền tố env/sudo/timeout/nice/nohup, từ khoá do/then/!, lệnh nền
+`&`, thân heredoc (bỏ qua — là dữ liệu). Đọc thuần, cp LẤY từ đó, git chỉ liệt kê đi qua. Thư mục qa/ LUÔN ghi được.
 
-Giới hạn đã biết (không bắt được — luật trong skill qa vẫn áp): lệnh sinh động phức tạp (eval, script ngoài tự ghi),
-đường dẫn tính lúc chạy (`$(pwd)`, `cd -`). Người dùng nhờ ghi thật → họ gỡ đường dẫn khỏi dòng `Chỉ đọc:`.
-Fail-open khi thiếu dữ liệu. Exit 0 cho qua · 2 chặn.
+Giới hạn đã biết (hàng rào phụ — luật trong skill qa vẫn áp): eval, script ngoài tự ghi, thân `python - <<EOF`,
+vòng lặp dùng biến chạy lúc thực thi, đường dẫn tính lúc chạy (`$(pwd)`). Người dùng nhờ ghi thật → gỡ đường dẫn
+khỏi dòng `Chỉ đọc:`. Fail-open khi thiếu dữ liệu. Exit 0 cho qua · 2 chặn.
 """
 from __future__ import annotations
 
+import glob
 import json
 import re
 import sys
@@ -46,34 +48,63 @@ def protected() -> list[Path]:
     for m in re.finditer(r"^[ \t]*-[ \t]*\*{0,2}Chỉ đọc\*{0,2}[ \t]*:\*{0,2}[ \t]*(.+)$", text, re.M):
         for part in re.split(r"[,;]", re.sub(r"\([^()]*\)", "", m.group(1))):
             s = part.strip().strip("`*").strip()
-            if not s:
-                continue
-            p = Path(s).expanduser()
-            out.append((p if p.is_absolute() else ROOT / p).resolve())
+            if s:
+                p = Path(s).expanduser()
+                out.append((p if p.is_absolute() else ROOT / p).resolve())
     return out
 
 
-def hit(path: str, roots: list[Path], cwd: Path, env: dict) -> Path | None:
-    raw = expand(path.strip("\"'").lstrip("|"), env)
+def resolve(path: str, cwd: Path, env: dict) -> list[Path]:
+    raw = expand(path.strip("\"'"), env)
     if not raw or "$" in raw:
-        return None
+        return []
+    base = raw if Path(raw).is_absolute() else str(cwd / raw)
+    if re.search(r"[*?\[]", raw):                       # glob: xét các file khớp + phần thư mục cố định phía trước
+        found = [Path(x) for x in glob.glob(base)]
+        fixed = re.split(r"[*?\[]", base)[0]
+        return [p.resolve() for p in found] + ([Path(fixed).resolve()] if fixed else [])
     try:
-        p = Path(raw)
-        p = (p if p.is_absolute() else cwd / p).resolve()
+        return [Path(base).resolve()]
     except (OSError, ValueError):
-        return None
-    if under(p, QA_DIR):
-        return None
-    for r in roots:
-        if under(p, r):
-            return r
+        return []
+
+
+def hit(path: str, roots: list[Path], cwd: Path, env: dict, ancestor: bool = False) -> Path | None:
+    """Đường dẫn nằm trong vùng chỉ đọc? ancestor=True: cả khi vùng chỉ đọc nằm BÊN TRONG đường dẫn (rm -r ., find .)."""
+    for p in resolve(path, cwd, env):
+        if under(p, QA_DIR) and not ancestor:
+            continue
+        for r in roots:
+            if under(p, r) or (ancestor and under(r, p) and not under(p, QA_DIR)):
+                return r
     return None
 
 
 WRITE_CMDS = {"rm", "rmdir", "mv", "touch", "mkdir", "truncate", "chmod", "chown", "ln", "unlink", "shred"}
-GIT_WRITE = {"commit", "checkout", "switch", "reset", "restore", "clean", "merge", "rebase", "pull", "apply", "add",
-             "rm", "mv", "cherry-pick", "revert", "am", "push", "init", "gc", "stash", "branch", "tag", "worktree"}
-PY_WRITE = re.compile(r"""open\(\s*['"]([^'"]+)['"]\s*,\s*['"][wax+]""")
+PREFIX = {"env", "command", "sudo", "time", "nohup", "exec", "nice", "timeout", "stdbuf", "ionice", "caffeinate"}
+GIT_TREE = {"checkout", "switch", "reset", "restore", "clean", "merge", "rebase", "pull", "apply", "am", "stash",
+            "cherry-pick", "revert", "rm", "mv"}
+GIT_META = {"commit", "add", "push", "tag", "branch", "worktree", "init", "gc", "config"}
+PY_WRITE = re.compile(r"""open\(\s*['"]([^'"]+)['"]\s*,\s*['"][wax+]|Path\(\s*['"]([^'"]+)['"]\s*\)\.write_(?:text|bytes)""")
+
+
+def short_flag(tok: str, letter: str) -> bool:
+    return bool(re.fullmatch(rf"-[A-Za-z]*{letter}[A-Za-z]*", tok))
+
+
+def opt_value(rest: list[str], shorts: str, longs: tuple[str, ...]) -> list[str]:
+    """Giá trị của cờ: `-o x`, cờ gộp `-sSo x`, `--output x`, `--output=x`."""
+    vals = []
+    for k, a in enumerate(rest):
+        if a.startswith("--"):
+            for lg in longs:
+                if a == lg and k + 1 < len(rest):
+                    vals.append(rest[k + 1])
+                elif a.startswith(lg + "="):
+                    vals.append(a.split("=", 1)[1])
+        elif re.fullmatch(r"-[A-Za-z]+", a) and a[-1] in shorts and k + 1 < len(rest):
+            vals.append(rest[k + 1])
+    return vals
 
 
 def git_hit(rest: list[str], roots, cwd, env) -> Path | None:
@@ -81,8 +112,8 @@ def git_hit(rest: list[str], roots, cwd, env) -> Path | None:
     while i < len(rest):
         t = rest[i]
         if t in ("-C", "--work-tree", "--git-dir") and i + 1 < len(rest):
-            gdir = Path(expand(rest[i + 1], env))
-            gdir = (gdir if gdir.is_absolute() else cwd / gdir).resolve()
+            v = Path(expand(rest[i + 1], env))
+            gdir = (v if v.is_absolute() else cwd / v).resolve()
             i += 2
             continue
         if t.startswith(("--work-tree=", "--git-dir=")):
@@ -101,93 +132,143 @@ def git_hit(rest: list[str], roots, cwd, env) -> Path | None:
         else:
             sub_args.append(t)
         i += 1
-    if sub not in GIT_WRITE:
-        return None
     pos = [a for a in sub_args if not a.startswith("-")]
-    listing = {
-        "branch": not pos or any(a in ("-l", "--list", "-a", "-r", "--show-current", "-v", "-vv", "--contains", "--merged")
-                                  for a in sub_args),
-        "tag": not pos or any(a in ("-l", "--list", "-n") for a in sub_args),
+    read_only = {
+        "branch": not pos or any(a in ("-l", "--list", "-a", "-r", "--show-current", "-v", "-vv", "--contains",
+                                        "--merged", "--no-merged", "--points-at", "--sort", "--format") for a in sub_args),
+        "tag": not pos or any(a in ("-l", "--list", "-n", "--contains", "--points-at", "--merged", "--sort") for a in sub_args),
         "stash": bool(sub_args) and sub_args[0] in ("list", "show"),
         "worktree": bool(sub_args) and sub_args[0] == "list",
-        "clean": any(a in ("-n", "--dry-run") for a in sub_args),
+        "clean": any(a in ("--dry-run",) or short_flag(a, "n") for a in sub_args),
+        "config": any(a in ("--get", "--list", "-l", "--get-all", "--get-regexp") for a in sub_args) or len(pos) <= 1,
     }
-    if listing.get(sub):
+    if sub not in GIT_TREE | GIT_META or read_only.get(sub):
         return None
-    if "--" in sub_args:                      # git checkout -- src/a.js
-        for p in sub_args[sub_args.index("--") + 1:]:
-            r = hit(p, roots, cwd, env)
-            if r:
-                return r
-    return hit(str(gdir), roots, cwd, env)
+    if "--" in sub_args:                                   # git checkout -- src/a.js
+        paths = sub_args[sub_args.index("--") + 1:]
+    elif sub in ("restore", "rm", "mv"):
+        paths = pos                                         # checkout/switch không có `--` = đổi nhánh → cả cây
+    else:
+        paths = []
+    for p in paths:
+        r = hit(p, roots, gdir, env, ancestor=True)
+        if r:
+            return r
+    r = hit(str(gdir), roots, cwd, env)
+    if r:
+        return r
+    if sub in GIT_TREE and not paths:                      # chạy ở gốc repo, không pathspec → đổi cả cây, gồm vùng chỉ đọc
+        return hit(str(gdir), roots, cwd, env, ancestor=True)
+    return None
 
 
 def check_bash(cmd: str, roots: list[Path], depth: int = 0) -> Path | None:
-    cwd = Path.cwd()
+    cwd0 = Path.cwd()
+    cwd = cwd0
     env: dict = {}
+    prev: list[str] = []
     for seg in split_commands(cmd):
         toks = tokens(seg)
         for i, t in enumerate(toks):
-            if is_redir(t) and i + 1 < len(toks):
+            if is_redir(t) and i + 1 < len(toks) and toks[i + 1] != "/dev/null":
                 r = hit(toks[i + 1], roots, cwd, env)
                 if r:
                     return r
         toks = [t for j, t in enumerate(toks) if not is_redir(t) and not (j > 0 and is_redir(toks[j - 1]))]
+        if toks and toks[0] in ("export", "declare", "local", "readonly"):
+            toks = toks[1:]
         while toks and re.match(r"^\w+=", toks[0]):
             k, v = toks[0].split("=", 1)
             env[k] = expand(v, env)
             toks = toks[1:]
-        while toks and toks[0] in ("env", "command", "sudo", "time", "nohup", "exec"):
+        while toks and Path(toks[0]).name in PREFIX:
+            head0 = Path(toks[0]).name
             toks = toks[1:]
+            while toks and (toks[0].startswith("-") or re.match(r"^\w+=", toks[0])
+                            or (head0 == "timeout" and re.fullmatch(r"\d+[smhd]?", toks[0]))):
+                if head0 == "sudo" and toks[0] in ("-u", "-g") and len(toks) > 1:
+                    toks = toks[1:]
+                if head0 == "nice" and toks[0] == "-n" and len(toks) > 1:
+                    toks = toks[1:]
+                toks = toks[1:]
         if not toks:
+            prev = []
             continue
         head, rest = Path(toks[0]).name, toks[1:]
         args = [a for a in rest if not a.startswith("-")]
         if head in ("cd", "pushd") and args:
             nxt = Path(expand(args[0], env))
             cwd = (nxt if nxt.is_absolute() else cwd / nxt).resolve()
+            prev = toks
             continue
-        if head in ("bash", "sh", "zsh") and "-c" in rest and rest.index("-c") + 1 < len(rest) and depth < 3:
-            r = check_bash(rest[rest.index("-c") + 1], roots, depth + 1)
-            if r:
-                return r
+        if head == "popd" or (head == "cd" and not args):
+            cwd = cwd0
             continue
+        if head in ("bash", "sh", "zsh", "dash") and depth < 3:
+            ci = [k for k, a in enumerate(rest) if re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", a)]
+            if ci and ci[0] + 1 < len(rest):
+                r = check_bash(rest[ci[0] + 1], roots, depth + 1)
+                if r:
+                    return r
+                continue
         if head == "git":
             r = git_hit(rest, roots, cwd, env)
             if r:
                 return r
+            prev = toks
             continue
         targets: list[str] = []
-        if head in ("tee",) or head in WRITE_CMDS:
+        anc: list[str] = []
+        if head == "tee":
             targets = args
+        elif head in WRITE_CMDS:
+            targets = args
+            if head in ("rm", "chmod", "chown") and any(short_flag(a, "r") or short_flag(a, "R") or a == "--recursive" for a in rest):
+                anc = args
         elif head in ("cp", "rsync", "install", "ditto"):
-            tdir = [rest[k + 1] for k, a in enumerate(rest) if a == "-t" and k + 1 < len(rest)]
-            tdir += [a.split("=", 1)[1] for a in rest if a.startswith("--target-directory=")]
+            tdir = opt_value(rest, "t", ("--target-directory",))
             targets = tdir or args[-1:]
-        elif head in ("sed", "perl") and any(t.startswith("-i") for t in rest):
-            targets = [a for a in args if "/" in a or "." in a][-1:] if head == "sed" else args
+        elif head == "sed" and any(a.startswith("--in-place") or short_flag(a, "i") or re.fullmatch(r"-[A-Za-z]*i\S*", a) for a in rest):
+            has_e = any(a in ("-e", "--expression") or short_flag(a, "e") or a == "-f" for a in rest)
+            files = args if has_e else args[1:]
+            targets = [a for a in files if a not in ("''", '""', "")]
+        elif head == "perl" and any(re.fullmatch(r"-[A-Za-z]*i\S*", a) for a in rest):
+            targets = args[1:] if any(short_flag(a, "e") for a in rest) else args
         elif head == "dd":
             targets = [a[3:] for a in rest if a.startswith("of=")]
         elif head == "curl":
-            targets = [rest[k + 1] for k, a in enumerate(rest) if a in ("-o", "--output") and k + 1 < len(rest)]
+            targets = opt_value(rest, "o", ("--output",))
         elif head == "wget":
-            targets = [rest[k + 1] for k, a in enumerate(rest) if a in ("-O", "-P") and k + 1 < len(rest)]
+            targets = opt_value(rest, "OP", ("--output-document", "--directory-prefix"))
         elif head == "unzip":
-            targets = [rest[k + 1] for k, a in enumerate(rest) if a == "-d" and k + 1 < len(rest)]
-        elif head == "tar" and any("x" in a.lstrip("-") for a in rest[:1]) or (head == "tar" and "-x" in rest):
-            targets = [rest[k + 1] for k, a in enumerate(rest) if a in ("-C", "--directory") and k + 1 < len(rest)]
-            targets = targets or ["."]
-        elif head == "find" and any(a in ("-delete", "-exec", "-execdir", "-ok") for a in rest):
-            dangerous = "-delete" in rest or any(x in rest for x in ("rm", "mv", "sed", "truncate", "shred"))
-            targets = [a for a in rest if not a.startswith("-") and a not in ("{}", ";", "+")][:1] if dangerous else []
-        elif head == "xargs" and any(Path(a).name in WRITE_CMDS | {"sed", "tee", "cp", "mv"} for a in rest):
-            targets = [t for s in split_commands(cmd) for t in tokens(s)]      # đích đến từ stdin → xét mọi token của lệnh
-        elif head.startswith("python") and "-c" in rest and rest.index("-c") + 1 < len(rest):
-            targets = PY_WRITE.findall(rest[rest.index("-c") + 1])
+            targets = opt_value(rest, "d", ())
+        elif head == "tar" and (any(short_flag(a, "x") or a == "--extract" for a in rest) or (rest and re.fullmatch(r"[a-z]*x[a-z]*", rest[0]))):
+            targets = opt_value(rest, "C", ("--directory",)) or ["."]
+        elif head == "find" and ("-delete" in rest or any(x in rest for x in ("rm", "mv", "shred", "truncate"))
+                                 or any(a in ("-exec", "-execdir") and k + 1 < len(rest) and rest[k + 1] in ("sed", "perl")
+                                        for k, a in enumerate(rest))):
+            anc = [a for a in rest if not a.startswith("-") and a not in ("{}", ";", "+")][:1] or ["."]
+        elif head == "xargs":
+            sub = [a for a in rest if not a.startswith("-") and a != "{}"]
+            wcmd = Path(sub[0]).name if sub else ""
+            if wcmd in ("cp", "mv", "rsync", "install"):
+                targets = sub[-1:]
+            elif wcmd in WRITE_CMDS | {"sed", "tee", "perl", "truncate"}:
+                targets = [t for t in prev[1:] if not t.startswith("-")]      # đích đến từ lệnh trước trong pipe
+                anc = targets if wcmd == "rm" else []
+        elif head.startswith("python") and rest:
+            ci = [k for k, a in enumerate(rest) if a == "-c"]
+            if ci and ci[0] + 1 < len(rest):
+                targets = [a or b for a, b in PY_WRITE.findall(rest[ci[0] + 1])]
         for t in targets:
             r = hit(t, roots, cwd, env)
             if r:
                 return r
+        for t in anc:
+            r = hit(t, roots, cwd, env, ancestor=True)
+            if r:
+                return r
+        prev = toks
     return None
 
 

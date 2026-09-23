@@ -30,6 +30,8 @@ ROOT = project_root()
 QA_DIR = ROOT / "qa"
 EVIDENCE = QA_DIR / "evidence"
 PATH_KEYS = ("filename", "path", "saveTo", "output", "outputPath", "file")
+EMIT = {"cat", "base64", "xxd", "od", "head", "tail", "dd", "openssl", "gzip", "bzip2", "xz", "zstd", "tar", "zip", "cpio"}
+CONVERT = {"ffmpeg", "convert", "magick", "sips", "pngquant", "cwebp", "gifsicle"}
 HOW = ("Bằng chứng phải nằm trong qa/evidence/:\n"
        "  · khai đường dẫn TUYỆT ĐỐI dưới qa/evidence/<run-id>/<TC-ID>/ (cách nên dùng — không lẫn với tester khác)\n"
        "  · hoặc bỏ tham số đường dẫn để MCP dùng --output-dir (qa/evidence/_inbox/<vai>/)\n"
@@ -92,8 +94,14 @@ def check_bash(command: str) -> tuple[bool, str]:
             cwd = resolve(args[0], cwd, env)
             continue
         plain = [a for a in args if not a.startswith("-")]
-        ev_args = [a for a in plain if inside(resolve(a, cwd, env), EVIDENCE)]
-        dests: list[str] = list(redirs) if ev_args else []
+        base = cwd
+        if head == "tar":                                    # tar -C qa -czf /tmp/x evidence → nguồn tính từ -C
+            cs = [args[k + 1] for k, a in enumerate(args) if a in ("-C", "--directory") and k + 1 < len(args)]
+            if cs:
+                base = resolve(cs[0], cwd, env)
+        ev_args = [a for a in plain if inside(resolve(a, base, env), EVIDENCE)]
+        real_redirs = [r for r in redirs if r not in ("/dev/null", "/dev/stderr", "/dev/stdout")]
+        dests: list[str] = list(real_redirs) if ev_args and head in EMIT else []   # ls/find/file > … chỉ là danh sách tên
         if head in ("cp", "mv", "rsync", "ditto", "install", "scp") and len(plain) >= 2:
             tdir = [args[k + 1] for k, a in enumerate(args) if a == "-t" and k + 1 < len(args)]
             dest = tdir[0] if tdir else plain[-1]
@@ -104,13 +112,17 @@ def check_bash(command: str) -> tuple[bool, str]:
             dests += [args[k + 1] for k, a in enumerate(args) if (a == "-f" or re.fullmatch(r"-?[a-z]*f", a)) and k + 1 < len(args)]
         elif head == "zip" and ev_args and plain:
             dests.append(plain[0])
+        elif head in CONVERT and ev_args and plain:
+            dests.append(plain[-1])
         for d in dests:
             if out_of_qa(d, cwd, env):
                 return False, f"chép/nén bằng chứng ({ev_args[0] if ev_args else ''}) ra ngoài qa/ ({d})"
         shot = head == "screencapture" or (head == "xcrun" and ("screenshot" in args or "recordVideo" in args)) \
             or (head == "adb" and "shell" not in args and any("screencap" in a or "screenrecord" in a for a in args))
         if shot:
-            outs = [a for a in plain if re.search(r"\.(png|jpe?g|mp4|mov|gif|webm)$", a, re.I)] + redirs
+            outs = [a for a in plain if re.search(r"\.(png|jpe?g|mp4|mov|gif|webm)$", a, re.I)] + real_redirs
+            if head == "xcrun" and plain and plain[-1] not in ("screenshot", "recordVideo", "booted"):
+                outs.append(plain[-1])                     # simctl io booted screenshot /tmp/a (không đuôi)
             for o in outs:
                 if out_of_qa(o, cwd, env):
                     return False, f"lệnh chụp/quay màn hình ghi ra {o} (ngoài qa/)"
@@ -118,7 +130,9 @@ def check_bash(command: str) -> tuple[bool, str]:
 
 
 def check_code(code: str) -> tuple[bool, str]:
-    for m in re.finditer(r"""\b(?:path|filename)\s*:\s*(['"`])([^'"`]+)\1""", code or ""):
+    pats = [r"""["']?\b(?:path|filename)["']?\s*:\s*(['"`])([^'"`]+)\1""",
+            r"""\.(?:saveAs|screenshot|pdf)\(\s*(['"`])([^'"`]+)\1"""]
+    for m in (m for pat in pats for m in re.finditer(pat, code or "")):
         raw = m.group(2).split("${", 1)[0]          # template string: xét phần cố định phía trước
         if not raw:
             continue

@@ -13,8 +13,9 @@ App cài từ **bản build được giao** (đường dẫn + version ở `QA.m
 `qa/automation/`, xdotool, pywinauto…) hoặc chưa được cấp quyền Accessibility/Screen Recording → BLOCKED + báo người
 dùng, không tự cài hay tự cấp quyền.
 
-**Electron — script mẫu** (`qa/automation/desktop-smoke.mjs`). Cài Playwright một lần trong `qa/automation/`
-(`cd qa/automation && npm init -y && npm i -D playwright@1`) rồi chạy
+**Electron — script mẫu** (`qa/automation/desktop-smoke.mjs`). Cần Playwright trong `qa/automation/`
+— chưa có → `BLOCKED`, đề xuất lệnh `cd qa/automation && npm init -y && npm i -D playwright@<version>` và hỏi; người
+dùng đồng ý (DECISIONS) mới cài — rồi chạy
 `APP_PATH=<binary của app> EVIDENCE=qa/evidence/<run>/<TC> node qa/automation/desktop-smoke.mjs`
 — trên macOS `APP_PATH` là binary bên trong bundle, vd `/Applications/TenApp.app/Contents/MacOS/TenApp`, không phải `TenApp.app`
 (`npm exec -p` không làm `import 'playwright'` trong script tìm thấy gói):

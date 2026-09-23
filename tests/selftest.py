@@ -175,7 +175,8 @@ def main() -> int:
     shutil.rmtree(proj / "qa/runs" / rid0)
     scope.write_text(scope.read_text().replace("- Bug mở không được phép: \n", "- Bug mở không được phép: S1, S2\n")
                      .replace("- Tỉ lệ PASS tối thiểu: \n", "- Tỉ lệ PASS tối thiểu: 95%\n")
-                     .replace("- Tỉ lệ BLOCKED tối đa: \n", "- Tỉ lệ BLOCKED tối đa: 5%\n"))
+                     .replace("- Tỉ lệ BLOCKED tối đa: \n", "- Tỉ lệ BLOCKED tối đa: 5%\n")
+                     .replace("- Trạng thái: NHÁP", "- Trạng thái: CHỐT"))
     r = qa(proj, "new-run", "full", "all")
     run_id = r.stdout.split("run-id: ")[1].split()[0] if "run-id: " in r.stdout else ""
     check(r.returncode == 0 and run_id, "new-run tạo run", r.stdout + r.stderr)
@@ -506,6 +507,118 @@ def main() -> int:
     (bad / ".claude/settings.json").write_text(json.dumps({"hooks": {"PreToolUse": {"x": 1}}}))
     r = run([sys.executable, str(REPO / "install.py"), str(bad)], tmp)
     check(r.returncode == 0 and "cấu trúc lạ" in r.stdout, "settings.json sai hình dạng → báo, không crash giữa chừng", r.stdout + r.stderr)
+
+    print("\n[13] review lần 4: release, SCOPE nháp, tiêu chí lệch khuôn, mức theo SCOPE, lượt AI, hook")
+    bugs0, sc0, qa0 = bugs.read_text(), scope.read_text(), (proj / "qa/QA.md").read_text()
+    chot = sc0.replace("- Trạng thái: NHÁP", "- Trạng thái: CHỐT")
+    scope.write_text(chot)
+    rid = mkrun([("tc-dk-001", "PASS", "")], good, listed=["TC-DK-001"], name="2099-02-01-full",
+                extra="")
+    r = qa(proj, "run", rid)
+    check("không có trong qa/testcases" not in r.stdout, "ID viết thường khớp đúng TC thật", r.stdout)
+    rid = mkrun([("TC-DK-001", "PASS", "")], good, name="2099-02-01-full")
+    lg = proj / "qa/runs" / rid / "RUNLOG.md"
+    lg.write_text(lg.read_text().replace("- Tiêu chí (test):", "- Scope lúc tạo run: NHÁP\n- Tiêu chí (test):"))
+    r = qa(proj, "run", rid)
+    check("CHƯA KẾT LUẬN" in r.stdout and "NHÁP" in r.stdout, "run tạo khi SCOPE còn NHÁP → không kết luận", r.stdout)
+    rid = mkrun([("TC-DK-001", "PASS", "")], good + "  - Tỉ lệ PASS tối thiểu (R1): 100%\n", name="2099-02-01-full")
+    r = qa(proj, "run", rid)
+    check("không đúng khuôn" in r.stdout and "CHƯA KẾT LUẬN" in r.stdout, "dòng tiêu chí lệch khuôn bị báo, không bỏ qua im lặng", r.stdout)
+    rid = mkrun([("TC-DK-001", "PASS", ""), ("TC-DK-002", "FAIL", "BUG-099")], good.replace("S1, S2", "S1") + "  - Tỉ lệ PASS tối thiểu R1: 100%\n",
+                name="2099-02-01-full")
+    bugs.write_text(bugs0 + "\n## BUG-099 — x\n- Severity: S3\n- Trạng thái: mở\n- TC: TC-DK-002\n")
+    t2 = tcf.read_text()
+    tcf.write_text(t2.replace("- Mức: R1", "- Mức: R3"))
+    r = qa(proj, "run", rid)
+    check("tỉ lệ PASS R1 50.0% < 100%" in r.stdout, "tỉ lệ theo mức tính theo mức SCOPE đã chốt, không theo trường Mức của TC", r.stdout)
+    tcf.write_text(t2); bugs.write_text(bugs0)
+    ev = proj / "qa/evidence" / rid / "TC-DK-001"
+    (ev / "buoc 1.png").write_text("x")
+    lg = proj / "qa/runs" / rid / "RUNLOG.md"
+    lg.write_text(lg.read_text().replace(f"| qa/evidence/{rid}/TC-DK-001/ |", f"| `qa/evidence/{rid}/TC-DK-001/buoc 1.png` |"))
+    r = qa(proj, "run", rid)
+    check("TC-DK-001: PASS nhưng" not in r.stdout, "tên file bằng chứng có dấu cách (trong backtick) được hiểu đúng", r.stdout)
+    shutil.rmtree(proj / "qa/runs" / rid, ignore_errors=True)
+    old = proj / "qa/SCOPE-dot1.md"
+    old.write_text("## 2. Trong phạm vi\n| REQ | Mô tả | Target | Mức | Loại |\n|---|---|---|---|---|\n| REQ-OLD-1 | cũ | web | R2 | x |\n")
+    (proj / "qa/testcases/cu.md").write_text(tc1.replace("TC-DK-001", "TC-OLD-001").replace("REQ-DK-1", "REQ-OLD-1").replace("- Tag: smoke\n", "")
+                                             .replace("- Mức: R1", "- Mức: R2"))
+    ids_all = [t for t in qa(proj, "select", "all").stdout.split("\n")[1:] if t.startswith("TC-")]
+    ra = mkrun([(t, "PASS", "") for t in ids_all], good, name="2099-03-01-full")
+    rg = mkrun([("TC-OLD-001", "FAIL", "BUG-098")], good, name="2099-03-02-reg")
+    bugs.write_text(bugs0 + "\n## BUG-098 — hồi quy\n- Severity: S3\n- Trạng thái: mở\n- TC: TC-OLD-001\n")
+    r = qa(proj, "release", ra, rg)
+    check("KẾT LUẬN PHÁT HÀNH: KHÔNG ĐẠT" in r.stdout and f"{len(ids_all) + 1} TC" in r.stdout,
+          "release tính cả TC regression của REQ cũ (FAIL làm tụt tỉ lệ)", r.stdout)
+    lg = proj / "qa/runs" / ra / "RUNLOG.md"
+    lg.write_text(lg.read_text().replace("Tỉ lệ PASS tối thiểu: 95%", "Tỉ lệ PASS tối thiểu: 100%"))
+    r = qa(proj, "release", ra, rg)
+    check("khác SCOPE hiện tại" in r.stdout, "release báo khi tiêu chí đóng băng trong RUNLOG khác SCOPE", r.stdout)
+    for n in (ra, rg):
+        shutil.rmtree(proj / "qa/runs" / n, ignore_errors=True)
+    old.unlink(); (proj / "qa/testcases/cu.md").unlink(); bugs.write_text(bugs0)
+    rs = mkrun([("TC-DK-001", "PASS", "")], good, name="2099-04-01-smoke")
+    r = qa(proj, "run", rs)
+    check("chỉ trong phạm vi run này" in r.stdout, "run chỉ phủ một phần SCOPE → ĐẠT kèm \"chỉ trong phạm vi run\"", r.stdout)
+    shutil.rmtree(proj / "qa/runs" / rs, ignore_errors=True)
+    (proj / "qa/QA.md").write_text(qa0.replace("| | | | |\n\n## Môi trường", "| bot | ai | https://x | |\n\n## Môi trường", 1))
+    ai_tc = proj / "qa/testcases/bot.md"
+    ai_tc.write_text(tc1.replace("TC-DK-001", "TC-BOT-001").replace("- Target: web", "- Target: bot"))
+    ra = mkrun([("TC-BOT-001", "PASS", "")], good + "  - Test AI — N mỗi ca: 3\n", name="2099-05-01-full")
+    e = proj / "qa/evidence" / ra / "TC-BOT-001"
+    (e / "01-luot-1.txt").write_text("x"); (e / "01-luot-1.png").write_text("x"); (e / "cham-cac-luot.md").write_text("x")
+    r = qa(proj, "run", ra)
+    check("cần 3 lượt, bằng chứng mới có 1" in r.stdout, "đếm lượt AI theo số k khác nhau của transcript, không đếm ảnh/file chấm", r.stdout)
+    (e / "02-lượt-2.md").write_text("x"); (e / "03-LUOT-3.txt").write_text("x")
+    r = qa(proj, "run", ra)
+    check("TC AI cần" not in r.stdout, "nhận cả `lượt`/`LUOT` khi đủ N", r.stdout)
+    shutil.rmtree(proj / "qa/runs" / ra, ignore_errors=True); ai_tc.unlink(); (proj / "qa/QA.md").write_text(qa0)
+    ph = proj / "qa/testcases/ph.md"
+    ph.write_text(tc1.replace("TC-DK-001", "TC-PH-001").replace("Ô email nhận giá trị", "Hiện chữ đậm <b>OK</b>, tổng < 100 và > 0"))
+    r = qa(proj, "tc", "ph")
+    check("chỗ trống" not in r.stdout, "không báo nhầm <b> hay \"< 100 và >\" là chỗ trống", r.stdout)
+    ph.unlink()
+    r = qa(proj, "tc", "khong-co-tinh-nang")
+    check(r.returncode == 1 and "không phải REQ" in r.stdout, "tc với phạm vi gõ sai → báo lỗi, không \"sạch\"", r.stdout)
+    scope.write_text(sc0)
+    bad2 = tmp / "bad-shape2"; (bad2 / ".claude").mkdir(parents=True)
+    (bad2 / ".claude/settings.json").write_text(json.dumps({"hooks": {"PreToolUse": ["echo x"]}}))
+    r = run([sys.executable, str(REPO / "install.py"), str(bad2)], tmp)
+    check(r.returncode == 0 and "cấu trúc lạ" in r.stdout, "PreToolUse chứa chuỗi → báo, không crash", r.stdout + r.stderr)
+    mx3 = proj / "qa/mx3.md"
+    mx3.write_text("| Hành động | admin | khách |\n|---|---|---|\n| Sửa | ✓ (chỉ của mình) | Có điều kiện |\n")
+    g5 = run([sys.executable, ".claude/qa-scripts/gen_matrix_tc.py", str(mx3), "--feature", "Q", "--target", "web", "--req", "REQ-DK-1", "--muc", "R1"], proj)
+    check(g5.stderr.count("ô không nhận ra") == 2, "ô có điều kiện (\"✓ (chỉ của mình)\", \"Có điều kiện\") bị báo để hỏi", g5.stderr)
+    pw3 = run([sys.executable, ".claude/qa-scripts/pairwise.py", "A=1,2", "A=3,4"], proj)
+    check(pw3.returncode != 0 and "trùng" in (pw3.stderr + pw3.stdout), "pairwise từ chối tên tham số trùng", pw3.stderr)
+    HOOK_CASES = [
+        (0, "guard_readonly.py", "cd src && npm test 2>&1 | tail -20"), (0, "guard_readonly.py", "cd src && make >&2"),
+        (2, "guard_readonly.py", "echo x >| src/a"), (2, "guard_readonly.py", "perl -pi -e s/a/b/ src/a"),
+        (2, "guard_readonly.py", "sed -Ei s/a/b/ src/a"), (2, "guard_readonly.py", "sed --in-place s/a/b/ src/a"),
+        (2, "guard_readonly.py", "git checkout ."), (2, "guard_readonly.py", "git reset --hard"),
+        (2, "guard_readonly.py", "git clean -fdx"), (2, "guard_readonly.py", "git stash"),
+        (0, "guard_readonly.py", "git status && git log --oneline -3 && git diff"),
+        (0, "guard_readonly.py", "git add qa/testcases && git commit -m 'thêm TC'"),
+        (2, "guard_readonly.py", "find . -name '*.orig' -delete"), (2, "guard_readonly.py", "for f in a; do rm src/app.js; done"),
+        (2, "guard_readonly.py", "if true; then rm src/app.js; fi"), (2, "guard_readonly.py", "true & rm src/app.js"),
+        (2, "guard_readonly.py", "echo x |& tee src/a"), (2, "guard_readonly.py", "export F=src/a; rm $F"),
+        (2, "guard_readonly.py", "rm ${F:-src/a}"), (2, "guard_readonly.py", "env FOO=1 rm src/app.js"),
+        (2, "guard_readonly.py", "sudo -u me rm src/app.js"), (2, "guard_readonly.py", "timeout 5 rm src/app.js"),
+        (2, "guard_readonly.py", "bash -lc 'rm src/app.js'"), (2, "guard_readonly.py", "echo $(rm src/app.js)"),
+        (2, "guard_readonly.py", "cp -rt src a.txt"), (2, "guard_readonly.py", "curl -sSo src/x http://x"),
+        (2, "guard_readonly.py", "cat > qa/n.md <<'EOF'\nIt's\nEOF\nrm src/app.js"),
+        (0, "guard_readonly.py", "cat > qa/n.md <<'EOF'\nrm src/app.js\nEOF"), (2, "guard_readonly.py", "rm s*/app.js"),
+        (0, "guard_readonly.py", "ls qa | xargs -I{} cp src/{} qa/sandbox/"), (0, "guard_readonly.py", "git -C src clean -nd"),
+        (0, "guard_readonly.py", "git -C src tag --contains HEAD"), (0, "guard_readonly.py", "cd src; popd; rm qa/x"),
+        (0, "guard_readonly.py", "pytest -q && cat src/app.js && grep -rn x src"),
+        (0, "guard_evidence.py", "ls qa/evidence 2>/dev/null"), (0, "guard_evidence.py", "ls qa/evidence > /tmp/list.txt"),
+        (0, "guard_evidence.py", "cat > qa/notes.md <<'EOF'\ncp qa/evidence/r1 /tmp/\nEOF"),
+        (2, "guard_evidence.py", "tar -C qa -czf /tmp/ev.tgz evidence"), (2, "guard_evidence.py", "ffmpeg -i qa/evidence/r1/v.mp4 /tmp/x.gif"),
+        (2, "guard_evidence.py", "xcrun simctl io booted screenshot /tmp/a"),
+    ]
+    wrong = [f"{g} `{c}` → {hook(proj, g, 'Bash', {'command': c})} (cần {e_})" for e_, g, c in HOOK_CASES
+             if hook(proj, g, "Bash", {"command": c}) != e_]
+    check(not wrong, f"{len(HOOK_CASES)} ca đối kháng của hook (lọt + chặn nhầm) đều đúng", "\n".join(wrong))
 
     print(f"\n{'=' * 50}\n  {OK} ✓ · {BAD} ✗")
     if keep:

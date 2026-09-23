@@ -11,7 +11,7 @@ Việc: $ARGUMENTS
    `(chờ trả lời #n)` → hỏi người dùng có viết trước không; không tự đoán kỳ vọng cho phần chưa rõ. `Mức:` của TC =
    mức người dùng đã chốt cho REQ ở SCOPE §2 — chưa có thì hỏi, không tự gán.
    Dedupe với `qa/testcases/` — na ná mà không chắc trùng → hỏi.
-3. Viết/bổ sung `qa/testcases/<tinh-nang>.md` theo khuôn: mật độ theo mức R (R1 ≥ 2 kỹ thuật), ghi `Kỹ thuật:`,
+3. Viết/bổ sung `qa/testcases/<tinh-nang>.md` theo khuôn: mật độ theo mức R (R1 cần kỹ thuật thuộc ≥ 2 họ — `qa-testcase-design` §1), ghi `Kỹ thuật:`,
    có code → rút nhánh/validate/mã lỗi/kiểm quyền (`qa-testcase-design/ky-thuat/hop-trang.md`), không có đáp án chắc → chọn oracle
    (`qa-testcase-design/ky-thuat/oracle.md`), nhiều cấu hình → `python3 .claude/qa-scripts/pairwise.py`, mỗi REQ ≥ 1 normal + ≥ 1 abnormal,
    ma trận quyền → mỗi ô ✗ một TC (`python3 .claude/qa-scripts/gen_matrix_tc.py` nếu lớn), `Nguồn:` cho mọi TC, `Bằng chứng cần` cụ thể.
@@ -20,7 +20,7 @@ Việc: $ARGUMENTS
    viết TC với `Kỳ vọng: (chờ trả lời #n)`, gom thành câu hỏi. TC còn `(chờ trả lời)` không được đưa vào run.
    Việc là "review" → không viết mới: review ba lớp theo `qa-testcase-design/ky-thuat/review-tc.md`, báo lỗ phủ / TC thừa / kỳ vọng
    mơ hồ, sửa khi người dùng đồng ý.
-4. `python3 .claude/qa-scripts/qa_check.py tc` → sửa tới khi sạch (cảnh báo R1 < 2 kỹ thuật cũng xử lý) → `python3 .claude/qa-scripts/qa_check.py trace --write` →
+4. `python3 .claude/qa-scripts/qa_check.py tc` → sửa tới khi sạch (cảnh báo REQ R1 có kỹ thuật thuộc < 2 họ cũng xử lý) → `python3 .claude/qa-scripts/qa_check.py trace --write` →
    tự review bằng checklist `qa-testcase-design/ky-thuat/review-tc.md` §2.
 5. Trình theo khuôn `qa-testcase-design/ky-thuat/review-tc.md` §3: REQ × TC normal/abnormal × kỹ thuật; lỗ phủ; mục checklist chủ động bỏ và
    lý do; câu hỏi còn mở. Người dùng duyệt bộ TC trước khi chạy (trừ khi họ đã nói chạy luôn).

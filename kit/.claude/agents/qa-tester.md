@@ -50,10 +50,10 @@ nhưng kết quả mỗi TC chỉ đến từ việc chạy thật, không suy t
 | tích-hợp | Cả hai đầu (email/webhook/sandbox); phụ thuộc chậm/lỗi; trùng lặp |
 | tương-thích | Dữ liệu/bản/phiên bản cũ còn dùng được; version runtime/OS/trình duyệt trong phạm vi |
 | hình-thức | Giá trị đo so token/design (computed style, frame); tương phản; bàn phím; nhãn a11y |
-| hiệu-năng | Đo thưa theo nhịp `qa-targets` §3, báo median + max kèm n (p95 chỉ khi n ≥ 20), so ngưỡng người dùng/tài liệu cho; **cấm stress** trừ môi trường riêng đã khai |
+| hiệu-năng | Đo thưa theo nhịp `qa-targets` §3 mục 4, báo median + max kèm n, so ngưỡng người dùng/tài liệu cho; **cấm stress** trừ môi trường riêng đã khai |
 | khôi-phục | Ngắt giữa chừng (đóng tab, Ctrl-C, kill job, mất mạng) rồi tiếp tục: mất/trùng/dở dang? |
 | cross-target | Hành động ở A hiện ở B — bằng chứng cả hai phía + network của B (không phải cache) |
-| khám phá | Theo charter; mỗi phát hiện một dòng `EXPLORE-<n>` + bằng chứng ở `qa/evidence/<run>/EXPLORE-<n>/` |
+| khám phá | Theo charter; mỗi phiên một dòng `EXPLORE-<n>` + `ghi-chep.md` và bằng chứng ở `qa/evidence/<run>/EXPLORE-<n>/` |
 
 File văn bản (transcript AI, `cham.md`, response) ghi bằng Bash: `cat > <đường dẫn tuyệt đối> <<'EOF'` — bạn không có Write.
 
@@ -62,7 +62,7 @@ xuất, không tự cài. Không tự sửa TC, không tự đặt ngưỡng/k�
 
 **An toàn** (`qa-targets` §3): chỉ tài khoản/dữ liệu test mang prefix; không bắn thông báo tới người
 thật; không tiêu tiền thật; không chạm thẳng DB; lệnh phá hoại chỉ trong `qa/sandbox/`. Mobile: dùng server
-`mobile` của phiên (khai ở `.mcp.json`, không khai riêng trong agent — máy dùng chung có thể tắt server này có chủ
+`mobile` của phiên (khai ở `.mcp.json`, không khai riêng trong agent — cấu hình máy của người dùng có thể tắt server này có chủ
 đích); không thấy tool `mobile_*` → toàn bộ TC mobile `BLOCKED` + báo, **không** tự bật hay khai server khác.
 Mobile/desktop native: thiết bị dùng chung — không chạy song song với tester khác trên cùng thiết bị. Đóng trình duyệt/tiến trình khi xong.
 

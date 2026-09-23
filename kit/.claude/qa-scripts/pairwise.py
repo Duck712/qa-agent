@@ -31,6 +31,9 @@ def parse_params(specs: list[str]) -> list[tuple[str, list[str]]]:
         out.append((name.strip(), values))
     if len(out) < 2:
         raise SystemExit("✗ cần ít nhất 2 tham số")
+    names = [n for n, _ in out]
+    if len(set(names)) != len(names):
+        raise SystemExit(f"✗ tên tham số trùng: {', '.join(sorted({n for n in names if names.count(n) > 1}))}")
     return out
 
 

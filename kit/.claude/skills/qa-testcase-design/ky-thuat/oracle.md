@@ -47,8 +47,8 @@ cắt cụt, lặp, đảo byte, chèn ký tự đặc biệt/unicode/null, số
 Oracle: **không crash, không 500, không treo, lỗi có thông điệp**, và property ở §3.
 
 ## 5. Đồng thời (race) — dựng được, chạy được
-Bắn 2–5 request/thao tác giống nhau **cùng lúc**: script song song có barrier (luồng chờ nhau rồi cùng gửi) hoặc hai
-phiên trình duyệt bấm cùng mốc (`Promise.all`). Race không tất định → lặp nhiều lần; số lần đề xuất và hỏi người dùng (cân chi phí và nhịp `qa-targets` §3). Oracle là **trạng thái cuối** (số
+Bắn vài request/thao tác giống nhau **cùng lúc** (số lượng đề xuất và hỏi, n nhỏ): script song song có barrier (luồng chờ nhau rồi cùng gửi) hoặc hai
+phiên trình duyệt bấm cùng mốc (`Promise.all`). Race không tất định → lặp nhiều lần; số lần đề xuất và hỏi người dùng (cân chi phí và nhịp `qa-targets` §3 mục 4). Oracle là **trạng thái cuối** (số
 bản ghi, số tiền, số lượt còn lại, trạng thái đơn), không phải response từng request. Chỉ trên dữ liệu test, n nhỏ.
 `Kỹ thuật: đồng thời`. Luật an toàn: n nhỏ, giãn
 cách, chỉ trên môi trường được phép; ghi seed để tái hiện. Đầu vào gây lỗi → rút gọn tối thiểu rồi ghi bug.
@@ -60,3 +60,7 @@ Dùng khi **không ai biết luật đúng** (job cũ không tài liệu, hệ d
 3. Chạy bản hiện tại trên bộ dữ liệu cố định `qa/testdata/<TC-ID>/input/` để sinh `expected/`; người dùng duyệt mẫu
    `expected/` rồi mới dùng. `Kỹ thuật: mốc hành vi`.
 4. Kết quả về sau là "khớp mốc / lệch mốc" — lệch mốc → hỏi người dùng đó là sửa có chủ đích hay lỗi.
+5. **Lần sinh mốc không phải kết quả test** — ghi Nhật ký, không ghi PASS (so chính bản vừa sinh mốc thì luôn khớp; mốc chỉ
+   có giá trị cho bản sau). Trước khi so, chuẩn hoá/che trường không tất định (thời điểm, id sinh, thứ tự không cam kết) —
+   danh sách trường che do người dùng duyệt. Khớp mốc = PASS; lệch mốc = `BLOCKED` `chờ trả lời #n` tới khi người dùng nói là
+   sửa có chủ đích (cập nhật mốc, DECISIONS) hay lỗi (FAIL + BUG).

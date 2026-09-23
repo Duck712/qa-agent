@@ -88,7 +88,9 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list) -> None
             return
     shape_ok = isinstance(cur, dict) and isinstance(cur.get("permissions", {}), dict) \
         and all(isinstance(cur.get("permissions", {}).get(k, []), list) for k in ("allow", "ask", "deny")) \
-        and isinstance(cur.get("hooks", {}), dict) and isinstance(cur.get("hooks", {}).get("PreToolUse", []), list)
+        and isinstance(cur.get("hooks", {}), dict) and isinstance(cur.get("hooks", {}).get("PreToolUse", []), list) \
+        and all(isinstance(e, dict) and isinstance(e.get("hooks", []), list) and all(isinstance(h, dict) for h in e.get("hooks", []))
+                for e in cur.get("hooks", {}).get("PreToolUse", []))
     if not shape_ok:
         log.append(f"  ⚠ {path} có cấu trúc lạ (permissions/hooks không đúng kiểu) — KHÔNG gộp, thêm tay theo kit/.claude/settings.qa.json")
         return

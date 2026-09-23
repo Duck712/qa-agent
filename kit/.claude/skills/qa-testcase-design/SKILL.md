@@ -93,7 +93,7 @@ File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: 
 - Dữ liệu: khách QA-<run>-k1, khung 09:00
 - Bước:
   1. Mở trang đặt lịch, chọn ngày mai, xem khung 09:00
-  2. Gọi thẳng `POST <endpoint đặt lịch>` cho khung 09:00 bằng tài khoản khách (bỏ qua giao diện)
+  2. Gọi thẳng `POST /api/bookings` (ví dụ — dùng endpoint thật) cho khung 09:00 bằng tài khoản khách (bỏ qua giao diện)
   3. Mở lại danh sách lịch khung 09:00
 - Kỳ vọng:
   1. Khung 09:00 hiện trạng thái đã đủ chỗ và không bấm chọn được (chữ hiển thị theo REQ-DATLICH-2)

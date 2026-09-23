@@ -34,15 +34,19 @@ await c.send('Network.emulateNetworkConditions', { offline:false, latency:400, d
 ```
 **Double-submit**: `await Promise.all([page.click('#submit'), page.click('#submit')])` → bản ghi có nhân đôi?
 **Phá đầu vào**: chuỗi 10.000 ký tự, emoji, `<script>alert(1)</script>`, `'; --`, số âm → hiện ra như chữ? server trả mã gì? (mã/thông điệp đúng lấy từ tài liệu; không có → câu hỏi)
-**Phân quyền**: vai A tạo bản ghi (prefix) → vai B (context riêng) mở URL/gọi API bản ghi đó bằng `browser_evaluate` + `fetch` → phải bị chặn (mã cụ thể theo tài liệu API; tài liệu không nói → hỏi, và lưu ý 403 vs 404 khác nhau có lộ sự tồn tại bản ghi không). Chép response nguyên văn. UI giấu nút không phải là chặn.
+**Phân quyền**: vai A tạo bản ghi (prefix) → vai B thử mở/gọi bản ghi đó bằng `curl` với token/cookie của vai B, **hoặc**
+trong **một** lời gọi `browser_run_code_unsafe`: tạo `ctxB`, đăng nhập vai B, `pB.goto`/`pB.request`, lưu
+`pB.screenshot({path:'<tuyệt đối>/qa/evidence/<run>/<TC>/…'})` và response vào evidence, rồi `ctxB.close()`. Phải bị chặn
+ở server (mã theo tài liệu API; không nói → hỏi; 403 vs 404 có lộ sự tồn tại không). **Không** dùng `browser_evaluate` +
+`fetch` của trang vai A (mang phiên vai A → PASS giả). UI giấu nút không phải là chặn.
 **Hình thức**: đo, đừng nhìn
 ```js
 () => { const el = document.querySelector('button.primary'); const s = getComputedStyle(el);
         return ['color','background-color','font-size','font-family','padding','border-radius'].map(p => `${p}: ${s[p]} @ button.primary`); }
 ```
 Tương phản: leo lên tổ tiên tìm nền đục rồi tính tỉ lệ. a11y: `browser_press_key Tab` xem focus thấy được, nút có tên, input có label.
-**Hiệu năng**: `performance.getEntriesByType('navigation')[0]` → ttfb/DCL/load; lặp n ≤ 10, giãn ≥ 1s, báo median + max
-kèm n (n < 20 thì không gọi là p95). Ngưỡng do tài liệu/người dùng cho.
+**Hiệu năng**: `performance.getEntriesByType('navigation')[0]` → ttfb/DCL/load; lặp theo nhịp đã chốt (`qa-targets` §3 mục 4), báo median + max
+kèm n. Ngưỡng do tài liệu/người dùng cho.
 **Responsive**: `browser_resize` 375×812, 768×1024, 1440×900.
 **Cross-target**: `browser_tabs` mở tab B; hành động ở A, snapshot + network ở B (chứng minh không phải cache).
 
@@ -63,5 +67,6 @@ Mỗi trình duyệt `--isolated` là **một** browser context — các tab dù
 const ctxB = await page.context().browser().newContext();   // phiên riêng cho vai B
 const pB = await ctxB.newPage(); await pB.goto(URL); /* đăng nhập vai B trong pB */
 ```
-hoặc gọi `curl` với cookie/token của vai B (lấy từ `qa/.env`). Site dùng cookie session thì `fetch` trong trang luôn
+hoặc gọi `curl` với cookie/token của vai B (lấy từ `qa/.env`). Mọi thao tác **và bằng chứng** của vai B phải nằm trong
+cùng một lời gọi `browser_run_code_unsafe` (biến `ctxB`/`pB` mất sau lời gọi; các tool `browser_*` khác chỉ thấy trang vai A). Site dùng cookie session thì `fetch` trong trang luôn
 mang phiên hiện tại — không dùng nó để thử vai khác (PASS giả).

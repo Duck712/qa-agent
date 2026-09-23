@@ -42,6 +42,9 @@ Một sản phẩm thường có nhiều target (web + api + mobile) — mỗi t
 | hình-thức | Giao diện đúng design, a11y | computed style so token | output dễ đọc, `--help` rõ, màu terminal tắt được |
 | hiệu-năng | Đủ nhanh ở mức dùng thường | thời gian tải (median/max) | thời gian chạy job theo kích thước dữ liệu · độ trễ/chi phí mỗi lượt gọi model |
 | bảo-mật | Lớp bảo vệ cơ bản (chỉ khi được phép) | header, phiên, IDOR | secret trong log/output · path traversal · dữ liệu nhạy cảm trong prompt/response |
+| cross-target | Hành động ở A hiện đúng ở B | admin đổi giá → khách thấy giá mới | job ghi → báo cáo/API đọc thấy · bot gọi tool → hệ đơn hàng đổi |
+| khám-phá | Thăm dò theo charter, tìm rủi ro chưa có TC | tour tính năng | tour dữ liệu xấu với lệnh/job/prompt |
+| smoke | Luồng lõi còn chạy sau deploy | đăng nhập + luồng chính | lệnh chính · job mẫu nhỏ · câu hỏi mẫu |
 | khôi-phục | Hỏng giữa chừng rồi ra sao | đóng tab giữa form | Ctrl-C giữa lệnh · job chết giữa chừng chạy lại · retry trùng |
 
 ## 3. An toàn — áp cho mọi target
@@ -53,7 +56,10 @@ Một sản phẩm thường có nhiều target (web + api + mobile) — mỗi t
    Staging chỉ khi SCOPE ghi cho phép.
 3. **Hướng ra ngoài**: email/SMS/push chỉ tới địa chỉ test; thanh toán chỉ sandbox; webhook trỏ endpoint
    của QA. Không có đường test → TC `BLOCKED`, không "thử đại" vào địa chỉ thật.
-4. **Nhịp độ** (giới hạn chung cho mọi file): đo lặp n ≤ 20, giãn cách ≥ 1s; thấy 429 thì dừng. Load/stress **chỉ** khi SCOPE §7 khai
+4. **Nhịp độ** (nguồn duy nhất — file khác trỏ về đây): trần an toàn mỗi phép đo/lặp là 20 lời gọi, giãn cách ≥ 1s
+   (vượt trần → hỏi). Số lần cụ thể, số kích thước dữ liệu, số request đồng thời: QA đề xuất kèm lý do và hỏi; đã chốt
+   thì ghi SCOPE §7 hoặc DECISIONS. Báo median + max kèm n; phân vị (p95…) chỉ khi người dùng chốt cỡ mẫu đủ cho nó.
+   Thấy 429 thì dừng. Load/stress **chỉ** khi SCOPE §7 khai
    môi trường riêng — không bao giờ trên production hay máy dùng chung.
 5. **Bảo mật**: chỉ chứng minh lỗ, không khai thác phá; active scan chỉ khi người dùng cho phép rõ. **Ranh giới**: chuỗi
    phá-đầu-vào tiêu biểu (một chuỗi mỗi ô, chỉ quan sát hiển thị/mã lỗi) và ca AI đại diện (checklist ai-llm 1.5–1.7, 1.9)
@@ -66,5 +72,5 @@ Một sản phẩm thường có nhiều target (web + api + mobile) — mỗi t
    `qa/sandbox/` hoặc tài nguyên có prefix QA — ngoài đó phải hỏi.
 9. **Thiếu công cụ** (grpcurl, websocat, xdotool, testssl.sh, simulator…) → TC dùng nó `BLOCKED`, ghi lệnh cài đề
    xuất và báo người dùng; **không tự cài** (brew/pip/npm toàn máy), không tự đổi cấu hình máy/MCP.
-10. **Máy dùng chung**: giới hạn worker (Playwright ≤ 4), đóng trình duyệt/simulator/tiến trình nền khi
-   xong; việc cần container hay chạy lâu → theo quy ước máy của người dùng (CLAUDE.md toàn cục).
+10. **Máy dùng chung**: giới hạn worker/song song theo `QA.md §Môi trường` (chưa có → hỏi), đóng trình duyệt/simulator/
+   tiến trình nền khi xong; việc cần container hay chạy lâu → theo quy ước máy/đội của người dùng, không tự dựng hạ tầng.

@@ -12,7 +12,7 @@ dưới; mỗi quy tắc (cột) một TC. Ví dụ (con số minh hoạ — dù
 | **→ Miễn phí ship** | có | không | có | không |
 
 - n điều kiện nhị phân → 2ⁿ quy tắc; **gộp** quy tắc có cùng kết quả mà một điều kiện không ảnh hưởng (ghi `–`).
-  Kiểm đủ: tổng quy tắc sau gộp (mỗi `–` tính ×2) = 2ⁿ; tổ hợp không thể xảy ra ghi `N/A` + lý do.
+  Kiểm đủ: tổng quy tắc sau gộp (quy tắc có k dấu `–` tính 2^k) = 2ⁿ; tổ hợp không thể xảy ra ghi `N/A` + lý do.
 - Điều kiện nhiều giá trị (loại khách: cá nhân / doanh nghiệp / đại lý) → bảng mở rộng (extended-entry): số quy tắc =
   tích số giá trị các điều kiện.
 - Quy tắc tài liệu không nói kết quả → điểm hỏi (bảng quyết định là cách nhanh nhất lộ lỗ của tài liệu).

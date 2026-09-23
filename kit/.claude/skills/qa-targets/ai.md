@@ -2,7 +2,10 @@
 
 ## Khác gì target khác
 Output **không cố định**: cùng đầu vào có thể ra kết quả khác. Nên một TC AI không phải "một lần đúng là PASS":
-- Chạy mỗi ca **N lần**, ghi toàn bộ transcript, mỗi lượt một file `NN-luot-<k>.txt` (qa_check đếm file `*luot*`).
+- Chạy mỗi ca **N lần**, ghi toàn bộ transcript, mỗi lượt một file `NN-luot-<k>.txt` (qa_check đếm số `k` khác nhau; **chỉ** transcript mang chữ `luot` —
+  ảnh đặt `NN-anh-…`). TC AI ghi `Target:` là target có cột Loại đúng chữ `ai` ở `QA.md` (Cách vào là giao diện hoặc
+  endpoint). Chạy lại TC AI → tạo run mới. N chốt sau khi đã tạo run → thêm dòng `- Test AI — N mỗi ca: …` vào khối
+  Tiêu chí của RUNLOG, tiêu đề khối ghi `(chốt sau khi chạy — DECISIONS #n; …)`.
   **N và ngưỡng đạt do người dùng chốt** (SCOPE §7, được chép vào RUNLOG lúc tạo run): QA đề xuất kèm lý do (độ biến
   thiên thấy ở vài lượt thử, mức R của REQ, chi phí gọi model/lượt trên môi trường thật) rồi hỏi; chưa chốt thì TC AI
   không chấm được (`BLOCKED`, `chờ trả lời #n`).
@@ -12,7 +15,7 @@ Output **không cố định**: cùng đầu vào có thể ra kết quả khác
 ## Chạy bằng gì
 Qua đúng giao diện người dùng dùng (web/mobile → công cụ của target đó) **hoặc** gọi API của tính năng
 (`curl`), không gọi thẳng model provider thay cho sản phẩm (sẽ bỏ qua prompt hệ thống, RAG, bộ lọc của sản phẩm).
-Script lặp đặt ở `qa/automation/ai-<tc>.py`, giãn cách giữa các lượt, ghi mỗi lượt một file.
+Script lặp (sau khi hỏi framework/nơi đặt theo skill `qa` §7, mặc định đề xuất `qa/automation/ai-<tc>.py`), giãn cách giữa các lượt, ghi mỗi lượt một file.
 
 ## Viết tiêu chí chấm
 | Tốt | Không dùng được |
@@ -36,7 +39,7 @@ Tiêu chí cần phán đoán chủ quan → ghi rõ là phán đoán, đưa ng�
 - **Nội dung an toàn**: theo chính sách sản phẩm (tài liệu), vài ca đại diện, không cần kho jailbreak lớn.
 - **Hội thoại nhiều lượt**: nhớ đúng ngữ cảnh, không lẫn giữa phiên/người dùng.
 - **Lỗi nhà cung cấp**: timeout/lỗi model → có thông báo (theo tài liệu), không treo, không mất đầu vào người dùng.
-- **Hiệu năng & chi phí**: thời gian tới token đầu/tổng thời gian, số token nếu sản phẩm hiển thị; n ≤ 20.
+- **Hiệu năng & chi phí**: thời gian tới token đầu/tổng thời gian, số token nếu sản phẩm hiển thị; theo nhịp đã chốt (`qa-targets` §3 mục 4).
 
 ## Model học máy truyền thống (phân loại, dự đoán, gợi ý, xếp hạng)
 - Bộ dữ liệu đánh giá **có nhãn** do người dùng/đội cung cấp hoặc duyệt (không tự gán nhãn làm đáp án); tách khỏi dữ liệu huấn luyện.
@@ -51,7 +54,7 @@ Transcript nguyên văn từng lượt (đầu vào + đầu ra + thời điểm
 ## Cách ly và phiên bản (bắt buộc)
 - **Kho tài liệu (RAG)**: thêm/sửa tài liệu thử (kể cả tài liệu có chỉ dẫn giấu cho prompt injection gián tiếp) **chỉ**
   trên kho/tenant riêng của QA khai ở `QA.md §Vùng dữ liệu test`. Không có → TC đó `BLOCKED`, hỏi. Không bao giờ nạp
-  tài liệu thử vào kho dùng chung với khách thật. Dọn xong → xác nhận bằng một câu hỏi không còn truy xuất ra.
+  tài liệu thử vào kho dùng chung với khách thật. Dọn xong → xác nhận qua API/danh sách tài liệu của kho (id đã mất) **và** một truy vấn; lưu cả hai vào bằng chứng.
 - **Tool gọi hệ thống khác** (tra đơn, tạo phiếu…): chỉ trên tài khoản/dữ liệu test; TC chatbot ↔ hệ đơn hàng là
   `cross-target` — bằng chứng cả hai phía.
 - **Phiên bản**: đầu RUNLOG ghi version/model, phiên bản hoặc ngày cập nhật kho tài liệu (hoặc checksum tài liệu nguồn

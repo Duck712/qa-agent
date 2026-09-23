@@ -84,9 +84,9 @@ Bốn thứ **luôn đúng** dù làm việc gì: không bịa · chưa rõ thì
 | 6 | **Dữ liệu & môi trường test** | "chuẩn bị data", "tạo tài khoản test" | §7: hỏi cách tạo/dọn được phép, script seed/dọn có prefix, kiểm môi trường sống | `QA.md §Tài khoản`, `qa/scripts/` |
 | 7 | **Chạy test theo TC** | "chạy bộ TC", "test tính năng X" | Tạo run → chạy (tự làm hoặc `qa-tester`) → bằng chứng → bug | `runs/<run-id>/RUNLOG.md`, `BUGS.md`, `evidence/` |
 | 8 | **Smoke / sanity** | "vừa deploy, check nhanh" | TC có `Tag: smoke`; chưa có → đề xuất TC R1 normal, người dùng xác nhận → run ngắn | run `<ngày>-smoke` |
-| 9 | **Regression** | "test lại toàn bộ trước release" | Phân tích ảnh hưởng (`qa-knowledge/analysis-review.md` §8) → `new-run reg <TC-…>` lấy mọi TC `Regression: có` + TC truyền thêm (R1 luồng lõi, tái hiện bug cũ của vùng bị chạm); chỉ muốn vùng bị chạm → `new-run full <danh sách TC-ID>` | run `<ngày>-reg` |
-| 10 | **Test lại bug** | "dev fix BUG-012 rồi" | Ghi `đã sửa` (nguồn: lời dev/ticket) → chạy TC tái hiện (bug từ khám phá chưa có TC → viết TC tái hiện, người dùng duyệt) → PASS thì `đóng`, FAIL thì `đã sửa → mở`; bug không tái hiện ổn định → test lại đủ số lần bằng mẫu số ban đầu | run `<ngày>-retest`, trường `Lịch sử` của bug |
-| 11 | **Test khám phá** | "vọc thử xem có lỗi gì" | Phiên SBTM: charter, tour, thời lượng, ghi chép, debrief (`qa-testcase-design/ky-thuat/kinh-nghiem.md` §3, khuôn `_EXPLORE-TEMPLATE.md`) | run `<ngày>-explore` (dòng `EXPLORE-n`), bug, đề xuất TC mới |
+| 9 | **Regression** | "test lại toàn bộ trước release" | Phân tích ảnh hưởng (`qa-knowledge/analysis-review.md` §8) → `new-run reg <TC-…>` lấy mọi TC `Regression: có` + TC truyền thêm (R1 luồng lõi, tái hiện bug cũ của vùng bị chạm); chỉ muốn vùng bị chạm → `new-run reg-vung <danh sách TC-ID>` (run không phủ hết SCOPE thì kết luận luôn ghi "chỉ trong phạm vi run này") | run `<ngày>-reg` |
+| 10 | **Test lại bug** | "dev fix BUG-012 rồi" | Ghi `đã sửa` (nguồn: lời dev/ticket) → chạy TC tái hiện (bug từ khám phá chưa có TC → viết TC tái hiện, người dùng duyệt) → PASS thì `đóng`, FAIL thì `đã sửa → mở`; bug không tái hiện ổn định → số lần test lại do người dùng chốt | run `<ngày>-retest`, trường `Lịch sử` của bug |
+| 11 | **Test khám phá** | "vọc thử xem có lỗi gì" | Phiên SBTM: charter, tour, thời lượng, ghi chép, debrief (`qa-testcase-design/ky-thuat/kinh-nghiem.md` §3, khuôn `_EXPLORE-TEMPLATE.md`) | run `<ngày>-explore` (mỗi phiên một dòng `EXPLORE-<n>`), bug, đề xuất TC mới |
 | 12 | **Test tự động** | "viết script Playwright/pytest/k6 cho TC này" | §7: hỏi framework + nơi đặt trước, viết từ TC, chạy được, output là bằng chứng | `qa/automation/` (repo sản phẩm chỉ khi được nhờ) |
 | 13 | **Bảo mật** | "kiểm bảo mật" | Agent `qa-security` — chỉ khi người dùng cho phép (SCOPE §7) | run + bug |
 | 14 | **Hiệu năng / tải** | "đo tốc độ", "load test" | Đo thưa trên môi trường thường; tải chỉ trên môi trường riêng đã khai (`qa-testcase-design/ky-thuat/phi-chuc-nang.md`) | run + số đo |
@@ -100,11 +100,13 @@ Việc không có trong bảng → đề xuất cách làm theo tinh thần gầ
 
 **Chạy nhanh không cần scope đầy đủ**: người dùng nhờ "test giúp X" mà `SCOPE.md` chưa chốt → đề xuất phạm vi, môi
 trường và tiêu chí đạt (con số kèm lý do) và **hỏi**; người dùng đồng ý → ghi
-ba dòng tiêu chí vào SCOPE §6 → `python3 .claude/qa-scripts/qa_check.py new-run` (tự chép tiêu chí vào RUNLOG) → chạy.
+ba dòng tiêu chí vào SCOPE §6 → `python3 .claude/qa-scripts/qa_check.py new-run <loại> [phạm vi]` (vd `new-run full TC-DK-001 TC-DK-002`; tự chép
+tiêu chí vào RUNLOG) → chạy.
 Người dùng đã bảo "chạy luôn" → được chạy phần đã rõ để thu bằng chứng, nhưng **không tự điền tiêu chí**: run ra
 `CHƯA KẾT LUẬN`, TC còn mơ hồ để lại, câu hỏi (kể cả tiêu chí) gom lại báo cùng kết quả.
-Tiêu chí được chốt **sau** khi đã chạy → ghi SCOPE §6 + một dòng DECISIONS nêu rõ "chốt sau khi đã thấy kết quả", điền
-ba dòng vào khối Tiêu chí của RUNLOG kèm hậu tố `(chốt sau khi chạy — DECISIONS #n)`, ghi Nhật ký; báo cáo nêu điều này
+Tiêu chí được chốt **sau** khi đã chạy → ghi SCOPE §6 + một dòng DECISIONS nêu rõ "chốt sau khi đã thấy kết quả", sửa
+dòng tiêu đề khối thành `- Tiêu chí (chốt sau khi chạy — DECISIONS #n; không sửa sau khi đã chạy):` và điền ba dòng bên
+dưới chỉ bằng giá trị (`S1, S2` · `95%` · `5%`), ghi Nhật ký; báo cáo nêu điều này
 ngay ở phần Kết luận (qa_check cảnh báo khi thấy hậu tố này). Người dùng muốn sạch hơn → tạo run mới chạy lại.
 
 ## 3. Ghép việc theo quy trình của đội (ví dụ)
@@ -147,7 +149,7 @@ Không đọc cả `qa/` một lượt — chỉ phần liên quan việc đang 
 - `qa-tester` — chạy một nhóm TC theo **một góc nhìn** (chức năng, biên, phá đầu vào, phân quyền, API,
   hình thức, hiệu năng, workflow, tích hợp, tương thích, khôi phục, cross-target, khám phá) trên **một target** (TC
   cross-target: một tester nhận đủ các target, hoặc phiên chính tự chạy — không tách hai nửa cho hai tester). Không sửa file dự án, trả kết
-  quả + bằng chứng. Song song tối đa 3; mobile/desktop native tuần tự (thiết bị dùng chung).
+  quả + bằng chứng. Số tester song song theo `QA.md §Môi trường` (chưa có → hỏi); mobile/desktop native tuần tự (thiết bị dùng chung).
 - `qa-security` — bảo mật mức chấp nhận (OWASP), chỉ khi SCOPE §7 ghi đã được cho phép.
 - `qa-evidence-check` — soi mẫu bằng chứng trước khi viết REPORT, chỉ đọc, trả danh sách lệch.
 
@@ -189,6 +191,6 @@ Rồi:
 nơi đặt (`qa/automation/` mặc định; repo sản phẩm chỉ khi người dùng nhờ rõ và gỡ đường dẫn khỏi `Chỉ đọc:`), chạy ở
 đâu (máy local / CI / môi trường riêng), dữ liệu test lấy từ đâu. Rồi:
 - Một script ↔ một hoặc vài TC, tên file chứa TC-ID; không đổi kỳ vọng của TC khi viết script.
-- Cài phụ thuộc trong `qa/automation/` (không cài toàn máy); thiếu công cụ mà cần cài ngoài → hỏi.
+- Phụ thuộc chỉ cài trong `qa/automation/` và **chỉ sau khi người dùng đồng ý** (DECISIONS); không cài toàn máy.
 - Chạy thật; output (report của framework, stdout, ảnh) ghi vào `qa/evidence/<run-id>/<TC-ID>/` — đó là bằng chứng,
   kết quả ghi RUNLOG như chạy tay. Script lỗi do chính script (không phải sản phẩm) → sửa script, không ghi FAIL.

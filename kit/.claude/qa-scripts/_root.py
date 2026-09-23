@@ -1,4 +1,8 @@
-"""Dùng chung cho các hook: tìm thư mục dự án, tách lệnh shell, mở rộng biến."""
+"""Dùng chung cho các hook: tìm thư mục dự án, tách lệnh shell, mở rộng biến.
+
+Hook là hàng rào phụ, không phải trình phân tích shell đầy đủ: bắt được các cách viết phổ biến; luật trong skill vẫn
+là thứ ràng buộc chính. Giới hạn đã biết: eval, script ngoài tự ghi file, thân `python - <<EOF`, đường dẫn tính lúc chạy.
+"""
 from __future__ import annotations
 
 import os
@@ -14,8 +18,34 @@ def project_root() -> Path:
     return Path(__file__).resolve().parents[2]   # <dự án>/.claude/qa-scripts/_root.py
 
 
+HEREDOC_RE = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][\w-]*)\1")
+
+
+def strip_heredocs(cmd: str) -> str:
+    """Bỏ THÂN heredoc (là dữ liệu, không phải lệnh) — giữ dòng mở `cat > f <<'EOF'`."""
+    out, lines, i = [], cmd.split("\n"), 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        delims = [m.group(2) for m in HEREDOC_RE.finditer(line)]
+        i += 1
+        for d in delims:
+            while i < len(lines) and lines[i].strip() != d:
+                i += 1
+            i += 1                                   # bỏ dòng kết thúc
+    return "\n".join(out)
+
+
+def normalize(cmd: str) -> str:
+    cmd = re.sub(r"\d*[<>]&(\d+|-)", " ", cmd)        # 2>&1, >&2, <&0: nhân bản fd, không phải file
+    cmd = re.sub(r"&>>?", ">", cmd)                   # &>file = >file
+    return cmd
+
+
 def split_commands(cmd: str) -> list[str]:
-    """Tách chuỗi lệnh theo ; && || | và xuống dòng NẰM NGOÀI dấu nháy (không tách `git commit -m "a; b"`)."""
+    """Tách theo ; && || | & và xuống dòng NẰM NGOÀI dấu nháy; bỏ thân heredoc; lấy thêm lệnh trong $(…) và `…`."""
+    cmd = normalize(strip_heredocs(cmd))
+    inner = re.findall(r"\$\(([^()]*)\)", cmd) + re.findall(r"`([^`]*)`", cmd)
     out, cur, q, i = [], [], "", 0
     while i < len(cmd):
         c = cmd[i]
@@ -34,47 +64,61 @@ def split_commands(cmd: str) -> list[str]:
                 cur.append(c)
                 cur.append(cmd[i + 1])
             i += 1
-        elif c in ";\n" or cmd[i:i + 2] in ("&&", "||") or (c == "|" and cmd[i - 1:i] != ">"):
+        elif c in ";\n" or cmd[i:i + 2] in ("&&", "||") or c == "&" or (c == "|" and cmd[i - 1:i] != ">"):
             if "".join(cur).strip():
                 out.append("".join(cur))
             cur = []
-            if cmd[i:i + 2] in ("&&", "||"):
+            if cmd[i:i + 2] in ("&&", "||", "|&"):
                 i += 1
         else:
             cur.append(c)
         i += 1
     if "".join(cur).strip():
         out.append("".join(cur))
-    return [s.strip() for s in out]
+    segs = [s.strip() for s in out]
+    for x in inner:
+        segs += split_commands(x)
+    return segs
+
+
+KEYWORDS = {"do", "then", "else", "elif", "!", "{", "}", "time", "if", "while", "until"}
 
 
 def is_redir(t: str) -> bool:
-    return bool(re.fullmatch(r"\d?>>?\|?|&>>?", t))
+    return bool(re.fullmatch(r"\d?>>?\|?", t))
 
 
 def tokens(seg: str) -> list[str]:
-    """Tách một lệnh thành token (hiểu nháy), tách riêng toán tử chuyển hướng, bỏ ngoặc subshell."""
+    """Tách một lệnh thành token (hiểu nháy), tách riêng toán tử chuyển hướng, bỏ ngoặc subshell và từ khoá shell đầu lệnh."""
     try:
-        lx = shlex.shlex(seg, posix=True, punctuation_chars="<>&()")
+        lx = shlex.shlex(seg, posix=True, punctuation_chars="<>()")
         lx.whitespace_split = True
         toks = list(lx)
     except ValueError:
         toks = seg.split()
     out: list[str] = []
     for t in toks:
-        if t in ("(", ")", "{", "}"):
+        if t in ("(", ")"):
             continue
         m = re.match(r"^(\d?>>?\|?)(\S+)$", t)          # >file dính liền
         if m and not is_redir(t):
             out += [m.group(1), m.group(2)]
+        elif t == ">|":
+            out.append(">")
+        elif t.startswith("|") and out and is_redir(out[-1]):   # ">| file" (noclobber) → ">" + file
+            if t[1:]:
+                out.append(t[1:])
         else:
             out.append(t)
+    while out and out[0] in KEYWORDS:
+        out = out[1:]
     return out
 
 
 def expand(tok: str, env: dict) -> str:
-    """Mở rộng ~, $HOME và biến đã gán trước đó trong cùng lệnh (F=src/x; echo > $F)."""
+    """Mở rộng ~, $HOME, ${F:-mặc định} và biến đã gán/export trước đó trong cùng lệnh."""
     def sub(m: re.Match) -> str:
-        name = m.group(1) or m.group(2)
-        return env.get(name, os.environ.get(name, m.group(0)))
-    return os.path.expanduser(re.sub(r"\$\{(\w+)\}|\$(\w+)", sub, tok))
+        name, default = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), None)
+        v = env.get(name, os.environ.get(name))
+        return v if v is not None else (default if default is not None else m.group(0))
+    return os.path.expanduser(re.sub(r"\$\{(\w+)(?::?-([^}]*))?\}|\$(\w+)", sub, tok))

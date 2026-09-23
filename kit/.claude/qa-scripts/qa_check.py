@@ -59,7 +59,7 @@ VAGUE = ["hoạt động đúng", "hiển thị đúng", "chạy đúng", "hoạ
          "đúng nghiệp vụ", "đúng yêu cầu", "đúng thiết kế", "xử lý đúng", "tử tế", "thân thiện", "rõ ràng",
          "performance ok", "ổn định", "mượt"]
 WAIT_RE = re.compile(r"\([^()]*chờ trả lời[^()]*\)", re.I)       # nhãn chờ duy nhất: (chờ trả lời #n)
-PLACEHOLDER_RE = re.compile(r"<(?!run(?:-id)?>)[^<>\n]{1,80}>")    # chỗ trống <…> chưa điền (trừ <run>, <run-id>)
+PLACEHOLDER_RE = re.compile(r"<(?!\s)(?=[^<>\n]*(?:\s|[^\x00-\x7f]))[^<>\n]{1,80}(?<!\s)>")   # <điền gì đó>, không phải <b>, < 100 và >
 TC_ID = r"TC-\w+(?:-\w+)*-\d{3}"
 REQ_ID = r"REQ-[\w.-]*\w"
 BUG_CLOSED = ("đóng", "đã đóng", "closed", "không sửa", "wontfix", "hoãn", "deferred", "trùng", "duplicate")
@@ -215,7 +215,7 @@ def scope_file() -> Path:
 
 
 def req_ids(cell: str) -> list[str]:
-    return [re.sub(r"^req-", "REQ-", r, flags=re.I) for r in re.findall(REQ_ID, cell, re.I)]
+    return [r.upper() for r in re.findall(REQ_ID, cell or "", re.I)]
 
 
 def scope_rows(text: str | None = None) -> list[list[str]]:
@@ -331,14 +331,34 @@ def parse_sev(line: str) -> set[str] | None:
     return None
 
 
+CRIT_KEYS = {"tỉ lệ pass tối thiểu", "tỉ lệ blocked tối đa", "tỉ lệ pass tối thiểu r1", "tỉ lệ pass tối thiểu r2",
+             "tỉ lệ pass tối thiểu r3", "bug mở không được phép", "soi bằng chứng — tỉ lệ bốc mẫu pass"}
+
+
+def crit_block(text: str) -> str:
+    """Phần tiêu chí: khối `- Tiêu chí (…):` của RUNLOG, hoặc §6 của SCOPE, hoặc cả văn bản."""
+    m = re.search(r"^- Tiêu chí \(.*$", text, re.M)
+    if m:
+        rest = text[m.end():]
+        end = re.search(r"^(?!\s+- )", rest[1:], re.M)
+        return text[m.start(): m.end() + 1 + (end.start() if end else len(rest))]
+    sec = section(text, "6.")
+    return sec or text
+
+
 def parse_criteria(text: str) -> tuple[dict | None, list[str]]:
     """→ (tiêu chí, lý do không đọc được). Thiếu/không đọc được một dòng → None (CHƯA CHỐT, không có mặc định)."""
-    f = field(text, "Bug mở không được phép")
-    p_line = field_any(text, "Tỉ lệ PASS tối thiểu", "Tỷ lệ PASS tối thiểu")
-    b_line = field_any(text, "Tỉ lệ BLOCKED tối đa", "Tỷ lệ BLOCKED tối đa")
-    if not (f or p_line or b_line):
+    block = crit_block(text)
+    strip = lambda v: no_paren(v).replace("—", " ").strip()      # "95% (chốt sau khi chạy — DECISIONS #3)" → "95%"
+    f = strip(field(block, "Bug mở không được phép"))
+    p_line = strip(field_any(block, "Tỉ lệ PASS tối thiểu", "Tỷ lệ PASS tối thiểu"))
+    b_line = strip(field_any(block, "Tỉ lệ BLOCKED tối đa", "Tỷ lệ BLOCKED tối đa"))
+    odd = [m.group(0).strip() for m in re.finditer(r"^[ \t]*-[ \t]*\**[ \t]*(?:Tỉ|Tỷ) lệ[^\n]*$", block, re.M | re.I)
+           if re.sub(r"\s+", " ", re.sub(r"[*`]", "", m.group(0).split(":", 1)[0]).strip(" -").replace("Tỷ", "Tỉ")).lower()
+           not in CRIT_KEYS]
+    if not (f or p_line or b_line or odd):
         return None, []
-    bad = []
+    bad = [f"dòng tiêu chí không đúng khuôn `{o}` — dùng `Tỉ lệ PASS tối thiểu R1: <số>%`" for o in odd]
     forb, p, b = parse_sev(f), parse_pct(p_line), parse_pct(b_line)
     if forb is None:
         bad.append(f"`Bug mở không được phép: {f}` — viết S1, S2 · S1–S3 · S2 trở lên · không")
@@ -348,7 +368,7 @@ def parse_criteria(text: str) -> tuple[dict | None, list[str]]:
         bad.append(f"`Tỉ lệ BLOCKED tối đa: {b_line}` — cần đúng một số có %")
     per = {}
     for lv in MUC:
-        v = field_any(text, f"Tỉ lệ PASS tối thiểu {lv}", f"Tỷ lệ PASS tối thiểu {lv}")
+        v = strip(field_any(block, f"Tỉ lệ PASS tối thiểu {lv}", f"Tỷ lệ PASS tối thiểu {lv}"))
         if v:
             x = parse_pct(v.replace(lv, ""))
             if x is None:
@@ -358,22 +378,39 @@ def parse_criteria(text: str) -> tuple[dict | None, list[str]]:
     if bad:
         return None, bad
     return {"forbidden": forb, "min_pass": p, "max_blocked": b, "per_level": per,
-            "late": "chốt sau khi chạy" in text.lower()}, []
+            "late": bool(re.search(r"\(\s*chốt sau khi chạy", text, re.I))}, []
 
 
 def ai_n(text: str) -> tuple[dict[str, int] | int | None, str]:
     """N lần chạy mỗi ca AI: `12` hoặc `R1: 10, R2: 5, R3: 5`."""
-    v = field_any(text, "Test AI — N mỗi ca", "Test AI — N mỗi ca (R1/R2/R3)")
+    v = field_any(text, "Test AI — N mỗi ca", "Test AI - N mỗi ca", "Test AI — N mỗi ca (R1/R2/R3)")
     if not v:
         return None, ""
     lv = dict((k.upper(), int(n)) for k, n in re.findall(r"\b(R[1-3])\s*[:=]\s*(\d+)", v, re.I))
+    base = re.findall(r"\d+", re.sub(r"\bR[1-3]\s*[:=]\s*\d+", "", v, flags=re.I))   # "3 lượt (R1: 5)" → 3 cho mức khác
     if lv:
+        if len(base) == 1:
+            lv["*"] = int(base[0])
         return lv, v
-    nums = re.findall(r"\d+", v)
-    return (int(nums[0]) if len(nums) == 1 else None), v
+    return (int(base[0]) if len(base) == 1 else None), v
+
+
+def ai_turns(d: Path) -> int:
+    """Số lượt AI khác nhau có transcript: file `NN-luot-<k>.txt|md|json` (không phân biệt hoa thường, nhận `lượt`)."""
+    ks = set()
+    for f in d.rglob("*") if d.is_dir() else []:
+        m = re.search(r"(?i)(?:luot|lượt)[-_ ]?(\d+)\.(txt|md|json)$", unicodedata.normalize("NFC", f.name))
+        if f.is_file() and m:
+            ks.add(int(m.group(1)))
+    return len(ks)
 
 
 # ---------------------------------------------------------------- kỹ thuật
+
+def tc_level(tc: dict, levels: dict[str, str]) -> str:
+    ls = sorted(levels[r] for r in tc.get("reqs", []) if r in levels)
+    return ls[0] if ls else (tc.get("Mức", "").upper() if tc.get("Mức", "").upper() in MUC else "")
+
 
 def norm_technique(name: str) -> str:
     n = no_paren(name).strip().lower()
@@ -405,6 +442,10 @@ def cmd_tc(args: list[str]) -> int:
     focus_feat = [a for a in focus if not req_ids(a)]
     if focus:
         sel = {t for t, v in tcs.items() if set(v["reqs"]) & set(focus_reqs) or v["feature"] in focus_feat}
+        feats = {v["feature"] for v in tcs.values()}
+        for f_ in focus_feat:
+            if f_ not in feats:
+                errors.append(f"phạm vi `{f_}` không phải REQ-… hay tính năng nào trong qa/testcases/ (có: {', '.join(sorted(feats)) or '—'})")
         reqs = focus_reqs + [r for t in sel for r in tcs[t]["reqs"] if r not in focus_reqs]
         view = {t: tcs[t] for t in sel}
     else:
@@ -421,12 +462,13 @@ def cmd_tc(args: list[str]) -> int:
             errors.append(f"{t['id']}: `Mức: {t['Mức']}` — phải là R1/R2/R3 (mức người dùng chốt ở SCOPE §2)")
         for r in t["reqs"]:
             if r in levels and t["Mức"].upper() in MUC and t["Mức"].upper() != levels[r]:
-                warns.append(f"{t['id']}: `Mức: {t['Mức']}` khác mức {levels[r]} người dùng đã chốt cho {r}")
-        for k in ("REQ", "Target", "Tiền điều kiện", "Dữ liệu", "Nguồn"):
-            if PLACEHOLDER_RE.search(t[k]):
-                errors.append(f"{t['id']}: `{k}` còn chỗ trống `{PLACEHOLDER_RE.search(t[k]).group()}` — điền theo sản phẩm hoặc hỏi")
+                (errors if strict else warns).append(f"{t['id']}: `Mức: {t['Mức']}` khác mức {levels[r]} người dùng đã chốt cho {r} — kết luận theo mức SCOPE")
+        hole = lambda v: PLACEHOLDER_RE.search(re.sub(r"`[^`]*`", "", re.sub(r"<run(?:-id)?>", "RUN", v or "")))
+        for k in ("REQ", "Target", "Tiền điều kiện", "Dữ liệu", "Nguồn", "Bằng chứng cần"):
+            if hole(t[k]):
+                errors.append(f"{t['id']}: `{k}` còn chỗ trống `{hole(t[k]).group()}` — điền theo sản phẩm hoặc hỏi")
         for s in t["steps"] + t["expects"]:
-            m = PLACEHOLDER_RE.search(s)
+            m = hole(s)
             if m:
                 errors.append(f"{t['id']}: Bước/Kỳ vọng còn chỗ trống `{m.group()}` — điền theo sản phẩm hoặc hỏi")
                 break
@@ -557,7 +599,7 @@ def cmd_new_run(args: list[str]) -> int:
     kind = re.sub(r"[^a-z0-9-]", "-", args[0].lower())
     rest = args[1:]
     if kind == "explore":
-        ids, how = [], "test khám phá — mỗi phát hiện một dòng EXPLORE-<n> (khuôn _EXPLORE-TEMPLATE.md)"
+        ids, how = [], "test khám phá — mỗi phiên một dòng EXPLORE-<n> (khuôn _EXPLORE-TEMPLATE.md)"
     else:
         if kind in ("retest", "reg", "regression"):
             sel = [kind, *rest]
@@ -623,11 +665,16 @@ def cmd_new_run(args: list[str]) -> int:
 # ---------------------------------------------------------------- lệnh: run
 
 def evidence_paths(cell: str) -> list[str]:
-    links = re.findall(r"\]\(([^)]+)\)", cell)
+    links = [l.strip().strip("<>") for l in re.findall(r"\]\(([^)]+)\)", cell)]
     rest = re.sub(r"\[[^\]]*\]\([^)]+\)", " ", cell)
-    rest = re.sub(r"\([^()]*\)", " ", rest).replace("`", " ")
+    ticks = re.findall(r"`([^`]+)`", rest)                      # `…/a b.png` — giữ nguyên dấu cách
+    rest = re.sub(r"`[^`]+`", " ", rest)
+    rest = re.sub(r"\([^()]*\)", " ", rest)
+    whole = rest.strip()
+    if whole and " " in whole and (ROOT / whole).exists():     # cả ô là một đường dẫn có dấu cách
+        return links + ticks + [whole]
     toks = [p for p in re.split(r"[,;\s·]+", rest) if p]
-    return links + [t for t in toks if "/" in t or re.search(r"\.\w{2,5}$", t)]
+    return links + ticks + [t for t in toks if "/" in t or re.search(r"\.\w{2,5}$", t)]
 
 
 def evidence_ok(cell: str, run_id: str, tid: str, log_dir: Path) -> tuple[bool, str]:
@@ -697,9 +744,12 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
     log = QA / "runs" / run_id / "RUNLOG.md"
     text = read(log)
     if not text:
-        print(f"không thấy {log.relative_to(ROOT)}", file=sys.stderr)
+        if not quiet:
+            print(f"không thấy {log.relative_to(ROOT)}", file=sys.stderr)
         return 2, {}
     tcs, _ = load_tcs()
+    tc_case = {t.lower(): t for t in tcs}
+    levels = scope_levels()
     bugs = load_bugs()
     ttype = target_types()
     errors: list[str] = []
@@ -712,6 +762,7 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
     for r in table_rows(text):
         r = r + [""] * (5 - len(r))
         tid, looks = row_id(r[0])
+        tid = tc_case.get(tid.lower(), tid)
         _, res, day, ev, note = r[:5]
         if not re.match(r"(TC-|EXPLORE-)", tid):
             if looks:
@@ -734,7 +785,9 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
             if tid not in tcs:
                 errors.append(f"{tid}: không có trong qa/testcases/")
             else:
-                lv = tcs[tid]["Mức"].upper()
+                lv = tc_level(tcs[tid], levels)
+                if lv and tcs[tid]["Mức"].upper() in MUC and tcs[tid]["Mức"].upper() != lv:
+                    warns.append(f"{tid}: `Mức: {tcs[tid]['Mức']}` khác mức {lv} đã chốt ở SCOPE — tính theo {lv}")
                 if lv in MUC and res_u != "SKIP":
                     per_level.setdefault(lv, [0, 0])
                     per_level[lv][1] += 1
@@ -745,14 +798,15 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
             ok, why = evidence_ok(ev, run_id, tid, log.parent)
             if not ok:
                 errors.append(f"{tid}: {res_u} nhưng {why}")
-            if tid in tcs and ttype.get(tcs[tid]["Target"], "") == "ai":
+            if tid in tcs and re.match(r"ai\b", ttype.get(tcs[tid]["Target"], "")):
                 n_ai, _raw = ai_n(text)
-                need = n_ai.get(tcs[tid]["Mức"].upper()) if isinstance(n_ai, dict) else n_ai
-                got = len([f for f in (QA / "evidence" / run_id / tid).rglob("*luot*") if f.is_file()])
+                lv = tc_level(tcs[tid], levels)
+                need = (n_ai.get(lv) or n_ai.get("*")) if isinstance(n_ai, dict) else n_ai
+                got = ai_turns(QA / "evidence" / run_id / tid)
                 if not need:
-                    errors.append(f"{tid}: TC AI nhưng RUNLOG chưa có `Test AI — N mỗi ca` người dùng chốt")
+                    errors.append(f"{tid}: TC AI (mức {lv or '?'}) nhưng RUNLOG chưa có `Test AI — N mỗi ca` người dùng chốt cho mức này")
                 elif got < need:
-                    errors.append(f"{tid}: TC AI cần {need} lượt, bằng chứng mới có {got} file `*luot*`")
+                    errors.append(f"{tid}: TC AI cần {need} lượt, bằng chứng mới có {got} transcript `NN-luot-<k>.txt`")
         if res_u == "FAIL":
             ids = re.findall(r"BUG-\d+", note)
             if not ids:
@@ -787,7 +841,9 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
         crit, bad = parse_criteria(read(scope_file()))
         crit_note = " (RUNLOG không có khối tiêu chí — đang dùng SCOPE hiện tại; nên tạo run bằng new-run)"
     if crit and crit["late"]:
-        warns.append("tiêu chí được chốt SAU khi đã chạy (DECISIONS) — REPORT phải nêu rõ")
+        warns.append("tiêu chí được chốt SAU khi đã chạy (DECISIONS) — báo cáo phải nêu rõ")
+    scope_at = plain(field(text, "Scope lúc tạo run"))
+    draft = scope_at and not scope_at.upper().startswith("CHỐT") and not (crit and crit["late"])
     total = sum(counts.values())
     base = total - counts["SKIP"]
     pass_rate = 100.0 * counts["PASS"] / base if base else 0.0
@@ -798,8 +854,10 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
     kind = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", run_id)
 
     reasons = []
-    if counts["CHƯA CHẠY"] or errors or not (total or explore) or crit is None:
+    if counts["CHƯA CHẠY"] or errors or not (total or explore) or crit is None or draft:
         verdict = "CHƯA KẾT LUẬN"
+        if draft and crit is not None:
+            reasons.append(f"SCOPE lúc tạo run là `{scope_at}` — tiêu chí chưa được người dùng chốt (chốt rồi tạo run mới, hoặc ghi theo skill qa §2)")
         if crit is None:
             reasons.append("chưa có tiêu chí đạt được người dùng chốt" + (f" ({'; '.join(bad)})" if bad else ""))
         if counts["CHƯA CHẠY"]:
@@ -823,12 +881,14 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
         verdict = "KHÔNG ĐẠT" if reasons else "ĐẠT"
         if not total and explore and not forbidden:
             verdict = "KHÔNG ÁP DỤNG (chỉ khám phá)"
-        if verdict == "ĐẠT" and kind.startswith(("retest", "reg")):
+        scope_all, _h, _b = select(["all"]) if scope_reqs() else ([], "", [])
+        partial = kind.startswith(("retest", "reg")) or bool(set(drop_waiting(scope_all)[0]) - set(run_tcs))
+        if verdict == "ĐẠT" and partial:
             verdict = "ĐẠT (chỉ trong phạm vi run này — hỏi 'phát hành được chưa' thì dùng `release`)"
     if outside:
         warns.append("còn bug mở mức cấm NGOÀI phạm vi run này: " + ", ".join(f"{b['id']} ({b['sev']})" for b in outside))
 
-    info = {"run": run_id, "verdict": verdict, "counts": counts, "pass_rate": pass_rate}
+    info = {"run": run_id, "verdict": verdict, "counts": counts, "pass_rate": pass_rate, "errors": len(errors)}
     if not quiet:
         print(f"Run {run_id}: {total} dòng · PASS {counts['PASS']} · FAIL {counts['FAIL']} · BLOCKED {counts['BLOCKED']}"
               f" · SKIP {counts['SKIP']} · CHƯA CHẠY {counts['CHƯA CHẠY']} · tỉ lệ PASS {pass_rate:.1f}%"
@@ -844,7 +904,7 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
         for w in warns:
             print(f"  ⚠ {w}")
         print(f"KẾT LUẬN: {verdict}" + (f" — {'; '.join(reasons)}" if reasons else ""))
-    return (1 if errors else 0), info
+    return (0 if verdict.startswith(("ĐẠT", "KHÔNG ÁP DỤNG")) and not errors else 1), info
 
 
 # ---------------------------------------------------------------- lệnh: release
@@ -860,10 +920,11 @@ def cmd_release(args: list[str]) -> int:
     if missing:
         print(f"✗ không thấy run: {', '.join(missing)}", file=sys.stderr)
         return 2
-    errs = [a for a in args if cmd_run([a], quiet=True)[0]]
+    errs = [a for a in args if cmd_run([a], quiet=True)[1].get("errors")]   # lỗi hình thức, không phải KHÔNG ĐẠT
     tcs, _ = load_tcs()
     scope_tc, _how, _b = select(["all"])
     scope_tc, wait = drop_waiting(scope_tc)
+    levels = scope_levels()
     latest: dict[str, tuple[str, str]] = {}
     for rid in sorted(args, key=lambda a: order[a]):
         for r in table_rows(read(QA / "runs" / rid / "RUNLOG.md")):
@@ -871,6 +932,14 @@ def cmd_release(args: list[str]) -> int:
             if tid.startswith("TC-") and len(r) >= 2:
                 latest[tid] = (result_of(r[1])[0], rid)
     crit, bad = parse_criteria(read(scope_file()))
+    in_runs = [t for t in latest if t not in scope_tc]          # TC regression của REQ cũ, TC truyền thêm…
+    scope_tc = scope_tc + in_runs
+    diff_crit = []
+    for rid in args:
+        rc, _ = parse_criteria(read(QA / "runs" / rid / "RUNLOG.md"))
+        if rc and crit and (rc["forbidden"], rc["min_pass"], rc["max_blocked"], rc["per_level"]) != \
+                (crit["forbidden"], crit["min_pass"], crit["max_blocked"], crit["per_level"]):
+            diff_crit.append(rid)
     counts = {k: 0 for k in RESULTS}
     not_run = []
     for t in scope_tc:
@@ -887,8 +956,10 @@ def cmd_release(args: list[str]) -> int:
     if crit is None or not scope_status().upper().startswith("CHỐT"):
         verdict = "CHƯA KẾT LUẬN"
         reasons.append("SCOPE chưa CHỐT hoặc chưa có tiêu chí đạt đọc được" + (f" ({'; '.join(bad)})" if bad else ""))
-    elif errs or not_run:
+    elif errs or not_run or diff_crit:
         verdict = "CHƯA KẾT LUẬN"
+        if diff_crit:
+            reasons.append(f"tiêu chí đóng băng trong RUNLOG {', '.join(diff_crit)} khác SCOPE hiện tại — người dùng xác nhận (DECISIONS) tiêu chí nào áp dụng")
         if errs:
             reasons.append(f"run còn lỗi hình thức: {', '.join(errs)}")
         if not_run:
@@ -901,7 +972,7 @@ def cmd_release(args: list[str]) -> int:
         if br > crit["max_blocked"]:
             reasons.append(f"tỉ lệ BLOCKED {br:.1f}% > {crit['max_blocked']:g}%")
         for lv, need in crit["per_level"].items():
-            ids = [t for t in scope_tc if tcs[t]["Mức"].upper() == lv and latest.get(t, ("",))[0] != "SKIP"]
+            ids = [t for t in scope_tc if t in tcs and tc_level(tcs[t], levels) == lv and latest.get(t, ("",))[0] != "SKIP"]
             ok = [t for t in ids if latest.get(t, ("",))[0] == "PASS"]
             if ids and 100.0 * len(ok) / len(ids) < need:
                 reasons.append(f"tỉ lệ PASS {lv} {100.0 * len(ok) / len(ids):.1f}% < {need:g}%")

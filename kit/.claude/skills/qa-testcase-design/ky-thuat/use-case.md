@@ -16,7 +16,7 @@ Cách làm:
 4. **Kịch bản nghiệp vụ** (scenario): ghép nhiều use case thành một câu chuyện thật của một persona
    (vd "quản lý mở ca → nhận 3 đơn → huỷ 1 → xuất báo cáo cuối ngày") — bắt lỗi ở chỗ nối giữa các tính năng.
    Mỗi persona chính ít nhất một kịch bản. R1 thêm kịch bản "ngày tồi tệ": luồng chính của persona + chèn lần lượt
-   ≥ 3 ngoại lệ đã biết (mạng mất ở bước k, hết phiên ở bước k+1, dữ liệu bị người khác sửa ở bước k+2), kiểm hệ thống
+   các ngoại lệ đã biết (số lượng và vị trí đề xuất cho người dùng chọn) (mạng mất ở bước k, hết phiên ở bước k+1, dữ liệu bị người khác sửa ở bước k+2), kiểm hệ thống
    về trạng thái sạch sau mỗi ngoại lệ.
 
 Ghi `Kỹ thuật: use case` (chỉ tên chuẩn); mã luồng (`UC-DATLICH 3a`) ghi ở `Nguồn:` hoặc tiêu đề TC.
