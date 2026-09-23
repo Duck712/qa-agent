@@ -66,6 +66,22 @@ Trên các dự án demo cài sẵn lỗi (CLI Python, REST API, trang web), b�
 Chưa chạy thử thật: mobile, desktop, batch, AI, thư viện, bảo mật, viết test tự động, test khám phá — công thức đã có
 trong `qa-targets`, cần một dự án thật để kiểm.
 
+## Kỹ thuật được hỗ trợ
+
+| Nhóm | Kỹ thuật | Ở đâu |
+|---|---|---|
+| Phân tích & review tài liệu (tĩnh) | Quy trình review 8 bước · tiêu chí chất lượng yêu cầu (kiểm được, rõ, đủ, nhất quán, khả thi, truy vết) · INVEST + Given–When–Then · danh sách từ yếu · đọc theo góc nhìn (người dùng, tester, dev, vận hành, bảo mật, nghiệp vụ) · yêu cầu ngầm ISO 25010 · example mapping · mô hình hoá (use case, trạng thái, CRUD, luồng dữ liệu) · đối chiếu tài liệu ↔ code · rủi ro xác suất × thiệt hại · phân tích ảnh hưởng chọn regression | `qa-knowledge/analysis-review.md` |
+| Thiết kế TC hộp đen | Phân vùng tương đương · giá trị biên 2/3 giá trị · biên nhiều chiều (domain analysis) · syntax testing · bảng quyết định / cause-effect · ma trận phân quyền · ma trận CRUD · chuyển trạng thái (bảng trạng thái × sự kiện, 0/1-switch) · use case & kịch bản (luồng chính/thay thế/ngoại lệ) · pairwise & classification tree | `qa-testcase-design/ky-thuat/` |
+| Hộp trắng nhẹ | Rút nhánh, validate, mã lỗi, điểm kiểm quyền, truy vấn tenant, vùng vừa đổi từ code → mỗi thứ có TC hộp đen chạm tới | `ky-thuat/hop-trang.md` |
+| Không có đáp án chắc | Chọn oracle · metamorphic testing · property · fuzz có seed | `ky-thuat/oracle.md` |
+| Dựa trên kinh nghiệm | Error guessing có hệ thống · fault attacks · checklist-based · khám phá theo phiên (SBTM, charter, tour, debrief) | `ky-thuat/kinh-nghiem.md` |
+| Phi chức năng | Hiệu năng/tải · 10 heuristic Nielsen · WCAG 2.2 A/AA · tương thích · tin cậy/khôi phục · i18n/l10n · cài đặt/vận hành | `ky-thuat/phi-chuc-nang.md` |
+| Review TC | Ba lớp: hình thức (`qa_check.py tc`) · truy vết (`qa_check.py trace` → `qa/TRACE.md`) · checklist nội dung theo từng kỹ thuật | `ky-thuat/review-tc.md` |
+
+Mật độ theo rủi ro: R1 ≥ 2 kỹ thuật + biên 3 giá trị + mọi ô cấm + luồng ngoại lệ · R2 phân vùng + biên + luồng
+chính/thay thế · R3 happy path + 1 ca abnormal — mọi REQ luôn có cả ca đúng lẫn ca sai. Công cụ: `pairwise.py`
+(sinh bộ tổ hợp có ràng buộc), `gen_matrix_tc.py` (TC phân quyền từ ma trận), `qa_check.py trace` (ma trận truy vết).
+
 ## Học từ lỗi
 
 | Tầng | Ở đâu | Ghi khi nào |
@@ -88,10 +104,10 @@ kit/
 │   ├── skills/
 │   │   ├── qa/                  danh mục 18 việc QA, luật chung, ghép theo quy trình, lưu bài học
 │   │   ├── qa-targets/          web · mobile · api · desktop · cli · batch · ai · library · khác + an toàn
-│   │   ├── qa-testcase-design/  4 kỹ thuật, mật độ theo rủi ro, khuôn TC
+│   │   ├── qa-testcase-design/  chọn kỹ thuật, mật độ theo rủi ro, khuôn TC + ky-thuat/ (10 file kỹ thuật, review TC)
 │   │   ├── qa-evidence/         bằng chứng theo loại test × loại target, chống test giả
-│   │   └── qa-knowledge/        checklist + bug-patterns + mẹo nghề (kho chung)
-│   ├── qa-scripts/         qa_check.py (status · tc · select · new-run · run) · gen_matrix_tc.py · 2 hook
+│   │   └── qa-knowledge/        checklist + bug-patterns + phân tích/review tài liệu + mẹo nghề (kho chung)
+│   ├── qa-scripts/         qa_check.py (status · tc · trace · select · new-run · run) · pairwise.py · gen_matrix_tc.py · 2 hook
 │   └── settings.qa.json    phần gộp vào settings.json của dự án
 ├── .mcp.qa.json            Playwright MCP + mobile-mcp, version khoá cứng
 └── qa/                     workspace mẫu: QA.md · ANALYSIS · SCOPE · testcases/ · runs/ · BUGS · DECISIONS · LESSONS

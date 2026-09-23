@@ -9,7 +9,9 @@ Phạm vi: $ARGUMENTS
 2. **Chọn TC** (`python3 .claude/qa-scripts/qa_check.py select <phạm vi>` in danh sách):
    `all` = mọi TC của REQ trong SCOPE · `smoke` = TC có `Tag: smoke` (không có → TC `Mức: R1`) ·
    `regression` = TC `Regression: có` + TC vùng bị ảnh hưởng · `retest BUG-…` = TC của bug + bước tái hiện ·
-   `explore` = không có TC, charter + thời lượng (`techniques-judgement §1`), mỗi phát hiện một dòng `EXPLORE-<n>`.
+   `explore` = không có TC, phiên theo khuôn `qa/runs/_EXPLORE-TEMPLATE.md` (charter, thời lượng, ghi chép, debrief —
+   `qa-testcase-design/ky-thuat/kinh-nghiem.md` §3), mỗi phát hiện một dòng `EXPLORE-<n>` ·
+   `regression` chọn theo phân tích ảnh hưởng (`analysis-review.md` §8) chứ không chỉ theo tag.
    Trình danh sách + môi trường + tài khoản sẽ dùng → **người dùng xác nhận** rồi mới chạy
    (trừ khi họ đã nói rõ phạm vi và "chạy luôn").
 3. **Tạo run**: `python3 .claude/qa-scripts/qa_check.py new-run <loại> <TC…>` → `qa/runs/<run-id>/RUNLOG.md`

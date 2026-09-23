@@ -1,70 +1,62 @@
 ---
 name: qa-testcase-design
 description: >
-  Thiết kế test case có kỷ luật cho mọi loại target — bốn kỹ thuật (phân vùng tương đương, giá trị biên,
-  bảng quyết định, chuyển trạng thái), chọn mật độ theo mức rủi ro R1/R2/R3, luật normal + abnormal mỗi yêu
-  cầu, khuôn TC trong `qa/testcases/`, và bốn câu tự hỏi để loại TC thừa. Nạp skill này khi viết, bổ sung
-  hoặc review test case. Mục tiêu: mỗi TC bắt được một kiểu hỏng cụ thể, không đẻ TC cho đủ số.
+  Thiết kế và review test case có kỷ luật cho mọi loại target. Đủ bộ kỹ thuật: phân vùng tương đương, giá trị
+  biên (2/3 giá trị, biên nhiều chiều), syntax testing, bảng quyết định, ma trận phân quyền, ma trận CRUD,
+  chuyển trạng thái (bảng trạng thái × sự kiện, 0/1-switch), use case / kịch bản, pairwise & classification
+  tree, hộp trắng nhẹ từ code, oracle & metamorphic, fuzz/property, error guessing, checklist, khám phá theo
+  phiên (SBTM, tour), kỹ thuật phi chức năng (ISO 25010, heuristic khả dụng, WCAG). Kèm cách chọn kỹ thuật
+  theo tài liệu và mức rủi ro, mật độ R1/R2/R3, luật normal + abnormal, khuôn TC, checklist review TC và ma trận
+  truy vết. Nạp skill này khi viết, bổ sung hoặc review test case.
 ---
 
-# qa-testcase-design — viết test case có kỷ luật
+# qa-testcase-design — viết và review test case có kỷ luật
 
-> Viết theo cảm tính thì hoặc thiếu (sót ca hỏng) hoặc thừa (100 TC chạy mãi vẫn lọt bug). Bốn kỹ thuật dưới
-> trả lời "bao nhiêu TC là đủ" bằng cấu trúc.
+> Viết theo cảm tính thì hoặc thiếu (sót ca hỏng) hoặc thừa (100 TC chạy mãi vẫn lọt bug). Kỹ thuật trả lời
+> "bao nhiêu TC là đủ" bằng cấu trúc: mỗi TC bắt một kiểu hỏng cụ thể, mỗi kiểu hỏng có ít nhất một TC.
 
 ## 0. Trước khi viết
-1. Mở `ANALYSIS.md` (yêu cầu REQ-…) và `SCOPE.md` nếu có — chỉ viết TC cho thứ trong phạm vi.
-2. Mở `qa-knowledge`: `bug-patterns.md` (luôn) + checklist theo đối tượng (form, đăng nhập, upload, API,
-   bất thường, thanh toán, thông báo, realtime, tìm kiếm, ngày giờ) + checklist theo loại target (cli, batch, ai).
+1. Đọc REQ trong `qa/ANALYSIS.md` và phạm vi trong `qa/SCOPE.md` — chỉ viết TC cho thứ trong phạm vi.
+   REQ còn `(chờ trả lời)` → không đoán kỳ vọng, hỏi trước.
+2. Mở `qa-knowledge`: `bug-patterns.md` (luôn) + checklist theo đối tượng/loại target. Đọc `qa/LESSONS.md`.
 3. Mở `qa-targets/<loại>.md` — bước TC phải **thực hiện được** bằng công cụ của target đó.
-4. Dedupe: `grep -rn "<hành vi>" qa/testcases/` — đã có TC tương tự → dùng lại/sửa, không tạo trùng.
+4. Có code → đọc để biết bề mặt thật (endpoint, validate, nhánh, mã lỗi) — `ky-thuat/hop-trang.md`.
+5. Dedupe: `grep -rn "<hành vi>" qa/testcases/` — trùng rõ thì dùng lại; na ná không chắc thì hỏi.
 
-## 1. Mật độ theo mức rủi ro
-| Mức | Khi nào | Kỹ thuật |
+## 1. Chọn kỹ thuật — theo hình dạng của yêu cầu
+
+| Yêu cầu trông như thế này | Kỹ thuật | File |
 |---|---|---|
-| **R1** | Sai là mất tiền / mất dữ liệu / lộ quyền / sập luồng lõi | Cả bốn kỹ thuật |
-| **R2** | Sai thì khó chịu, có đường vòng | Phân vùng + biên (ca tiêu biểu) |
-| **R3** | Sai thì lặt vặt | Happy path |
+| Trường nhập có miền giá trị, độ dài, khoảng | Phân vùng + giá trị biên | `ky-thuat/phan-vung-bien.md` |
+| Nhiều trường ràng buộc lẫn nhau (từ ngày < đến ngày, tổng = đơn giá × SL) | Biên nhiều chiều (domain analysis) | `ky-thuat/phan-vung-bien.md` §3 |
+| Định dạng có ngữ pháp (email, SĐT, mã, URL, ngày, file CSV) | Syntax testing | `ky-thuat/phan-vung-bien.md` §4 |
+| "Nếu A và B thì…, nếu A mà không B thì…" | Bảng quyết định | `ky-thuat/bang-quyet-dinh.md` |
+| Vai × hành động, tenant | Ma trận phân quyền (bảng quyết định đặc biệt) | `ky-thuat/bang-quyet-dinh.md` §3 |
+| Thực thể được tạo/xem/sửa/xoá | Ma trận CRUD | `ky-thuat/bang-quyet-dinh.md` §4 |
+| Đối tượng có trạng thái (đơn, job, phiên, bản cài) | Chuyển trạng thái | `ky-thuat/trang-thai.md` |
+| User story / use case / quy trình nhiều bước | Use case & kịch bản | `ky-thuat/use-case.md` |
+| Nhiều tham số cấu hình/môi trường kết hợp | Pairwise, classification tree | `ky-thuat/to-hop.md` |
+| Có code trong tay | Hộp trắng nhẹ (mỗi nhánh/validate/mã lỗi có TC) | `ky-thuat/hop-trang.md` |
+| Không biết trước đáp án đúng (AI, xếp hạng, batch lớn, tính toán phức tạp) | Oracle, metamorphic, property | `ky-thuat/oracle.md` |
+| Đầu vào tự do, parser, upload | Fuzz / sinh đầu vào | `ky-thuat/oracle.md` §4 |
+| Tài liệu mỏng, vùng rủi ro chưa rõ | Error guessing, checklist, khám phá theo phiên | `ky-thuat/kinh-nghiem.md` |
+| Hiệu năng, khả dụng, a11y, tương thích, i18n, tin cậy | Kỹ thuật phi chức năng | `ky-thuat/phi-chuc-nang.md` |
 
-**Mỗi REQ ≥ 1 TC `Kiểu: normal` và ≥ 1 TC `Kiểu: abnormal`** (đầu vào sai, thiếu quyền, trạng thái không hợp
-lệ, phụ thuộc lỗi…). REQ chỉ có happy path là REQ chưa được kiểm. `qa_check.py tc` đếm luật này.
+Một REQ thường cần **nhiều** kỹ thuật (ô đặt lịch: phân vùng + biên + chuyển trạng thái + phân quyền). Ghi kỹ
+thuật đã dùng vào trường `Kỹ thuật:` của TC — `qa_check.py trace` cho thấy REQ nào mới chỉ được nhìn một góc.
 
-## 2. Phân vùng tương đương
-Chia miền đầu vào thành lớp cư xử như nhau, mỗi lớp một đại diện. Ô "số lượng" (1–20): hợp lệ 5 · dưới 0 ·
-trên 25 · âm −3 · không phải số "năm" · rỗng · khoảng trắng → 7 lớp, không phải 20 TC.
-Áp cho mọi target: cờ CLI (hợp lệ/lạ/thiếu), file đầu vào job (hợp lệ/hỏng/rỗng), loại câu hỏi cho bot
-(trong tài liệu/ngoài tài liệu/độc hại). **Bẫy**: quên lớp "rỗng" và "khoảng trắng" — hai lớp khác nhau.
+## 2. Mật độ theo mức rủi ro
 
-## 3. Giá trị biên
-Miền `[min, max]` → thử **min−1, min, max, max+1**. Độ dài chuỗi (0, 1, max, max+1) · số bản ghi (0, 1, đầy
-trang, tràn trang) · ngày (hôm nay, cuối tháng, 29/2, quanh 0h theo múi giờ) · tiền (0, nhỏ nhất, lớn nhất) ·
-kích thước file (0 byte, giới hạn, vượt) · context LLM (sát giới hạn). **Bẫy**: 10 bản ghi với `limit=10`.
+| Mức | Khi nào | Tối thiểu |
+|---|---|---|
+| **R1** | Sai là mất tiền / mất dữ liệu / lộ quyền / sập luồng lõi | ≥ 2 kỹ thuật khác nhau · biên 3 giá trị · mọi ô ✗ phân quyền · mọi chuyển cấm · luồng ngoại lệ của use case |
+| **R2** | Sai thì khó chịu, có đường vòng | Phân vùng + biên 2 giá trị · luồng chính + luồng thay thế chính |
+| **R3** | Sai thì lặt vặt | Happy path + 1 ca abnormal tiêu biểu |
 
-## 4. Bảng quyết định — tổ hợp điều kiện, phân quyền
-Kết quả phụ thuộc tổ hợp → lập bảng, mỗi dòng một TC. Ma trận vai × hành động (`ANALYSIS §2`): **mỗi ô ✗ là
-một TC bắt buộc** (ghi `Ô ma trận: <hành động> × <vai> = ✗`). Ma trận lớn → `python3 .claude/qa-scripts/gen_matrix_tc.py`
-sinh khung TC từ bảng.
+**Mọi mức: mỗi REQ ≥ 1 TC `Kiểu: normal` và ≥ 1 TC `Kiểu: abnormal`** (đầu vào sai, thiếu quyền, trạng thái
+không hợp lệ, phụ thuộc lỗi…). `qa_check.py tc` đếm luật này; REQ R1 dùng < 2 kỹ thuật bị cảnh báo.
 
-| Hành động | Vai | Chủ bản ghi | Kỳ vọng |
-|---|---|---|---|
-| Sửa đơn | owner | của mình | cho |
-| Sửa đơn | owner | tenant khác | **chặn 403/404** |
-| Sửa đơn | viewer | bất kỳ | **chặn 403** |
-| Sửa đơn | chưa đăng nhập | — | **chặn 401** |
-
-**Bẫy**: chỉ thử "vai bị cấm không thấy nút" mà không **gọi thẳng API** — giấu nút không phải là chặn.
-
-## 5. Chuyển trạng thái — nguồn của TC workflow
-Vẽ vòng đời (đơn, job, hội thoại, bản cài đặt) → mỗi chuyển hợp lệ một TC, mỗi chuyển bị cấm một TC (phải
-bị chặn). **Bẫy**: chỉ test đường thẳng; nhảy cóc trạng thái qua deep link/API/chạy lại job là chỗ bug nằm.
-
-## 6. Kỹ thuật chủ đạo theo loại test
-chức năng → phân vùng (happy) · biên → biên + lớp không hợp lệ · phá-đầu-vào → lớp không hợp lệ đẩy cực đoan ·
-phân-quyền → bảng quyết định · workflow → chuyển trạng thái · api → phân vùng + biên ở tầng API · tương-thích →
-so bản trước/dữ liệu cũ · hình-thức → đo so token · hiệu-năng → lặp thưa so ngưỡng · ai → phân vùng loại câu
-hỏi × N lần chạy × tiêu chí chấm · bảo-mật → mỗi TC một mục OWASP áp được.
-
-## 7. Khuôn TC
+## 3. Khuôn TC
 File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: `qa/testcases/_TEMPLATE.md`):
 ```markdown
 ## TC-DATLICH-003 — Đặt lịch vào khung giờ đã kín bị từ chối
@@ -73,6 +65,7 @@ File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: 
 - Loại: biên
 - Kiểu: abnormal
 - Mức: R1
+- Kỹ thuật: giá trị biên, chuyển trạng thái
 - Nguồn: REQ-DATLICH-2 · form-input §3
 - Regression: có
 - Tiền điều kiện: khung 09:00 ngày mai đã có 3/3 lịch (seed QA-<run>-full)
@@ -85,19 +78,21 @@ File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: 
   2. Gọi thẳng API đặt khung 09:00 → 409 kèm thông điệp "khung giờ đã kín"
 - Bằng chứng cần: ảnh bước 1 + Page URL · request/response bước 2
 ```
-ID: `TC-<TÍNH-NĂNG>-<số 3 chữ số>`, không tái dùng ID đã xoá. Loại/Kiểu/Mức/Target/REQ bắt buộc.
-Narrative (tiêu đề, kỳ vọng) viết theo hành vi người dùng; chi tiết kỹ thuật (selector, endpoint, lệnh) chỉ ở Bước/Dữ liệu.
+ID `TC-<TÍNH-NĂNG>-<3 chữ số>`, không tái dùng ID đã xoá. Bắt buộc: REQ, Target, Loại, Kiểu, Mức, Nguồn, Bước,
+Kỳ vọng, Bằng chứng cần. Nên có: Kỹ thuật. Tiêu đề/kỳ vọng viết theo hành vi người dùng; chi tiết kỹ thuật
+(selector, endpoint, lệnh) chỉ ở Bước/Dữ liệu. Một TC nhiều ca dữ liệu (bảng phân vùng) được — mỗi dòng dữ liệu
+một kỳ vọng.
 
-## 8. Bốn câu tự hỏi mỗi TC
-1. **Bắt được kiểu hỏng nào?** Không trả lời được → TC thừa.
-2. **Người chưa biết sản phẩm chạy được không?** Thao tác + dữ liệu cụ thể.
-3. **Kỳ vọng quan sát được không?** "Hoạt động đúng" không phải kỳ vọng; "hẹn mới hiện đầu danh sách, trạng thái Chờ xác nhận" mới là.
-4. **Bằng chứng nào chứng minh PASS?** Ghi `Bằng chứng cần` theo skill `qa-evidence`.
+**Bốn câu tự hỏi mỗi TC**: (1) bắt được kiểu hỏng nào? (2) người chưa biết sản phẩm chạy được không? (3) kỳ vọng
+quan sát được không — "hoạt động đúng" không phải kỳ vọng? (4) bằng chứng nào chứng minh PASS?
 
-Sau mỗi đợt viết: `python3 .claude/qa-scripts/qa_check.py tc` → sửa đến khi sạch, trình bảng tóm tắt
-(số TC theo REQ × Kiểu × Loại, REQ chưa phủ).
+## 4. Review bộ TC
+Sau mỗi đợt viết, và khi được nhờ review TC của người khác: `python3 .claude/qa-scripts/qa_check.py tc` (hình
+thức) → `qa_check.py trace` (ma trận truy vết) → checklist `ky-thuat/review-tc.md` (nội dung). Trình người dùng:
+REQ × số TC normal/abnormal × kỹ thuật; lỗ phủ; TC thừa/trùng; kỳ vọng mơ hồ; mục checklist chủ động bỏ và lý do.
 
-## 9. Ranh giới
-- Không viết TC ngoài phạm vi đã chốt — phát hiện ngoài phạm vi ghi `BUGS.md` trạng thái `hoãn` hoặc đề xuất.
+## 5. Ranh giới
+- Không viết TC ngoài phạm vi đã chốt — phát hiện ngoài phạm vi ghi đề xuất/`hoãn`.
 - Không sửa phạm vi/tiêu chí để hợp với TC đã viết.
 - Bug S1/S2 đã đóng → luôn có TC tái hiện với `Regression: có`.
+- Kỹ thuật là công cụ, không phải chỉ tiêu: không đẻ TC cho đủ số — TC không trả lời được câu (1) thì bỏ.

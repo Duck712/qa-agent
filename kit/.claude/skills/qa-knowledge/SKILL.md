@@ -32,13 +32,14 @@ description: >
 | `checklists/cli.md` | Target `cli` |
 | `checklists/batch-data.md` | Target `batch` — job, ETL, pipeline |
 | `checklists/ai-llm.md` | Target `ai` — chatbot, tóm tắt, phân loại, agent |
+| `analysis-review.md` | **Phân tích & review tài liệu**: tiêu chí chất lượng yêu cầu, INVEST, Given–When–Then, từ yếu, đọc theo góc nhìn, yêu cầu ngầm ISO 25010, example mapping, mô hình hoá, rủi ro, phân tích ảnh hưởng |
 | `techniques-judgement.md` | Khám phá có kỷ luật · viết bug · soi yêu cầu mơ hồ · cắt phạm vi · viết báo cáo |
 
 Bảo mật chuyên sâu (OWASP, CVE, secret) thuộc agent `qa-security`. Ở đây chỉ giữ ca bảo mật cơ bản ai cũng
 phải thử (`auth-login §3`, `form-input §2`, `api-common`).
 
 ## Dùng thế nào
-- **Phân tích tài liệu** — soi bằng `techniques-judgement §3` + `bug-patterns`: điều tài liệu không nói → `ANALYSIS §5` kèm đề xuất.
+- **Phân tích tài liệu** — theo `analysis-review.md` (quy trình §1) + `bug-patterns`: điều tài liệu không nói → `ANALYSIS §5` kèm đề xuất.
 - **Viết TC** — mỗi đối tượng trong phạm vi mở checklist tương ứng; mục áp dụng được mà chưa có TC → viết TC, `Nguồn:` ghi `<checklist> §<mục>`.
 - **Chạy test** — tester nạp checklist của loại mình để biết chỗ đáng đào, nhưng chỉ chạy TC được giao; thấy chỗ đáng ngờ ngoài danh sách → báo thành phát hiện.
 - **Sau một lượt** — kiểu lỗi mới ghi `REPORT §Bài học`; đề xuất thành một dòng ở đây → người dùng duyệt rõ ràng mới sửa.

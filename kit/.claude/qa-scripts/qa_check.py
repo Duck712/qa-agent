@@ -6,6 +6,7 @@
     python3 .claude/qa-scripts/qa_check.py select <phạm vi>     in TC theo: all | smoke | regression | retest BUG-… | <tính năng> | TC-…
     python3 .claude/qa-scripts/qa_check.py new-run <loại> <phạm vi>   tạo qa/runs/<ngày>-<loại>/RUNLOG.md, mọi dòng CHƯA CHẠY
     python3 .claude/qa-scripts/qa_check.py run <run-id>         soát RUNLOG + bằng chứng, tính kết luận theo tiêu chí ghi trước
+    python3 .claude/qa-scripts/qa_check.py trace [--write]      ma trận truy vết REQ × TC × kỹ thuật × kết quả × bug (--write → qa/TRACE.md)
 
 Không phải cổng chặn — chỉ báo. Exit 0 sạch · 1 có lỗi · 2 sai cách gọi.
 """
@@ -117,7 +118,7 @@ def load_tcs() -> tuple[dict[str, dict], list[str]]:
                 errors.append(f"{tid}: ID trùng ({tcs[tid]['file']} và {f.name})")
                 continue
             tc = {"id": tid, "title": h.group(2).strip(), "file": f.name, "feature": f.stem, "body": body}
-            for k in REQUIRED + ["Regression", "Tag", "Ticket"]:
+            for k in REQUIRED + ["Regression", "Tag", "Ticket", "Kỹ thuật"]:
                 tc[k] = field(body, k)
             tc["steps"] = block_items(body, "Bước")
             tc["expects"] = block_items(body, "Kỳ vọng")
@@ -148,6 +149,22 @@ def scope_file() -> Path:
 def scope_reqs() -> list[str]:
     rows = table_rows(section(read(scope_file()), "2."))
     return [r[0] for r in rows if r and re.match(r"REQ-", r[0])]
+
+
+def scope_levels() -> dict[str, str]:
+    """REQ → mức R ghi ở SCOPE §2 (cột thứ 4)."""
+    out = {}
+    for r in table_rows(section(read(scope_file()), "2.")):
+        if r and re.match(r"REQ-", r[0]) and len(r) >= 4:
+            m = re.search(r"R[1-3]", r[3].upper())
+            if m:
+                out[r[0]] = m.group()
+    return out
+
+
+def techniques(tc: dict) -> set[str]:
+    raw = re.sub(r"<[^>]*>", "", tc.get("Kỹ thuật", ""))
+    return {t.strip().lower() for t in re.split(r"[,;·+/]", raw) if t.strip()}
 
 
 def scope_status() -> str:
@@ -238,6 +255,13 @@ def cmd_tc() -> int:
             for need in ("normal", "abnormal"):
                 if need not in k:
                     errors.append(f"{r}: thiếu TC `Kiểu: {need}`")
+    levels = scope_levels()
+    for r in reqs:
+        lv = levels.get(r) or max((t["Mức"].upper() for t in tcs.values() if r in re.findall(REQ_ID, t["REQ"])), default="")
+        if lv == "R1":
+            used = set().union(*[techniques(t) for t in tcs.values() if r in re.findall(REQ_ID, t["REQ"])] or [set()])
+            if len(used) < 2:
+                warns.append(f"{r}: mức R1 nhưng TC mới dùng {len(used)} kỹ thuật ({', '.join(sorted(used)) or 'chưa ghi `Kỹ thuật:`'}) — R1 cần ≥ 2")
     orphan = sorted(set(by_req) - set(reqs)) if reqs else []
     for r in orphan:
         warns.append(f"{r}: TC trỏ tới REQ không có trong {'SCOPE §2' if scope_reqs() else 'ANALYSIS §3'}")
@@ -475,6 +499,59 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
     return (1 if errors else 0), info
 
 
+# ---------------------------------------------------------------- lệnh: trace
+
+def latest_results() -> dict[str, tuple[str, str]]:
+    """TC → (kết quả, run-id) ở run gần nhất có TC đó."""
+    out: dict[str, tuple[str, str]] = {}
+    for d in sorted(p for p in (QA / "runs").glob("*") if p.is_dir()):
+        for r in table_rows(read(d / "RUNLOG.md")):
+            if r and re.match(r"TC-", r[0]) and len(r) >= 2:
+                res = next((k for k in sorted(RESULTS, key=len, reverse=True) if r[1].upper().startswith(k)), r[1])
+                out[r[0]] = (res, d.name)
+    return out
+
+
+def cmd_trace(args: list[str]) -> int:
+    tcs, _ = load_tcs()
+    bugs = load_bugs()
+    res = latest_results()
+    levels = scope_levels()
+    reqs = scope_reqs() or analysis_reqs()
+    extra = sorted({r for t in tcs.values() for r in re.findall(REQ_ID, t["REQ"])} - set(reqs))
+    lines = ["| REQ | Mức | TC normal | TC abnormal | Kỹ thuật | Kết quả gần nhất | Bug mở |", "|---|---|---|---|---|---|---|"]
+    gaps = 0
+    for r in reqs + extra:
+        mine = [t for t in tcs.values() if r in re.findall(REQ_ID, t["REQ"])]
+        nor = [t["id"] for t in mine if t["Kiểu"].lower() == "normal"]
+        abn = [t["id"] for t in mine if t["Kiểu"].lower() == "abnormal"]
+        tech = sorted(set().union(*[techniques(t) for t in mine] or [set()]))
+        cnt: dict[str, int] = {}
+        for t in mine:
+            k = res.get(t["id"], ("chưa chạy", ""))[0]
+            cnt[k] = cnt.get(k, 0) + 1
+        ob = sorted({b["id"] + f" ({b['sev']})" for b in bugs.values()
+                     if b["status"] in OPEN_BUG and set(b["tc"]) & {t["id"] for t in mine}})
+        lv = levels.get(r) or max((t["Mức"].upper() for t in mine), default="")
+        if not nor or not abn:
+            gaps += 1
+        mark = "" if r in reqs else " ⚠ ngoài phạm vi"
+        lines.append(f"| {r}{mark} | {lv or '—'} | {', '.join(nor) or '**—**'} | {', '.join(abn) or '**—**'} | "
+                     f"{', '.join(tech) or '—'} | {' · '.join(f'{k} {v}' for k, v in sorted(cnt.items())) or '—'} | "
+                     f"{', '.join(ob) or '—'} |")
+    no_req = sorted(t["id"] for t in tcs.values() if not re.findall(REQ_ID, t["REQ"]))
+    summary = (f"REQ: {len(reqs)} ({'SCOPE' if scope_reqs() else 'ANALYSIS'}) · TC: {len(tcs)} · "
+               f"REQ thiếu normal hoặc abnormal: {gaps}" + (f" · TC không trỏ REQ: {', '.join(no_req)}" if no_req else ""))
+    out = "\n".join(lines) + "\n\n" + summary + "\n"
+    if "--write" in args:
+        (QA / "TRACE.md").write_text(
+            f"# TRACE — ma trận truy vết\n\n> Sinh bởi `qa_check.py trace --write` lúc {dt.datetime.now():%Y-%m-%d %H:%M}. "
+            "Không sửa tay — chạy lại lệnh.\n\n" + out, encoding="utf-8")
+        print(f"Đã ghi {(QA / 'TRACE.md').relative_to(ROOT)}")
+    print(out)
+    return 1 if gaps else 0
+
+
 # ---------------------------------------------------------------- lệnh: status
 
 def cmd_status() -> int:
@@ -533,6 +610,8 @@ def main(argv: list[str]) -> int:
         return cmd_new_run(args)
     if cmd == "run":
         return cmd_run(args)[0]
+    if cmd == "trace":
+        return cmd_trace(args)
     print(f"lệnh lạ `{cmd}`\n{__doc__}", file=sys.stderr)
     return 2
 

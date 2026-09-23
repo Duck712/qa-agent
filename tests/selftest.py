@@ -265,6 +265,35 @@ def main() -> int:
     check("không hợp lệ" not in r.stdout and "không ghi lý do" not in r.stdout,
           "kết quả có chú thích `BLOCKED (chờ trả lời #2)` được hiểu đúng", r.stdout)
 
+    print("\n[9] kỹ thuật: pairwise · trace · R1 ≥ 2 kỹ thuật")
+    import itertools
+    pw = run([sys.executable, ".claude/qa-scripts/pairwise.py", "B=Chrome,Firefox,Safari,Edge", "OS=Windows,macOS,Linux",
+              "Vai=admin,member,guest", "L=vi,en", "--khong", "Safari&Windows", "--khong", "Safari&Linux"], proj)
+    rows = [l.strip("|").split("|")[1:] for l in pw.stdout.splitlines() if l.startswith("| ") and not l.startswith("| #")]
+    rows = [[c.strip() for c in r] for r in rows]
+    vals = [["Chrome", "Firefox", "Safari", "Edge"], ["Windows", "macOS", "Linux"], ["admin", "member", "guest"], ["vi", "en"]]
+    need = {(i, a, j, b) for i, j in itertools.combinations(range(4), 2) for a in vals[i] for b in vals[j]
+            if not ({a, b} in ({"Safari", "Windows"}, {"Safari", "Linux"}))}
+    got = {(i, r[i], j, r[j]) for r in rows for i, j in itertools.combinations(range(4), 2)}
+    check(pw.returncode == 0 and need <= got, "pairwise phủ mọi cặp hợp lệ", pw.stdout + pw.stderr)
+    check(not any(r[0] == "Safari" and r[1] in ("Windows", "Linux") for r in rows), "pairwise tôn trọng ràng buộc --khong")
+    check(0 < len(rows) < 30, f"pairwise gọn hơn tích đầy đủ ({len(rows)} dòng < 60)")
+    full = run([sys.executable, ".claude/qa-scripts/pairwise.py", "A=1,2", "B=x,y", "--khong", "2&y", "--tat-ca"], proj)
+    check("Tích đầy đủ: 3 dòng" in full.stdout, "pairwise --tat-ca bỏ tổ hợp cấm", full.stdout)
+    r = qa(proj, "trace", "--write")
+    check((proj / "qa/TRACE.md").exists() and "| REQ-DK-1 |" in r.stdout and "TC-DK-001" in r.stdout,
+          "trace --write sinh ma trận truy vết", r.stdout)
+    r = qa(proj, "tc")
+    check("REQ-DK-1: mức R1 nhưng TC mới dùng" in r.stdout, "cảnh báo REQ R1 dùng < 2 kỹ thuật", r.stdout)
+    t = tcf.read_text().replace("- Mức: R1\n- Nguồn: REQ-DK-1", "- Mức: R1\n- Kỹ thuật: phân vùng, giá trị biên\n- Nguồn: REQ-DK-1", 1)
+    tcf.write_text(t)
+    r = qa(proj, "tc")
+    check("REQ-DK-1: mức R1 nhưng" not in r.stdout, "hết cảnh báo khi R1 có ≥ 2 kỹ thuật", r.stdout)
+    for f in ["ky-thuat/use-case.md", "ky-thuat/to-hop.md", "ky-thuat/oracle.md", "ky-thuat/review-tc.md", "ky-thuat/hop-trang.md"]:
+        check((proj / ".claude/skills/qa-testcase-design" / f).exists(), f"cài kèm {f}")
+    check((proj / ".claude/skills/qa-knowledge/analysis-review.md").exists() and (proj / "qa/runs/_EXPLORE-TEMPLATE.md").exists(),
+          "cài kèm analysis-review.md + khuôn phiên khám phá")
+
     print(f"\n{'=' * 50}\n  {OK} ✓ · {BAD} ✗")
     if keep:
         print(f"  giữ thư mục nháp: {tmp}")

@@ -10,6 +10,7 @@
 - Loại: chức năng
 - Kiểu: normal
 - Mức: R1
+- Kỹ thuật: <phân vùng | giá trị biên | bảng quyết định | chuyển trạng thái | use case | pairwise | error guessing | …>
 - Nguồn: REQ-FEAT-1
 - Regression: không
 - Tag: 
