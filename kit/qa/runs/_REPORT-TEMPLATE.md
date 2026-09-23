@@ -1,7 +1,7 @@
 # REPORT — <run-id>
 
 ## Kết luận
-<!-- Dòng đầu: ĐẠT / KHÔNG ĐẠT / CHƯA KẾT LUẬN — đúng kết luận `qa_check.py run <run-id>` tính ra — + một câu lý do. -->
+<!-- Dòng đầu: ĐẠT / KHÔNG ĐẠT / CHƯA KẾT LUẬN — đúng kết luận `python3 .claude/qa-scripts/qa_check.py run <run-id>` tính ra — + một câu lý do. -->
 
 ## Số liệu
 | Tổng TC | PASS | FAIL | BLOCKED | SKIP | Tỉ lệ PASS |

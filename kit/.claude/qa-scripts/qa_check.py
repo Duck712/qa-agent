@@ -162,6 +162,12 @@ def scope_levels() -> dict[str, str]:
     return out
 
 
+def top_level(levels) -> str:
+    """Mức cao nhất (R1 > R2 > R3) trong danh sách — R1 là rủi ro cao nhất nên lấy min theo chữ số."""
+    vals = sorted(l for l in levels if l in MUC)
+    return vals[0] if vals else ""
+
+
 def techniques(tc: dict) -> set[str]:
     raw = re.sub(r"<[^>]*>", "", tc.get("Kỹ thuật", ""))
     return {t.strip().lower() for t in re.split(r"[,;·+/]", raw) if t.strip()}
@@ -257,7 +263,7 @@ def cmd_tc() -> int:
                     errors.append(f"{r}: thiếu TC `Kiểu: {need}`")
     levels = scope_levels()
     for r in reqs:
-        lv = levels.get(r) or max((t["Mức"].upper() for t in tcs.values() if r in re.findall(REQ_ID, t["REQ"])), default="")
+        lv = levels.get(r) or top_level(t["Mức"].upper() for t in tcs.values() if r in re.findall(REQ_ID, t["REQ"]))
         if lv == "R1":
             used = set().union(*[techniques(t) for t in tcs.values() if r in re.findall(REQ_ID, t["REQ"])] or [set()])
             if len(used) < 2:
@@ -532,7 +538,7 @@ def cmd_trace(args: list[str]) -> int:
             cnt[k] = cnt.get(k, 0) + 1
         ob = sorted({b["id"] + f" ({b['sev']})" for b in bugs.values()
                      if b["status"] in OPEN_BUG and set(b["tc"]) & {t["id"] for t in mine}})
-        lv = levels.get(r) or max((t["Mức"].upper() for t in mine), default="")
+        lv = levels.get(r) or top_level(t["Mức"].upper() for t in mine)
         if not nor or not abn:
             gaps += 1
         mark = "" if r in reqs else " ⚠ ngoài phạm vi"

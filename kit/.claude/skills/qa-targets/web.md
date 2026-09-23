@@ -5,7 +5,7 @@ Playwright MCP (`@playwright/mcp`, tool `browser_*`). Cài sẵn hai nơi:
 - `.mcp.json` của dự án — cho phiên chính.
 - Frontmatter agent `qa-tester` / `qa-security` — mỗi agent một trình duyệt `--isolated`, chạy song song không giẫm nhau.
 
-`--output-dir` trỏ **đường dẫn tuyệt đối** `qa/evidence/_inbox/<vai>` (do `install.py` ghi), nên ảnh luôn rơi
+`--output-dir` trỏ **đường dẫn tuyệt đối** `qa/evidence/_inbox/<vai>` (do `install.py` của repo qa-agent ghi lúc cài), nên ảnh luôn rơi
 vào dự án dù phiên mở ở thư mục nào. Chụp xong → chuyển sang `qa/evidence/<run-id>/<TC-ID>/`.
 
 ## Tool hay dùng
@@ -50,4 +50,4 @@ Tương phản: leo lên tổ tiên tìm nền đục rồi tính tỉ lệ. a11
 |---|---|
 | Không thấy tool `browser_*` | Chưa duyệt MCP server của dự án — duyệt khi Claude Code hỏi, hoặc `/mcp` |
 | Lần đầu rất lâu | Đang tải Chromium (`npx playwright install chromium`) |
-| Ảnh không thấy trong `qa/evidence/_inbox` | `.mcp.json` còn đường dẫn tương đối — chạy lại `install.py` |
+| Ảnh không thấy trong `qa/evidence/_inbox` | `.mcp.json` còn đường dẫn tương đối — chạy lại `python3 <source>/install.py . --update` (`source` ghi trong `.claude/qa-agent.json`) |

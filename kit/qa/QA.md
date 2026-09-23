@@ -1,6 +1,6 @@
 # QA — {{PROJECT_NAME}}
 
-> Hồ sơ dự án kiểm thử. `qa_check.py` và các hook đọc các dòng `- Khoá: giá trị` ở đây — giữ nguyên tên khoá.
+> Hồ sơ dự án kiểm thử. `python3 .claude/qa-scripts/qa_check.py` và các hook đọc các dòng `- Khoá: giá trị` ở đây — giữ nguyên tên khoá.
 
 ## Quy trình
 <!-- Đội đang làm theo quy trình nào và QA ghép việc ra sao (skill qa §3). Phiên sau đọc để biết việc tiếp theo. -->

@@ -31,5 +31,5 @@ Phạm vi: $ARGUMENTS
    Trả lời xong → cập nhật TC/kết quả theo đúng câu trả lời, ghi `DECISIONS.md`.
 7. **Ghi kết quả** vào RUNLOG ngay sau mỗi nhóm (kết quả, ngày, đường dẫn bằng chứng, BUG/lý do). FAIL → `/qa-bug`
    (retest: cập nhật trạng thái + `Lịch sử` của bug cũ).
-8. Hết phạm vi: `qa_check.py run <run-id>` phải sạch → spawn `qa-evidence-check` → xử lý lệch (chạy lại/hạ
+8. Hết phạm vi: `python3 .claude/qa-scripts/qa_check.py run <run-id>` phải sạch → spawn `qa-evidence-check` → xử lý lệch (chạy lại/hạ
    BLOCKED) → ghi bài học mới vào `qa/LESSONS.md` → đề xuất `/qa-report <run-id>`. Đóng trình duyệt/simulator/tiến trình nền.

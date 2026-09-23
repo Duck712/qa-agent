@@ -73,7 +73,7 @@ Bốn thứ **luôn đúng** dù làm việc gì: không bịa · chưa rõ thì
 | 2 | **Review tài liệu / làm rõ yêu cầu** | "review PRD này", "tài liệu có chỗ nào chưa rõ" | Kỹ thuật tĩnh `qa-knowledge/analysis-review.md`: tiêu chí chất lượng, từ yếu, đọc theo góc nhìn, yêu cầu ngầm ISO 25010, example mapping, mô hình hoá | `ANALYSIS.md §5–§7` |
 | 3 | **Kế hoạch / chốt scope** | "lên test plan", "sprint này test gì" | Trong/ngoài phạm vi, mức rủi ro, loại test theo target, môi trường, tiêu chí đạt → người dùng chốt | `SCOPE.md` |
 | 4 | **Thiết kế test case** | "viết TC cho tính năng X" | Chọn kỹ thuật theo `qa-testcase-design` §1 (phân vùng, biên, bảng quyết định, trạng thái, use case, pairwise, hộp trắng nhẹ, oracle/metamorphic, kinh nghiệm, phi chức năng) + checklist | `testcases/<tính-năng>.md` |
-| 5 | **Review TC / coverage** | "bộ TC đủ chưa", "review TC này" | Ba lớp `ky-thuat/review-tc.md`: `qa_check.py tc` + `trace` + checklist nội dung | `TRACE.md` + báo cáo trong chat (sửa TC khi được đồng ý) |
+| 5 | **Review TC / coverage** | "bộ TC đủ chưa", "review TC này" | Ba lớp `ky-thuat/review-tc.md`: `python3 .claude/qa-scripts/qa_check.py tc` + `trace` + checklist nội dung | `TRACE.md` + báo cáo trong chat (sửa TC khi được đồng ý) |
 | 6 | **Dữ liệu & môi trường test** | "chuẩn bị data", "tạo tài khoản test" | Seed/dọn qua API/UI/lệnh, kiểm môi trường sống (`qa-targets`) | `QA.md §Tài khoản`, script ở `qa/scripts/` |
 | 7 | **Chạy test theo TC** | "chạy bộ TC", "test tính năng X" | Tạo run → chạy (tự làm hoặc `qa-tester`) → bằng chứng → bug | `runs/<run-id>/RUNLOG.md`, `BUGS.md`, `evidence/` |
 | 8 | **Smoke / sanity** | "vừa deploy, check nhanh" | Chọn TC luồng lõi (`Mức: R1`, hoặc tag `smoke`) → run ngắn | run `smoke-…` |
@@ -84,8 +84,8 @@ Bốn thứ **luôn đúng** dù làm việc gì: không bịa · chưa rõ thì
 | 13 | **Bảo mật** | "kiểm bảo mật" | Agent `qa-security` — chỉ khi người dùng cho phép (SCOPE §7) | run + bug |
 | 14 | **Hiệu năng / tải** | "đo tốc độ", "load test" | Đo thưa trên môi trường thường; tải chỉ trên môi trường riêng đã khai (`ky-thuat/phi-chuc-nang.md`) | run + số đo |
 | 15 | **Hình thức / a11y / khả dụng** | "so với design", "kiểm accessibility" | Đo computed style/frame so token; WCAG A/AA; 10 heuristic Nielsen (`ky-thuat/phi-chuc-nang.md`) | run |
-| 19 | **Tương thích / cấu hình** | "chạy trên những trình duyệt nào", "nhiều cấu hình" | Bộ pairwise `pairwise.py` (`ky-thuat/to-hop.md`) → smoke trên từng cấu hình | run + bảng cấu hình |
-| 16 | **Báo cáo** | "tổng kết", "release được chưa" | `qa_check.py run` tính kết luận → REPORT cho người không rành kỹ thuật | `runs/<run-id>/REPORT.md` |
+| 19 | **Tương thích / cấu hình** | "chạy trên những trình duyệt nào", "nhiều cấu hình" | Bộ pairwise `python3 .claude/qa-scripts/pairwise.py` (`ky-thuat/to-hop.md`) → smoke trên từng cấu hình | run + bảng cấu hình |
+| 16 | **Báo cáo** | "tổng kết", "release được chưa" | `python3 .claude/qa-scripts/qa_check.py run` tính kết luận → REPORT cho người không rành kỹ thuật | `runs/<run-id>/REPORT.md` |
 | 17 | **Ghi / triage bug** | "log bug này", "phân loại bug" | Khuôn `BUGS.md`, severity theo hậu quả, tái hiện tối giản | `BUGS.md` |
 | 18 | **Rút bài học** | "có gì rút ra", "lần sau nhớ…" | Ghi `LESSONS.md` ngay khi gặp; bài học dùng chung được → hỏi người dùng rồi mới đưa vào `qa-knowledge` (§6) | `LESSONS.md`, `REPORT.md §Bài học` |
 
@@ -93,7 +93,7 @@ Việc không có trong bảng → đề xuất cách làm theo tinh thần gầ
 
 **Chạy nhanh không cần scope đầy đủ**: người dùng nhờ "test giúp X" mà `SCOPE.md` chưa chốt → nói rõ phạm vi, môi
 trường và tiêu chí sẽ dùng (mặc định: không còn bug mở S1/S2, PASS ≥ 95%, BLOCKED ≤ 5%), người dùng gật thì
-`qa_check.py new-run` (tự chép tiêu chí vào RUNLOG) rồi chạy.
+`python3 .claude/qa-scripts/qa_check.py new-run` (tự chép tiêu chí vào RUNLOG) rồi chạy.
 
 ## 3. Ghép việc theo quy trình của đội (ví dụ)
 

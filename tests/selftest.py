@@ -289,10 +289,26 @@ def main() -> int:
     tcf.write_text(t)
     r = qa(proj, "tc")
     check("REQ-DK-1: mức R1 nhưng" not in r.stdout, "hết cảnh báo khi R1 có ≥ 2 kỹ thuật", r.stdout)
+    scope.write_text(sc.replace("| REQ-DK-1 | Đăng ký | web | R1 | chức năng |", "| REQ-DK-1 | Đăng ký | web | | chức năng |"))
+    tcf.write_text(tcf.read_text().replace("- Kỹ thuật: phân vùng, giá trị biên\n", "", 1).replace("- Mức: R1", "- Mức: R3", 1))
+    r = qa(proj, "tc")
+    check("REQ-DK-1: mức R1 nhưng" in r.stdout, "TC lẫn R1/R3, SCOPE không ghi mức → vẫn coi là R1 (mức cao nhất)", r.stdout)
+    scope.write_text(sc)
     for f in ["ky-thuat/use-case.md", "ky-thuat/to-hop.md", "ky-thuat/oracle.md", "ky-thuat/review-tc.md", "ky-thuat/hop-trang.md"]:
         check((proj / ".claude/skills/qa-testcase-design" / f).exists(), f"cài kèm {f}")
     check((proj / ".claude/skills/qa-knowledge/analysis-review.md").exists() and (proj / "qa/runs/_EXPLORE-TEMPLATE.md").exists(),
           "cài kèm analysis-review.md + khuôn phiên khám phá")
+
+    print("\n[10] tham chiếu file/skill/lệnh/§ ở mọi công đoạn (cài mới)")
+    fresh = tmp / "cai-moi"
+    fresh.mkdir()
+    run([sys.executable, str(REPO / "install.py"), str(fresh)], tmp)
+    rc = run([sys.executable, str(REPO / "tests/refcheck.py"), str(fresh)], tmp)
+    check(rc.returncode == 0, "mọi tham chiếu trong lệnh/agent/skill/khuôn trỏ tới thứ có thật", rc.stdout + rc.stderr)
+    broken = fresh / ".claude/commands/qa-tmp.md"
+    broken.write_text("Nạp skill `qa-khong-co` · xem `ky-thuat/khong-co.md` · chạy `/qa-khong-co` · ANALYSIS §99\n")
+    rc = run([sys.executable, str(REPO / "tests/refcheck.py"), str(fresh)], tmp)
+    check(rc.returncode == 1 and rc.stdout.count("qa-tmp.md") >= 4, "refcheck bắt được skill/file/lệnh/mục không tồn tại", rc.stdout)
 
     print(f"\n{'=' * 50}\n  {OK} ✓ · {BAD} ✗")
     if keep:

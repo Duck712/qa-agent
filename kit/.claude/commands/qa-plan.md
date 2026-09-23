@@ -12,7 +12,7 @@ argument-hint: [tên đợt, vd "sprint 12" | "release 2.3"]
 2. Đọc `qa/ANALYSIS.md` (chưa có → hỏi người dùng: phân tích tài liệu trước, hay lập scope từ mô tả của họ).
 3. Soạn SCOPE (khuôn `qa/SCOPE.md`): §2 REQ trong phạm vi + mức R1/R2/R3 (từ bảng rủi ro ANALYSIS §6 — người dùng
    xác nhận mức) + loại test (gồm cả phi chức năng từ ANALYSIS §7) · regression (từ phân tích ảnh hưởng ANALYSIS §8) ·
-   cấu hình tương thích (bộ pairwise `pairwise.py` nếu nhiều trình duyệt/OS/thiết bị/vai) · §3 ngoài phạm vi có
+   cấu hình tương thích (bộ pairwise `python3 .claude/qa-scripts/pairwise.py` nếu nhiều trình duyệt/OS/thiết bị/vai) · §3 ngoài phạm vi có
    lý do · §4 loại test theo từng target · §5 môi trường, bản, tài khoản, cách tạo/dọn dữ liệu · §6 tiêu chí đạt
    (giữ đúng định dạng ba dòng, đề xuất con số hợp mức rủi ro) · §7 quyền đặc biệt (bảo mật, tải — mặc định `không`).
 4. **Hỏi người dùng**, gom một lượt: điểm mơ hồ còn mở ở `ANALYSIS §5`, phạm vi đề xuất, mức rủi ro, tiêu chí đạt,

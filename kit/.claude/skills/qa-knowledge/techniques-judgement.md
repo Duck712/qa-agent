@@ -1,7 +1,7 @@
-# Mẹo nghề — ngoài bốn kỹ thuật thiết kế TC
+# Mẹo nghề — viết bug, soi yêu cầu, cắt phạm vi, báo cáo
 
 > Kỹ thuật thiết kế TC ở skill `qa-testcase-design` (`ky-thuat/`). Kỹ thuật phân tích/review tài liệu ở `analysis-review.md`.
-> Kết luận đạt/không đạt là phép tính theo tiêu chí ghi trước (`qa_check.py run`), không phải phán đoán. File này giữ phần còn lại.
+> Kết luận đạt/không đạt là phép tính theo tiêu chí ghi trước (`python3 .claude/qa-scripts/qa_check.py run`), không phải phán đoán. File này giữ phần còn lại.
 
 ## 1. Khám phá có kỷ luật (exploratory)
 

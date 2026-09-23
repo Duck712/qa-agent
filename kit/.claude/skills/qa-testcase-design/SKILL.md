@@ -43,7 +43,7 @@ description: >
 | Hiệu năng, khả dụng, a11y, tương thích, i18n, tin cậy | Kỹ thuật phi chức năng | `ky-thuat/phi-chuc-nang.md` |
 
 Một REQ thường cần **nhiều** kỹ thuật (ô đặt lịch: phân vùng + biên + chuyển trạng thái + phân quyền). Ghi kỹ
-thuật đã dùng vào trường `Kỹ thuật:` của TC — `qa_check.py trace` cho thấy REQ nào mới chỉ được nhìn một góc.
+thuật đã dùng vào trường `Kỹ thuật:` của TC — `python3 .claude/qa-scripts/qa_check.py trace` cho thấy REQ nào mới chỉ được nhìn một góc.
 
 ## 2. Mật độ theo mức rủi ro
 
@@ -54,7 +54,7 @@ thuật đã dùng vào trường `Kỹ thuật:` của TC — `qa_check.py trac
 | **R3** | Sai thì lặt vặt | Happy path + 1 ca abnormal tiêu biểu |
 
 **Mọi mức: mỗi REQ ≥ 1 TC `Kiểu: normal` và ≥ 1 TC `Kiểu: abnormal`** (đầu vào sai, thiếu quyền, trạng thái
-không hợp lệ, phụ thuộc lỗi…). `qa_check.py tc` đếm luật này; REQ R1 dùng < 2 kỹ thuật bị cảnh báo.
+không hợp lệ, phụ thuộc lỗi…). `python3 .claude/qa-scripts/qa_check.py tc` đếm luật này; REQ R1 dùng < 2 kỹ thuật bị cảnh báo.
 
 ## 3. Khuôn TC
 File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: `qa/testcases/_TEMPLATE.md`):
@@ -88,7 +88,7 @@ quan sát được không — "hoạt động đúng" không phải kỳ vọng?
 
 ## 4. Review bộ TC
 Sau mỗi đợt viết, và khi được nhờ review TC của người khác: `python3 .claude/qa-scripts/qa_check.py tc` (hình
-thức) → `qa_check.py trace` (ma trận truy vết) → checklist `ky-thuat/review-tc.md` (nội dung). Trình người dùng:
+thức) → `python3 .claude/qa-scripts/qa_check.py trace` (ma trận truy vết) → checklist `ky-thuat/review-tc.md` (nội dung). Trình người dùng:
 REQ × số TC normal/abnormal × kỹ thuật; lỗ phủ; TC thừa/trùng; kỳ vọng mơ hồ; mục checklist chủ động bỏ và lý do.
 
 ## 5. Ranh giới

@@ -1,6 +1,6 @@
 # SCOPE — {{PROJECT_NAME}}
 
-> Bước 2 (`/qa-scope`). Người dùng chốt file này trước khi chạy test. Sau khi CHỐT, tiêu chí đạt (§6)
+> Bước 2 (`/qa-plan`). Người dùng chốt file này trước khi chạy test. Sau khi CHỐT, tiêu chí đạt (§6)
 > không sửa theo kết quả — muốn đổi thì chốt lại và ghi DECISIONS.
 
 - Trạng thái: NHÁP

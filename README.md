@@ -97,6 +97,7 @@ tìm kiếm/danh sách, ngày giờ/lịch, CLI, job/dữ liệu, AI/LLM) và 24
 ```
 install.py                  cài / cập nhật vào dự án
 tests/selftest.py           cài vào dự án nháp, kiểm từng mảnh (chạy sau mỗi lần sửa)
+tests/refcheck.py           kiểm mọi tham chiếu file/skill/lệnh/§ trong bản đã cài
 kit/
 ├── .claude/
 │   ├── commands/           /qa (nhận mọi việc) + 7 lệnh tắt
@@ -122,7 +123,7 @@ Hai hook nhẹ chặn thật: `guard_evidence` (ảnh/video phải nằm trong `
 
 v3 bỏ bộ máy pha S-P-E-C, gate, release/lượt bàn giao; giữ phần prompt và cấu trúc agent đã chứng minh hiệu quả:
 ngưỡng ghi trước khi chạy · bằng chứng bắt buộc theo loại + checklist chống test giả · auditor soi bằng chứng trước
-khi báo cáo · 4 kỹ thuật thiết kế TC + luật normal/abnormal · tester theo góc nhìn (gộp 13 agent thành một
+khi báo cáo · kỹ thuật thiết kế TC (v2 có 4, v3 mở rộng thành đủ bộ ở trên) + luật normal/abnormal · tester theo góc nhìn (gộp 13 agent thành một
 `qa-tester` nhận góc nhìn làm tham số) · luật an toàn khi test trên môi trường thật · hook giữ bằng chứng trong dự án.
 Thêm: đường dẫn bằng chứng tuyệt đối (v2 để tương đối nên ảnh lạc thư mục khi mở phiên chỗ khác), MCP khoá version,
 công cụ sinh TC phân quyền từ ma trận, 6 loại target mới, cơ chế lưu bài học hai tầng. Bản v2 vẫn ở lịch sử git
