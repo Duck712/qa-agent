@@ -18,7 +18,8 @@ def project_root() -> Path:
     return Path(__file__).resolve().parents[2]   # <dự án>/.claude/qa-scripts/_root.py
 
 
-SUB_OPEN, SUB_CLOSE = "\x00(", "\x00)"          # đoạn đánh dấu subshell do split_commands trả về
+SUB_OPEN, SUB_CLOSE = "\x00(", "\x00)"
+SUB_TOKEN, PSUB_TOKEN = "$__SUB__", "$__PSUB__"     # thay cho $(…)/`…` và <(…)/>(…) trong lệnh chứa (lệnh bên trong đã xét riêng)          # đoạn đánh dấu subshell do split_commands trả về
 HEREDOC_RE = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][\w-]*)\1")
 
 
@@ -86,7 +87,19 @@ def split_commands(cmd: str, _norm: bool = True) -> list[str]:
 
     while i < len(cmd):
         c = cmd[i]
-        if q:
+        if q == '"' and (cmd[i:i + 2] == "$(" or c == "`"):     # "$(…)" / "`…`": vẫn là lệnh, phải soi
+            if c == "`":
+                k = cmd.find("`", i + 1)
+                k, body = (len(cmd) - 1 if k < 0 else k), None
+                body = cmd[i + 1:k]
+            else:
+                k = match_paren(cmd, i + 1)
+                k = len(cmd) - 1 if k < 0 else k
+                body = cmd[i + 2:k]
+            out.extend([SUB_OPEN, *split_commands(body, False), SUB_CLOSE])
+            cur.append(SUB_TOKEN)
+            i = k
+        elif q:
             cur.append(c)
             if c == "\\" and q == '"' and i + 1 < len(cmd):
                 cur.append(cmd[i + 1])
@@ -108,13 +121,16 @@ def split_commands(cmd: str, _norm: bool = True) -> list[str]:
             if body.startswith("(") and body.endswith(")"):      # $(( … )) số học
                 body = body[1:-1]
             out.extend([SUB_OPEN, *split_commands(body, False), SUB_CLOSE])
-            cur.append(cmd[i - 1:i] == "$" and "__SUB__" or "$__SUB__")   # đã xét riêng; `$` để hook không coi là đường dẫn
+            if cmd[i - 1:i] == "$":
+                cur.append(SUB_TOKEN[1:])                         # `$` đã nằm trong cur → "$__SUB__"
+            else:
+                cur.append(PSUB_TOKEN)                            # <( … ) / >( … ): không phải đường dẫn
             i = k
         elif c == "`":
             k = cmd.find("`", i + 1)
             k = len(cmd) - 1 if k < 0 else k
             out.extend([SUB_OPEN, *split_commands(cmd[i + 1:k], False), SUB_CLOSE])
-            cur.append("$__SUB__")
+            cur.append(SUB_TOKEN)
             i = k
         elif c == "(" and all(w in KEYWORDS for w in "".join(cur).split()):
             cur = []

@@ -27,6 +27,7 @@ from _root import SUB_CLOSE, SUB_OPEN, drop_inputs, expand, is_redir, opt_value,
 
 ROOT = project_root().resolve()
 QA_DIR = ROOT / "qa"
+PARTIAL = "\x01partial"                              # tên giả cho phần đường dẫn tính lúc chạy
 
 
 def fold(p: Path) -> str:
@@ -56,7 +57,13 @@ def protected() -> list[Path]:
 
 def resolve(path: str, cwd: Path, env: dict) -> list[Path]:
     raw = expand(path.strip("\"'"), env)
-    if not raw or "$" in raw:
+    if raw and "$" in raw:                              # src/`date`.log, src/$(date).log: phần thư mục cố định phía trước
+        fixed = raw.split("$", 1)[0]
+        d = fixed if fixed.endswith("/") else fixed.rsplit("/", 1)[0] + "/" if "/" in fixed else ""
+        if not d:
+            return []
+        raw = d + PARTIAL
+    if not raw:
         return []
     base = raw if Path(raw).is_absolute() else str(cwd / raw)
     if re.search(r"[*?\[]", raw):                       # glob: xét các file khớp + phần thư mục cố định phía trước
@@ -72,6 +79,11 @@ def resolve(path: str, cwd: Path, env: dict) -> list[Path]:
 def hit(path: str, roots: list[Path], cwd: Path, env: dict, ancestor: bool = False) -> Path | None:
     """Đường dẫn nằm trong vùng chỉ đọc? ancestor=True: cả khi vùng chỉ đọc nằm BÊN TRONG đường dẫn (rm -r ., find .)."""
     for p in resolve(path, cwd, env):
+        if p.name == PARTIAL:                              # chỉ biết thư mục: xét "nằm trong", không xét "chứa vùng chỉ đọc"
+            p = p.parent
+            if not under(p, QA_DIR) and any(under(p, r) for r in roots):
+                return next(r for r in roots if under(p, r))
+            continue
         if under(p, QA_DIR) and not ancestor:
             continue
         for r in roots:

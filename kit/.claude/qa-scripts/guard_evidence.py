@@ -25,7 +25,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _root import SUB_CLOSE, SUB_OPEN, drop_inputs, expand, is_redir, opt_value, project_root, split_commands, tokens  # noqa: E402
+from _root import PSUB_TOKEN, SUB_CLOSE, SUB_OPEN, drop_inputs, expand, is_redir, opt_value, project_root, split_commands, tokens  # noqa: E402
 
 ROOT = project_root()
 QA_DIR = ROOT / "qa"
@@ -91,8 +91,9 @@ def check_bash(command: str) -> tuple[bool, str]:
         raw = tokens(seg)
         inputs = [raw[i + 1] for i, t in enumerate(raw) if t == "<" and i + 1 < len(raw)]   # cat < qa/evidence/a.png
         toks = drop_inputs(raw)
-        redirs = [toks[i + 1] for i, t in enumerate(toks) if is_redir(t) and i + 1 < len(toks) and "__SUB__" not in toks[i + 1]]
-        tail_of_sub, sub_ev = sub_ev and bool(toks) and is_redir(toks[0]), False
+        redirs = [toks[i + 1] for i, t in enumerate(toks) if is_redir(t) and i + 1 < len(toks) and toks[i + 1] != PSUB_TOKEN]
+        # redirect ngay sau `)` của subshell, hoặc lệnh chứa $(…)/<(…) vừa xuất bằng chứng: `echo "$(cat ev)" > /tmp/o`
+        tail_of_sub, sub_ev = sub_ev and bool(toks) and (is_redir(toks[0]) or "__SUB__" in seg or "__PSUB__" in seg), False
         ev_inputs = [x for x in inputs if inside(resolve(x, cwd, env), EVIDENCE)]
         toks = [t for j, t in enumerate(toks) if not is_redir(t) and not (j > 0 and is_redir(toks[j - 1]))]
         if tail_of_sub:                                      # (cat qa/evidence/a.png) > /tmp/o
@@ -119,8 +120,11 @@ def check_bash(command: str) -> tuple[bool, str]:
                 base = resolve(cs[0], cwd, env)
         ev_args = [a for a in plain if inside(resolve(a, base, env), EVIDENCE)]
         real_redirs = [r for r in redirs if r not in ("/dev/null", "/dev/stderr", "/dev/stdout")]
-        dests: list[str] = list(real_redirs) if (ev_args and head in EMIT) or ev_inputs else []   # ls/find > … chỉ là tên
-        if (ev_args and head in EMIT) or ev_inputs:
+        emits = bool(ev_args or ev_inputs) and head in EMIT                 # ls/find/wc > … chỉ là tên/số đếm
+        dests: list[str] = list(real_redirs) if emits else []
+        if head == "tee" and ev_inputs:
+            dests += plain
+        if emits:
             for fr in stack:
                 fr[1] = True
         tdir = opt_value(args, "t", ("--target-directory",)) if head in ("cp", "mv", "install") else []

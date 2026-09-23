@@ -665,6 +665,21 @@ def main() -> int:
         (2, "guard_readonly.py", "echo $(rm src/app.js)"), (2, "guard_readonly.py", "x=$(echo $(rm src/app.js))"),
         (2, "guard_readonly.py", "cd src && git checkout -b feat"), (2, "guard_readonly.py", "git -C src switch -c feat"),
         (0, "guard_readonly.py", "a=(x y); echo ${a[0]} > qa/a.txt"), (0, "guard_readonly.py", "echo $((1+2)) > qa/n.txt"),
+        (2, "guard_readonly.py", 'OUT="$(cd src && git checkout main 2>&1)"'), (2, "guard_readonly.py", 'OUT="$(git -C src stash 2>&1)"; echo "$OUT"'),
+        (2, "guard_readonly.py", "R=\"$(sed -i '' s/a/b/ src/a.js)\""), (2, "guard_readonly.py", 'echo "$(touch src/b)"'),
+        (2, "guard_readonly.py", 'echo "`touch src/bt`"'), (2, "guard_readonly.py", "echo x > src/`date +%F`.log"),
+        (2, "guard_readonly.py", "echo x > src/$(date +%F).log"), (0, "guard_readonly.py", "echo x > qa/evidence/r1/$(date +%s).txt"),
+        (0, "guard_readonly.py", 'SHA="$(git -C src rev-parse HEAD)"; echo "$SHA" > qa/sha.txt'),
+        (0, "guard_readonly.py", "git commit -m \"$(cat <<'EOF'\nfix: a (b)\nEOF\n)\""), (0, "guard_readonly.py", 'rm -rf "$TMPX"'),
+        (2, "guard_evidence.py", 'echo "$(cp qa/evidence/r1/TC-A-001/01.png /tmp/x)"'),
+        (2, "guard_evidence.py", "cat qa/evidence/r1/TC-A-001/01.png > /tmp/$(date +%s).png"),
+        (2, "guard_evidence.py", "cat qa/evidence/r1/TC-A-001/01.png > /tmp/`date +%s`.png"),
+        (2, "guard_evidence.py", "adb exec-out screencap -p > ~/Desktop/s-$(date +%s).png"),
+        (0, "guard_evidence.py", "adb exec-out screencap -p > qa/evidence/r1/TC-A-001/s-$(date +%s).png"),
+        (2, "guard_evidence.py", 'echo "$(cat qa/evidence/r1/TC-A-001/01.png)" > /tmp/o'),
+        (2, "guard_evidence.py", "cat <(cat qa/evidence/r1/TC-A-001/01.png) > /tmp/o"),
+        (0, "guard_evidence.py", "wc -l < qa/evidence/r1/TC-A-001/log.txt > /tmp/n"),
+        (0, "guard_evidence.py", "curl -s https://x > qa/evidence/r1/TC-A-001/$(date +%s).json"),
     ]
     wrong = [f"{g} `{c}` → {hook(proj, g, 'Bash', {'command': c})} (cần {e_})" for e_, g, c in CASES5
              if hook(proj, g, "Bash", {"command": c}) != e_]
