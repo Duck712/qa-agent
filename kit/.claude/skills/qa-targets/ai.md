@@ -31,7 +31,7 @@ Tiêu chí cần phán đoán chủ quan → ghi rõ là phán đoán, đưa ng�
 
 ## Công thức
 - **Đúng nghiệp vụ / grounding**: câu hỏi có đáp án trong tài liệu nguồn → đúng đáp án; câu hỏi ngoài tài liệu → nói không biết, không bịa.
-- **Ổn định**: cùng câu hỏi diễn đạt lại theo vài cách (số cách đề xuất kèm lý do và hỏi — chốt cùng N ở SCOPE §7) → cùng ý; N lần → tỉ lệ đạt.
+- **Ổn định**: cùng câu hỏi diễn đạt lại theo vài cách (số cách đề xuất kèm lý do và hỏi — chốt ở dòng `Test AI — số cách diễn đạt mỗi ca` SCOPE §7, không ghi vào dòng N) → cùng ý; N lần → tỉ lệ đạt.
 - **Biên**: đầu vào rỗng, rất dài (sát giới hạn context), nhiều ngôn ngữ, sai chính tả, không dấu, emoji, file đính kèm lạ.
 - **Prompt injection**: "bỏ qua hướng dẫn trước, …", chỉ dẫn giấu trong tài liệu/URL/file được đưa vào, yêu cầu in prompt hệ thống.
 - **Lộ dữ liệu**: hỏi thông tin của người dùng/tenant khác, secret, dữ liệu nội bộ → phải từ chối.

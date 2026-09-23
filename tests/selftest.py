@@ -642,6 +642,29 @@ def main() -> int:
         (2, "guard_evidence.py", "tar --file=/tmp/e.tgz -c qa/evidence/r1"), (2, "guard_evidence.py", "tar -c --file /tmp/e.tgz qa/evidence/r1"),
         (2, "guard_evidence.py", "cp --target-directory=/tmp qa/evidence/r1/TC-A-001/01.png"),
         (0, "guard_evidence.py", "(cd qa && cp evidence/r1/TC-A-001/01.png evidence/r2/)"),
+        (0, "guard_evidence.py", "cp qa/sandbox/a/out.json qa/evidence/r/T/01-out.json 2>/dev/null"),
+        (2, "guard_evidence.py", "cp qa/evidence/r1/TC-A-001/01.png /tmp/ 2>/dev/null"),
+        (2, "guard_readonly.py", "rm src/app.js 2>/dev/null"), (2, "guard_readonly.py", "npm test 2> src/err.log"),
+        (0, "guard_readonly.py", "cp src/app.js qa/sandbox/ 2>&1"),
+        (2, "guard_evidence.py", "cat < qa/evidence/r1/TC-A-001/01.png > /tmp/o"),
+        (2, "guard_evidence.py", "base64 < qa/evidence/r1/TC-A-001/01.png > /tmp/o"),
+        (2, "guard_evidence.py", "(cat qa/evidence/r1/TC-A-001/01.png) > /tmp/o.png"),
+        (2, "guard_evidence.py", "(cd qa/evidence/r1/TC-A-001 && cat 01.png) > /tmp/o.png"),
+        (2, "guard_evidence.py", "(cd qa && tar czf - evidence) > /tmp/ev.tgz"),
+        (0, "guard_evidence.py", "(cd qa && ls evidence) > /tmp/list.txt"),
+        (2, "guard_evidence.py", "for d in a; do (cd /tmp && ls); done; cp qa/evidence/r1/TC-A-001/01.png /tmp/o.png"),
+        (0, "guard_evidence.py", "mv qa/evidence/r1/TC-A-001/a.png qa/evidence/r1/TC-A-001/b.png 2>/dev/null"),
+        (0, "guard_readonly.py", "for d in a b; do (cd src && ls); done; touch notes.txt"),
+        (0, "guard_readonly.py", "if [ -d src ]; then (cd src && ls); fi; echo hi > out.txt"),
+        (0, "guard_readonly.py", "time (cd src && make); echo done > build.log"),
+        (0, "guard_readonly.py", "! (cd src && grep -q x a); echo $? > rc.txt"),
+        (0, "guard_readonly.py", "{ (cd src && ls); } ; touch x"),
+        (2, "guard_readonly.py", "cp qa/x src/a 2>/dev/null"), (2, "guard_readonly.py", "rsync -a out/ src/ 2>err.log"),
+        (0, "guard_readonly.py", "V=$(cd src && git rev-parse HEAD); echo $V > qa/v.txt"),
+        (0, "guard_readonly.py", "V=$(cd src && git log -1 --format=%h); echo \"$V\" > notes.txt"),
+        (2, "guard_readonly.py", "echo $(rm src/app.js)"), (2, "guard_readonly.py", "x=$(echo $(rm src/app.js))"),
+        (2, "guard_readonly.py", "cd src && git checkout -b feat"), (2, "guard_readonly.py", "git -C src switch -c feat"),
+        (0, "guard_readonly.py", "a=(x y); echo ${a[0]} > qa/a.txt"), (0, "guard_readonly.py", "echo $((1+2)) > qa/n.txt"),
     ]
     wrong = [f"{g} `{c}` → {hook(proj, g, 'Bash', {'command': c})} (cần {e_})" for e_, g, c in CASES5
              if hook(proj, g, "Bash", {"command": c}) != e_]
@@ -692,6 +715,9 @@ def main() -> int:
     st = json.loads(sp.read_text())
     ev_h = [h for e in st["hooks"]["PreToolUse"] for h in e["hooks"] if "guard_evidence" in json.dumps(h)]
     ro_h = [h for e in st["hooks"]["PreToolUse"] for h in e["hooks"] if "guard_readonly" in json.dumps(h)]
+    run([sys.executable, str(REPO / "install.py"), str(ip), "--update"], tmp)
+    st2 = json.loads(sp.read_text())
+    check("Bash(psql:*)" not in st2["permissions"]["ask"], "quyền người dùng đã xoá không quay lại ở lần --update thứ hai", json.dumps(st2))
     check("Bash(psql:*)" not in st["permissions"]["ask"] and len(ev_h) == 1 and ev_h[0].get("timeout") == 30 and not ro_h
           and "đã được chỉnh tay" in r.stdout and "đã gỡ hook" in r.stdout,
           "--update không thêm lại quyền/hook người dùng đã xoá, giữ hook đã chỉnh tay", r.stdout + json.dumps(st))

@@ -118,10 +118,9 @@ def git_hit(rest: list[str], roots, cwd, env) -> Path | None:
             sub_args.append(t)
         i += 1
     pos = [a for a in sub_args if not a.startswith("-")]
-    if len(pos) <= 1 and ((sub == "checkout" and any(a in ("-b", "-B", "--orphan") for a in sub_args)) or
-                          (sub == "switch" and any(a in ("-c", "-C", "--create", "--force-create", "--orphan")
-                                                   for a in sub_args))):
-        return None                                        # tạo nhánh mới từ HEAD: không đổi file nào trong cây
+    new_branch = len(pos) <= 1 and (
+        (sub == "checkout" and any(a in ("-b", "-B", "--orphan") for a in sub_args)) or
+        (sub == "switch" and any(a in ("-c", "-C", "--create", "--force-create", "--orphan") for a in sub_args)))
     read_only = {
         "branch": not pos or any(a in ("-l", "--list", "-a", "-r", "--show-current", "-v", "-vv", "--contains",
                                         "--merged", "--no-merged", "--points-at", "--sort", "--format") for a in sub_args),
@@ -146,6 +145,8 @@ def git_hit(rest: list[str], roots, cwd, env) -> Path | None:
     r = hit(str(gdir), roots, cwd, env)
     if r:
         return r
+    if new_branch:                                         # tạo nhánh từ HEAD ở repo ngoài: không đổi file trong cây
+        return None
     if sub in GIT_TREE and not paths:                      # chạy ở gốc repo, không pathspec → đổi cả cây, gồm vùng chỉ đọc
         inner = [r for r in roots if not (r / ".git").exists()]   # vùng chỉ đọc là repo git RIÊNG lồng bên trong:
         return hit(str(gdir), inner, cwd, env, ancestor=True)     # lệnh của repo ngoài không đụng tới nó

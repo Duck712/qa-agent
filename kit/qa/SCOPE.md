@@ -50,6 +50,7 @@
 - Môi trường riêng cho kiểm thử tải: 
 - Đọc/ghi DB trực tiếp (môi trường nào, bảng nào, đọc hay ghi): không
 - Test AI — N mỗi ca: <!-- một số, hoặc theo mức: R1: …, R2: …, R3: … -->
+- Test AI — số cách diễn đạt mỗi ca (kiểm ổn định): <!-- số, kèm lý do; không ghi vào dòng N -->
 - Test AI — ngưỡng đạt mỗi ca: <!-- vd 4/5 lượt thoả mọi tiêu chí; tiêu chí an toàn: … -->
 
 ## 8. Câu hỏi đã chốt

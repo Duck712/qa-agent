@@ -635,7 +635,9 @@ def cmd_new_run(args: list[str]) -> int:
         print("⚠ SCOPE §6 chưa có tiêu chí đạt đọc được — hỏi người dùng; run không kết luận được khi chưa có", file=sys.stderr)
     n_ai = field_any(scope_text, "Test AI — N mỗi ca", "Test AI — N mỗi ca (R1/R2/R3)")
     thr_ai = field(scope_text, "Test AI — ngưỡng đạt mỗi ca")
-    ai_lines = (f"  - Test AI — N mỗi ca: {n_ai}\n  - Test AI — ngưỡng đạt mỗi ca: {thr_ai}\n") if (n_ai or thr_ai) else ""
+    para_ai = field_any(scope_text, "Test AI — số cách diễn đạt mỗi ca (kiểm ổn định)", "Test AI — số cách diễn đạt mỗi ca")
+    ai_lines = (f"  - Test AI — N mỗi ca: {n_ai}\n  - Test AI — ngưỡng đạt mỗi ca: {thr_ai}\n"
+                + (f"  - Test AI — số cách diễn đạt mỗi ca: {para_ai}\n" if para_ai else "")) if (n_ai or thr_ai) else ""
     day = dt.date.today().isoformat()
     run_id, n = f"{day}-{kind}", 2
     while (QA / "runs" / run_id).exists():
@@ -962,7 +964,7 @@ def cmd_release(args: list[str]) -> int:
     elif errs or not_run or diff_crit:
         verdict = "CHƯA KẾT LUẬN"
         if diff_crit:
-            reasons.append(f"tiêu chí đóng băng trong RUNLOG {', '.join(diff_crit)} khác SCOPE hiện tại — người dùng xác nhận (DECISIONS) tiêu chí nào áp dụng")
+            reasons.append(f"tiêu chí đóng băng trong RUNLOG {', '.join(diff_crit)} khác SCOPE hiện tại — hỏi người dùng: tạo lại run bằng new-run (chép tiêu chí hiện tại) rồi chạy lại, hoặc chốt lại SCOPE §6 theo tiêu chí cũ (ghi DECISIONS)")
         if errs:
             reasons.append(f"run còn lỗi hình thức: {', '.join(errs)}")
         if not_run:

@@ -79,17 +79,26 @@ def out_of_qa(raw: str, cwd: Path, env: dict) -> bool:
 
 def check_bash(command: str) -> tuple[bool, str]:
     cwd, env = Path.cwd(), {}
-    stack: list[Path] = []
+    stack: list[list] = []                                   # [cwd trước subshell, subshell có xuất nội dung bằng chứng?]
+    sub_ev = False                                           # subshell vừa đóng có xuất bằng chứng → redirect sau `)` là đích
     for seg in split_commands(command):
         if seg == SUB_OPEN:
-            stack.append(cwd)
+            stack.append([cwd, False])
             continue
         if seg == SUB_CLOSE:
-            cwd = stack.pop() if stack else Path.cwd()
+            cwd, sub_ev = stack.pop() if stack else (Path.cwd(), False)
             continue
-        toks = drop_inputs(tokens(seg))
-        redirs = [toks[i + 1] for i, t in enumerate(toks) if is_redir(t) and i + 1 < len(toks)]
+        raw = tokens(seg)
+        inputs = [raw[i + 1] for i, t in enumerate(raw) if t == "<" and i + 1 < len(raw)]   # cat < qa/evidence/a.png
+        toks = drop_inputs(raw)
+        redirs = [toks[i + 1] for i, t in enumerate(toks) if is_redir(t) and i + 1 < len(toks) and "__SUB__" not in toks[i + 1]]
+        tail_of_sub, sub_ev = sub_ev and bool(toks) and is_redir(toks[0]), False
+        ev_inputs = [x for x in inputs if inside(resolve(x, cwd, env), EVIDENCE)]
         toks = [t for j, t in enumerate(toks) if not is_redir(t) and not (j > 0 and is_redir(toks[j - 1]))]
+        if tail_of_sub:                                      # (cat qa/evidence/a.png) > /tmp/o
+            for d in redirs:
+                if d not in ("/dev/null", "/dev/stderr", "/dev/stdout") and out_of_qa(d, cwd, env):
+                    return False, f"subshell xuất nội dung bằng chứng ra ngoài qa/ ({d})"
         while toks and re.match(r"^\w+=", toks[0]):
             k, v = toks[0].split("=", 1)
             env[k] = expand(v, env)
@@ -110,7 +119,10 @@ def check_bash(command: str) -> tuple[bool, str]:
                 base = resolve(cs[0], cwd, env)
         ev_args = [a for a in plain if inside(resolve(a, base, env), EVIDENCE)]
         real_redirs = [r for r in redirs if r not in ("/dev/null", "/dev/stderr", "/dev/stdout")]
-        dests: list[str] = list(real_redirs) if ev_args and head in EMIT else []   # ls/find/file > … chỉ là danh sách tên
+        dests: list[str] = list(real_redirs) if (ev_args and head in EMIT) or ev_inputs else []   # ls/find > … chỉ là tên
+        if (ev_args and head in EMIT) or ev_inputs:
+            for fr in stack:
+                fr[1] = True
         tdir = opt_value(args, "t", ("--target-directory",)) if head in ("cp", "mv", "install") else []
         if head in ("cp", "mv", "rsync", "ditto", "install", "scp") and (len(plain) >= 2 or tdir):
             dest = tdir[0] if tdir else plain[-1]

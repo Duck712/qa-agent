@@ -126,6 +126,7 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list, rec: di
                     mine.append(x)
             elif tracked and x in old_perms.get(k, []):
                 dropped.append(x)                             # người dùng đã xoá → không thêm lại
+                mine.append(x)                                # vẫn ghi vào manifest để lần --update sau còn nhớ
             else:
                 lst.append(x)
                 mine.append(x)

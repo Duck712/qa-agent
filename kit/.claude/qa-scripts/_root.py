@@ -40,15 +40,50 @@ def strip_heredocs(cmd: str) -> str:
 def normalize(cmd: str) -> str:
     cmd = re.sub(r"\d*[<>]&(\d+|-)", " ", cmd)        # 2>&1, >&2, <&0: nhân bản fd, không phải file
     cmd = re.sub(r"&>>?", ">", cmd)                   # &>file = >file
+    cmd = re.sub(r"(?<![^\s;&|(])\d+(?=>)", "", cmd)   # 2>/dev/null, 2> err.log: bỏ số fd (shlex tách "2" thành tham số riêng)
     return cmd
 
 
-def split_commands(cmd: str) -> list[str]:
-    """Tách theo ; && || | & và xuống dòng NẰM NGOÀI dấu nháy; bỏ thân heredoc; lấy thêm lệnh trong $(…) và `…`."""
-    cmd = normalize(strip_heredocs(cmd))
-    inner = re.findall(r"\$\(([^()]*)\)", cmd) + re.findall(r"`([^`]*)`", cmd)
+def match_paren(cmd: str, j: int) -> int:
+    """Vị trí `)` khớp với `(` ở cmd[j] (hiểu nháy, ngoặc lồng); -1 nếu không đóng."""
+    depth, q, k = 0, "", j
+    while k < len(cmd):
+        c = cmd[k]
+        if q:
+            if c == "\\" and q == '"':
+                k += 1
+            elif c == q:
+                q = ""
+        elif c in ("'", '"'):
+            q = c
+        elif c == "\\":
+            k += 1
+        elif c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return k
+        k += 1
+    return -1
+
+
+def split_commands(cmd: str, _norm: bool = True) -> list[str]:
+    """Tách theo ; && || | & và xuống dòng NẰM NGOÀI dấu nháy; bỏ thân heredoc.
+    Subshell `( … )` ở đầu lệnh (kể cả sau do/then/!/{/time…) → SUB_OPEN … SUB_CLOSE (cd bên trong không lọt ra).
+    `$( … )`, `<( … )`, `>( … )` và `…` giữ nguyên trong lệnh chứa nó; lệnh bên trong được tách riêng, bọc
+    SUB_OPEN/SUB_CLOSE, đặt ngay trước lệnh chứa nó."""
+    if _norm:
+        cmd = normalize(strip_heredocs(cmd))
     out, cur, q, i = [], [], "", 0
-    parens: list[bool] = []                       # True = ngoặc subshell ở đầu lệnh; False = $( … ), <( … ), mảng…
+    opened = 0                                    # số subshell đang mở
+
+    def flush():
+        nonlocal cur
+        if "".join(cur).strip():
+            out.append("".join(cur))
+        cur = []
+
     while i < len(cmd):
         c = cmd[i]
         if q:
@@ -66,36 +101,43 @@ def split_commands(cmd: str) -> list[str]:
                 cur.append(c)
                 cur.append(cmd[i + 1])
             i += 1
-        elif c == "(" and not "".join(cur).strip():
-            parens.append(True)
-            out.append(SUB_OPEN)
-        elif c == "(":
-            parens.append(False)
-            cur.append(c)
-        elif c == ")" and parens:
-            if parens.pop():
-                if "".join(cur).strip():
-                    out.append("".join(cur))
-                cur = []
-                out.append(SUB_CLOSE)
-            else:
-                cur.append(c)
-        elif c in ";\n" or cmd[i:i + 2] in ("&&", "||") or c == "&" or (c == "|" and cmd[i - 1:i] != ">"):
-            if "".join(cur).strip():
-                out.append("".join(cur))
+        elif c == "(" and cmd[i - 1:i] in ("$", "<", ">") and i > 0:
+            k = match_paren(cmd, i)
+            k = len(cmd) - 1 if k < 0 else k
+            body = cmd[i + 1:k]
+            if body.startswith("(") and body.endswith(")"):      # $(( … )) số học
+                body = body[1:-1]
+            out.extend([SUB_OPEN, *split_commands(body, False), SUB_CLOSE])
+            cur.append(cmd[i - 1:i] == "$" and "__SUB__" or "$__SUB__")   # đã xét riêng; `$` để hook không coi là đường dẫn
+            i = k
+        elif c == "`":
+            k = cmd.find("`", i + 1)
+            k = len(cmd) - 1 if k < 0 else k
+            out.extend([SUB_OPEN, *split_commands(cmd[i + 1:k], False), SUB_CLOSE])
+            cur.append("$__SUB__")
+            i = k
+        elif c == "(" and all(w in KEYWORDS for w in "".join(cur).split()):
             cur = []
+            opened += 1
+            out.append(SUB_OPEN)
+        elif c == "(":                                           # mảng a=(x y), khai báo hàm f()…
+            k = match_paren(cmd, i)
+            k = len(cmd) - 1 if k < 0 else k
+            cur.append(cmd[i:k + 1])
+            i = k
+        elif c == ")" and opened:
+            flush()
+            opened -= 1
+            out.append(SUB_CLOSE)
+        elif c in ";\n" or cmd[i:i + 2] in ("&&", "||") or c == "&" or (c == "|" and cmd[i - 1:i] != ">"):
+            flush()
             if cmd[i:i + 2] in ("&&", "||", "|&"):
                 i += 1
         else:
             cur.append(c)
         i += 1
-    if "".join(cur).strip():
-        out.append("".join(cur))
-    segs = [s.strip() for s in out]
-    segs += [SUB_CLOSE] * sum(parens)             # ngoặc chưa đóng: coi như đóng ở cuối
-    for x in inner:
-        segs += split_commands(x)
-    return segs
+    flush()
+    return [x.strip() for x in out] + [SUB_CLOSE] * opened      # ngoặc chưa đóng: coi như đóng ở cuối
 
 
 KEYWORDS = {"do", "then", "else", "elif", "!", "{", "}", "time", "if", "while", "until"}
