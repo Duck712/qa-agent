@@ -1,7 +1,8 @@
 # Bảng quyết định · ma trận phân quyền · ma trận CRUD
 
 ## 1. Bảng quyết định
-Kết quả phụ thuộc **tổ hợp** điều kiện → liệt kê điều kiện (cột), hành động/kết quả (dòng dưới), mỗi quy tắc một TC.
+Kết quả phụ thuộc **tổ hợp** điều kiện → mỗi điều kiện một **dòng**, mỗi quy tắc một **cột**, kết quả ở các dòng
+dưới; mỗi quy tắc (cột) một TC. Ví dụ (con số minh hoạ — dùng đúng luật trong tài liệu sản phẩm):
 
 | Điều kiện / Quy tắc | Q1 | Q2 | Q3 | Q4 |
 |---|---|---|---|---|
@@ -11,6 +12,9 @@ Kết quả phụ thuộc **tổ hợp** điều kiện → liệt kê điều k
 | **→ Miễn phí ship** | có | không | có | không |
 
 - n điều kiện nhị phân → 2ⁿ quy tắc; **gộp** quy tắc có cùng kết quả mà một điều kiện không ảnh hưởng (ghi `–`).
+  Kiểm đủ: tổng quy tắc sau gộp (mỗi `–` tính ×2) = 2ⁿ; tổ hợp không thể xảy ra ghi `N/A` + lý do.
+- Điều kiện nhiều giá trị (loại khách: cá nhân / doanh nghiệp / đại lý) → bảng mở rộng (extended-entry): số quy tắc =
+  tích số giá trị các điều kiện.
 - Quy tắc tài liệu không nói kết quả → điểm hỏi (bảng quyết định là cách nhanh nhất lộ lỗ của tài liệu).
 - Cause-effect (nguyên nhân → hệ quả, có ràng buộc "loại trừ nhau", "cần") dùng khi điều kiện phụ thuộc lẫn nhau — cùng tinh thần, vẽ quan hệ trước rồi lập bảng.
 
@@ -23,9 +27,10 @@ một TC bắt buộc**, chặn phải ở **server** (gọi thẳng API/URL/l�
 | Hành động | Vai | Chủ bản ghi | Kỳ vọng |
 |---|---|---|---|
 | Sửa đơn | owner | của mình | cho |
-| Sửa đơn | owner | tenant khác | chặn 403/404 |
-| Sửa đơn | viewer | bất kỳ | chặn 403 |
-| Sửa đơn | chưa đăng nhập | — | chặn 401 |
+| Sửa đơn | owner | tenant khác | bị chặn ở server (mã theo API doc) |
+| Sửa đơn | viewer | bất kỳ | bị chặn ở server |
+| Sửa đơn | chưa đăng nhập | — | bị chặn, yêu cầu đăng nhập |
+Mã cụ thể (401/403/404) lấy từ API doc; tài liệu không nói → hỏi. Lưu ý 403 và 404 khác nhau có thể lộ việc bản ghi tồn tại (bug-patterns #18).
 Ma trận lớn → `python3 .claude/qa-scripts/gen_matrix_tc.py <file> --feature QUYEN --target <t> --out qa/testcases/phan-quyen.md`.
 Nhớ các hành động phụ: export, download, autocomplete, đếm, thông báo, lịch sử — quyền hay chỉ gắn ở API chính.
 

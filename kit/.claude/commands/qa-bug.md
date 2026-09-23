@@ -11,6 +11,9 @@ Bug: $ARGUMENTS
    tần suất — ghi `Tỉ lệ tái hiện`); bước tái hiện **tối giản**; `Thấy` nguyên văn; `Kỳ vọng` trỏ REQ/bước TC;
    `Bằng chứng` là thư mục evidence đã tồn tại; `Ticket:` nếu đội dùng hệ thống ngoài.
    Triệu chứng, không kết luận hộ nguyên nhân. Một bug một vấn đề. Severity ở ranh giới (S1 hay S2?) → hỏi.
-3. Cập nhật trạng thái → thêm dòng `Lịch sử` (`<ngày> <trạng thái> (<run-id>)`), không xoá dòng cũ.
+3. Cập nhật trạng thái → thêm dòng `Lịch sử` (`<ngày> <trạng thái> (<run-id>)`), không xoá dòng cũ. QA tự đổi được
+   **chỉ** `mở → đóng` khi test lại PASS có bằng chứng (và `đóng → mở` khi tái phát). Sang `không sửa`/`hoãn`/`trùng`,
+   hoặc đổi severity → hỏi người dùng, ghi DECISIONS trích nguyên văn, `Lịch sử` trỏ số dòng DECISIONS.
+   Bug tìm từ khám phá (không có TC) → đề xuất TC tái hiện (`Nguồn: BUG-…`), người dùng duyệt thì ghi vào `TC:`.
 4. S1 → báo người dùng ngay trong chat.
 5. Kiểu lỗi đáng nhớ (dễ lặp lại ở tính năng/dự án khác) → thêm một dòng `qa/LESSONS.md` (skill `qa` §6).

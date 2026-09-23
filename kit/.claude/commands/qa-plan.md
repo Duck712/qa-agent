@@ -11,11 +11,14 @@ argument-hint: [tên đợt, vd "sprint 12" | "release 2.3"]
    Đọc `qa/LESSONS.md` — bài học cũ có ảnh hưởng phạm vi/rủi ro thì nêu ra.
 2. Đọc `qa/ANALYSIS.md` (chưa có → hỏi người dùng: phân tích tài liệu trước, hay lập scope từ mô tả của họ).
 3. Soạn SCOPE (khuôn `qa/SCOPE.md`): §2 REQ trong phạm vi + mức R1/R2/R3 (từ bảng rủi ro ANALYSIS §6 — người dùng
-   xác nhận mức) + loại test (gồm cả phi chức năng từ ANALYSIS §7) · regression (từ phân tích ảnh hưởng ANALYSIS §8) ·
+   xác nhận mức — chưa xác nhận thì để trống cột Mức) + loại test (gồm cả phi chức năng từ ANALYSIS §7) · regression (từ phân tích ảnh hưởng ANALYSIS §8) ·
    cấu hình tương thích (bộ pairwise `python3 .claude/qa-scripts/pairwise.py` nếu nhiều trình duyệt/OS/thiết bị/vai) · §3 ngoài phạm vi có
    lý do · §4 loại test theo từng target · §5 môi trường, bản, tài khoản, cách tạo/dọn dữ liệu · §6 tiêu chí đạt
-   (giữ đúng định dạng ba dòng, đề xuất con số hợp mức rủi ro) · §7 quyền đặc biệt (bảo mật, tải — mặc định `không`).
-4. **Hỏi người dùng**, gom một lượt: điểm mơ hồ còn mở ở `ANALYSIS §5`, phạm vi đề xuất, mức rủi ro, tiêu chí đạt,
-   môi trường/tài khoản còn thiếu, quyền bảo mật/tải. Mỗi câu kèm đề xuất + rủi ro. Ghi trả lời vào `SCOPE §8`.
-5. Người dùng đồng ý → `Trạng thái: CHỐT`, `Chốt bởi`, `Ngày chốt`; quyền đặc biệt → một dòng `DECISIONS.md`
-   trích nguyên văn lời cho phép. Chưa đồng ý → giữ `NHÁP`, sửa theo góp ý, hỏi lại.
+   (để trống cho tới khi người dùng chốt — chỉ **đề xuất** con số trong câu hỏi) · §7 quyền đặc biệt (bảo mật, tải, chạm
+   DB staging — mặc định `không`; test AI: đề xuất N lần chạy và ngưỡng đạt, cả chi phí gọi model, rồi hỏi).
+4. **Hỏi người dùng**, gom một lượt: điểm mơ hồ còn mở ở `ANALYSIS §5`, phạm vi đề xuất, mức rủi ro từng REQ, tiêu
+   chí đạt, môi trường/tài khoản/cách tạo-dọn dữ liệu còn thiếu, quyền bảo mật/tải/DB. Mỗi câu kèm đề xuất + rủi ro.
+   Ghi trả lời đúng một nơi: yêu cầu → cột `Trả lời` ANALYSIS §5 (gỡ `(chờ trả lời #n)` ở REQ/TC liên quan); quyết định
+   → DECISIONS.md. SCOPE §8 chỉ trỏ số tham chiếu.
+5. Người dùng đồng ý → điền mức R + ba dòng tiêu chí đúng con số họ chốt, `Trạng thái: CHỐT`, `Chốt bởi`, `Ngày
+   chốt`; quyền đặc biệt → một dòng `DECISIONS.md` trích nguyên văn lời cho phép. Chưa đồng ý → giữ `NHÁP`, sửa theo góp ý, hỏi lại.

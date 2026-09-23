@@ -11,8 +11,9 @@ hạ tầng (IaC, Helm chart)... Chưa có file riêng thì lập công thức t
 4. **Vùng an toàn** là gì? (thiết bị test, tài khoản sandbox của nền tảng, namespace/cluster test)
 5. **Góc nhìn nào áp dụng?** Duyệt bảng loại test ở `SKILL.md §2`, bỏ loại không hợp có lý do.
 
-Ghi 5 câu trả lời vào `DECISIONS.md` (một dòng) và `SCOPE.md §4`. Công thức dùng tốt qua nhiều dự án → đề
-xuất người dùng thêm thành file `<loại>.md` mới trong skill này.
+Trình 5 câu trả lời cho người dùng **duyệt trước khi test** — đồng ý thì ghi vào `SCOPE.md §4` (cột "Bằng chứng tối
+thiểu / vùng an toàn") và một dòng `DECISIONS.md` trích lời duyệt. Công thức dùng tốt qua nhiều dự án → đề xuất người
+dùng thêm thành file `<loại>.md` mới trong skill này.
 
 Gợi ý nhanh:
 | Loại | Điều khiển / quan sát |

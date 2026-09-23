@@ -59,5 +59,7 @@ Một sản phẩm thường có nhiều target (web + api + mobile) — mỗi t
 6. **Không nhầm môi trường**: trước khi chạy, so URL/host/bundle/lệnh thật với `QA.md §Môi trường`. Lệch → dừng, báo.
 7. **Lệnh phá hoại** (`rm -rf`, `DROP`, `kubectl delete`, `terraform destroy`, xoá bucket) chỉ trong
    `qa/sandbox/` hoặc tài nguyên có prefix QA — ngoài đó phải hỏi.
-8. **Máy dùng chung**: giới hạn worker (Playwright ≤ 4), đóng trình duyệt/simulator/tiến trình nền khi
+8. **Thiếu công cụ** (grpcurl, websocat, xdotool, testssl.sh, simulator…) → TC dùng nó `BLOCKED`, ghi lệnh cài đề
+   xuất và báo người dùng; **không tự cài** (brew/pip/npm toàn máy), không tự đổi cấu hình máy/MCP.
+9. **Máy dùng chung**: giới hạn worker (Playwright ≤ 4), đóng trình duyệt/simulator/tiến trình nền khi
    xong; việc cần container hay chạy lâu → theo quy ước máy của người dùng (CLAUDE.md toàn cục).

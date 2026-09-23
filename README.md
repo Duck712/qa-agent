@@ -11,6 +11,10 @@ quy trình của đội và ghi lại ở `qa/QA.md` để phiên sau làm tiế
 
 ## Bốn điều luôn đúng
 
+Và một nguyên tắc bao trùm: **agent không tự ý làm thay người dùng** — không tự đặt tiêu chí đạt, mức rủi ro, ngưỡng,
+số lần chạy; không tự đổi trạng thái/severity bug, tự chạy lại hay hạ kết quả, tự cài công cụ, tự sửa repo sản phẩm.
+Kit không có con số mặc định: thiếu thì đề xuất và hỏi; chưa chốt tiêu chí thì kết luận là `CHƯA KẾT LUẬN`.
+
 | | |
 |---|---|
 | **Không bịa** | Mọi TC, kết luận, bug trỏ về nguồn: tài liệu, code, câu trả lời của người dùng, checklist, hoặc điều tự quan sát. Được đọc cả tài liệu lẫn code để phân tích và biết cách test; code lệch tài liệu → hỏi cái nào đúng |
@@ -27,8 +31,12 @@ python3 ~/qa-agent/install.py <thư-mục-dự-án> --dry-run      # xem trướ
 python3 ~/qa-agent/install.py <thư-mục-dự-án> --update       # nhận bản mới (skill, checklist, bài học chung)
 ```
 
-`install.py` **gộp**, không ghi đè: giữ `settings.json` / `.mcp.json` / file sẵn có của dự án; không bao giờ đụng dữ liệu
-trong `qa/`; `--update` giữ file người dùng đã sửa tay và báo ra. Cần Python 3.9+ và git; Node 18+ cho web/mobile
+`install.py` **gộp**, không ghi đè: giữ `settings.json` / `.mcp.json` / file sẵn có của dự án (server MCP đã chỉnh tay
+được giữ nguyên và báo ra); không bao giờ đụng dữ liệu trong `qa/`; `--update` giữ file người dùng đã sửa tay và báo ra.
+- Cài vào **repo sản phẩm mà dev khác cũng dùng Claude Code** → thêm `--settings-local`: quyền + hook ghi vào
+  `.claude/settings.local.json` (không commit), dev khác không bị hook của QA chặn.
+- Thư mục bằng chứng trong `.mcp.json` và agent là **đường dẫn tuyệt đối** của máy cài → clone dự án sang máy/account
+  khác thì chạy lại `install.py <dự án> --update` trên máy đó. Cần Python 3.9+ và git; Node 18+ cho web/mobile
 (Playwright MCP, mobile-mcp); Xcode/Android SDK chỉ khi có app mobile.
 
 ## Dùng
@@ -89,8 +97,8 @@ chính/thay thế · R3 happy path + 1 ca abnormal — mọi REQ luôn có cả 
 | Dự án | `qa/LESSONS.md` | Ngay khi gặp: kiểu lỗi đáng nhớ, sự cố môi trường/công cụ, điều người dùng sửa lưng ("lần sau đừng…"), câu hỏi đã chốt. Đọc lại đầu mỗi việc |
 | Dùng chung | `kit/.claude/skills/qa-knowledge/` trong repo này | Bài học dùng được cho dự án khác → hỏi người dùng → thêm vào checklist/bug-patterns → các dự án nhận qua `install.py --update` |
 
-Kho chung đã có 13 checklist (form, đăng nhập/phân quyền, upload, API, ca bất thường, thanh toán, thông báo, realtime,
-tìm kiếm/danh sách, ngày giờ/lịch, CLI, job/dữ liệu, AI/LLM) và 24 kiểu lỗi dev hay mắc.
+Kho chung đã có 15 checklist (form, đăng nhập/phân quyền/MFA/SSO, upload, API, ca bất thường, thanh toán, thông báo, realtime,
+tìm kiếm/danh sách, ngày giờ/lịch, dữ liệu cá nhân, a11y WCAG 2.2, CLI, job/dữ liệu, AI/LLM), đánh số từng mục để TC trích nguồn và 24 kiểu lỗi dev hay mắc.
 
 ## Cấu trúc
 

@@ -28,6 +28,15 @@ mô phỏng… thường **không có đáp án tính tay được** cho mọi �
 | Xếp hạng | thêm một mục kém liên quan | thứ tự các mục cũ không đổi |
 Mỗi quan hệ một TC: chạy nguồn + chạy biến đổi, bằng chứng cả hai, kết luận theo quan hệ.
 
+**Quan hệ metamorphic là kỳ vọng** — phải có cơ sở trong tài liệu/thiết kế hoặc được người dùng xác nhận, và ghi điều
+kiện áp dụng: "nhân đôi dữ liệu → tổng gấp đôi" sai nếu job khử trùng/upsert theo khoá; "đổi tiền theo tỉ giá" cần dung
+sai làm tròn; "thêm mục kém liên quan không đổi thứ tự cũ" không đúng với BM25/IDF hay xếp hạng học máy; "bỏ đoạn chứa
+đáp án → phải nói không biết" chỉ đúng khi sản phẩm cam kết chỉ trả lời từ tài liệu. Không chắc → hỏi.
+
+**Oracle heuristic HICCUPPS** (History, Image, Comparable products, Claims, User expectations, Product, Purpose,
+Standards) — dùng khi khám phá để nhận ra "có gì đó lạ" (lệch bản trước, lệch sản phẩm tương tự, lệch lời quảng cáo…).
+Chỉ là **lý do mở điểm hỏi hoặc viết TC**, không phải kỳ vọng.
+
 ## 3. Property (tính chất luôn đúng)
 Encode rồi decode = ban đầu · sắp xếp xong thì tăng dần và cùng số phần tử · tổng tiền không âm · id duy nhất ·
 chạy lại idempotent · output luôn là JSON hợp lệ. Thử tính chất trên nhiều đầu vào sinh ra (§4).
@@ -35,5 +44,11 @@ chạy lại idempotent · output luôn là JSON hợp lệ. Thử tính chất 
 ## 4. Fuzz / sinh đầu vào
 Cho parser, upload, API, CLI, prompt: sinh hàng loạt đầu vào lệch (ngẫu nhiên có seed, đột biến từ đầu vào hợp lệ:
 cắt cụt, lặp, đảo byte, chèn ký tự đặc biệt/unicode/null, số cực trị) bằng script nhỏ trong `qa/automation/`.
-Oracle: **không crash, không 500, không treo, lỗi có thông điệp**, và property ở §3. Luật an toàn: n nhỏ, giãn
+Oracle: **không crash, không 500, không treo, lỗi có thông điệp**, và property ở §3.
+
+## 5. Đồng thời (race) — dựng được, chạy được
+Bắn 2–5 request/thao tác giống nhau **cùng lúc**: script song song có barrier (luồng chờ nhau rồi cùng gửi) hoặc hai
+phiên trình duyệt bấm cùng mốc (`Promise.all`). Race không tất định → lặp ≥ 5 lần. Oracle là **trạng thái cuối** (số
+bản ghi, số tiền, số lượt còn lại, trạng thái đơn), không phải response từng request. Chỉ trên dữ liệu test, n nhỏ.
+`Kỹ thuật: đồng thời`. Luật an toàn: n nhỏ, giãn
 cách, chỉ trên môi trường được phép; ghi seed để tái hiện. Đầu vào gây lỗi → rút gọn tối thiểu rồi ghi bug.

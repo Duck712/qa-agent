@@ -16,7 +16,9 @@ Mỗi ô: trạng thái mới, hoặc **✗ (phải bị chặn)**:
 | chờ duyệt | ✗ | đã duyệt | nháp | ✗ | ? | ✗ |
 | đã duyệt | ✗ | ✗ | ✗ | hoàn tất | đã huỷ | ✗ |
 | hoàn tất | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-Ô `?` = tài liệu không nói → hỏi. Ô ✗ gửi thẳng API/deep link/chạy lại job — không chỉ thử trên UI.
+| đã huỷ | ✗ | ✗ | ✗ | ✗ | ✗ | ? |
+**Mỗi trạng thái trong sơ đồ (kể cả trạng thái cuối) là một dòng** — thiếu dòng "đã huỷ" là sót đúng lớp bug kinh điển
+(duyệt/thực hiện một đơn đã huỷ). Ô `?` = tài liệu không nói → hỏi. Ô ✗ gửi thẳng API/deep link/chạy lại job — không chỉ thử trên UI.
 
 ## 3. Độ phủ
 - **0-switch** (mọi chuyển hợp lệ một lần) — tối thiểu mọi mức.

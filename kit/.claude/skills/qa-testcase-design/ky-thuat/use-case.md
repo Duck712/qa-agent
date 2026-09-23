@@ -14,7 +14,9 @@ Cách làm:
 3. Với user story: tiêu chí chấp nhận dạng **Given–When–Then** là luồng chính; mỗi "khi nào không…" là ngoại lệ.
    Story thiếu tiêu chí chấp nhận → dùng example mapping (`qa-knowledge/analysis-review.md` §5) để hỏi.
 4. **Kịch bản nghiệp vụ** (scenario): ghép nhiều use case thành một câu chuyện thật của một persona
-   ("chủ gara mở ca → nhận 3 lịch → huỷ 1 → xuất báo cáo cuối ngày") — bắt lỗi ở chỗ nối giữa các tính năng.
-   Mỗi persona chính ít nhất một kịch bản; R1 thêm kịch bản "ngày tồi tệ" (mọi thứ hỏng dần).
+   (vd "quản lý mở ca → nhận 3 đơn → huỷ 1 → xuất báo cáo cuối ngày") — bắt lỗi ở chỗ nối giữa các tính năng.
+   Mỗi persona chính ít nhất một kịch bản. R1 thêm kịch bản "ngày tồi tệ": luồng chính của persona + chèn lần lượt
+   ≥ 3 ngoại lệ đã biết (mạng mất ở bước k, hết phiên ở bước k+1, dữ liệu bị người khác sửa ở bước k+2), kiểm hệ thống
+   về trạng thái sạch sau mỗi ngoại lệ.
 
 Ghi `Kỹ thuật: use case` + mã luồng (`UC-DATLICH 3a`).

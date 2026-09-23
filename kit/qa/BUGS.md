@@ -4,14 +4,17 @@
 > **S1** mất dữ liệu / sai tiền / lộ quyền / sập luồng lõi · **S2** tính năng chính hỏng, có đường vòng khó ·
 > **S3** hỏng phụ, có đường vòng · **S4** lặt vặt (chữ, căn lề).
 > Trạng thái: `mở` · `đã sửa` (dev báo sửa, chờ test lại) · `đóng` (test lại đạt) · `không sửa` · `hoãn` · `trùng`.
-> `mở` và `đã sửa` tính là bug còn mở khi xét tiêu chí đạt.
+> Mọi trạng thái trừ `đóng`/`không sửa`/`hoãn`/`trùng` (kể cả "đã sửa (chờ test lại)") tính là **còn mở** khi xét tiêu chí.
+> **Ai đổi**: QA tự đổi `mở → đóng` chỉ khi test lại PASS (có bằng chứng). Đổi sang `không sửa`/`hoãn`/`trùng`, hoặc
+> đổi severity → **người dùng quyết**, ghi DECISIONS (trích nguyên văn) và `Lịch sử` trỏ tới dòng đó.
+> Severity chỉ theo thang trên — lộ dữ liệu/quyền của người khác luôn là S1.
 
 <!-- Khuôn:
 
 ## BUG-001 — <triệu chứng theo hậu quả người dùng>
 - Severity: S2
 - Trạng thái: mở
-- TC: TC-XXX-001
+- TC: TC-XXX-001        (bug từ khám phá: viết TC tái hiện, người dùng duyệt, rồi ghi vào đây)
 - Run: <run-id>
 - Target: <tên target>
 - Môi trường / bản: staging · v1.2.0

@@ -9,11 +9,14 @@
 | **Linux GUI** | `xdotool` + `xwd`/`import`, hoặc `dogtail` (AT-SPI) | Cần X/Wayland session |
 | **Web bọc (Tauri, CEF)** | Nếu bật được remote debugging → Playwright `connectOverCDP` | Không bật được → như native |
 
-App cài từ **bản build được giao** (đường dẫn + version ở `QA.md §Target`).
+App cài từ **bản build được giao** (đường dẫn + version ở `QA.md §Target`). Công cụ chưa có (Playwright trong
+`qa/automation/`, xdotool, pywinauto…) hoặc chưa được cấp quyền Accessibility/Screen Recording → BLOCKED + báo người
+dùng, không tự cài hay tự cấp quyền.
 
 **Electron — script mẫu** (`qa/automation/desktop-smoke.mjs`). Cài Playwright một lần trong `qa/automation/`
 (`cd qa/automation && npm init -y && npm i -D playwright@1`) rồi chạy
-`APP_PATH=<đường dẫn app> EVIDENCE=qa/evidence/<run>/<TC> node qa/automation/desktop-smoke.mjs`
+`APP_PATH=<binary của app> EVIDENCE=qa/evidence/<run>/<TC> node qa/automation/desktop-smoke.mjs`
+— trên macOS `APP_PATH` là binary bên trong bundle, vd `/Applications/TenApp.app/Contents/MacOS/TenApp`, không phải `TenApp.app`
 (`npm exec -p` không làm `import 'playwright'` trong script tìm thấy gói):
 ```js
 import { _electron as electron } from 'playwright';
@@ -28,7 +31,8 @@ await app.close();
 ```bash
 osascript -e 'tell application "TenApp" to activate' \
           -e 'tell application "System Events" to tell process "TenApp" to click button "Lưu" of window 1'
-screencapture -x -o -l$(osascript -e 'tell app "TenApp" to id of window 1') "$D/02-sau-luu.png"
+R=$(osascript -e 'tell application "System Events" to tell process "TenApp" to get {position, size} of window 1' | tr -d ' ')
+screencapture -x -R"$R" "$D/02-sau-luu.png"          # R = x,y,w,h của cửa sổ; -l cần CGWindowID nên không dùng
 osascript -e 'tell application "System Events" to tell process "TenApp" to get entire contents of window 1' > "$D/02-ui-tree.txt"
 ```
 

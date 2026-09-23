@@ -9,8 +9,8 @@
 - Target: <tên target trong QA.md>
 - Loại: chức năng
 - Kiểu: normal
-- Mức: R1
-- Kỹ thuật: <phân vùng | giá trị biên | bảng quyết định | chuyển trạng thái | use case | pairwise | error guessing | …>
+- Mức: <mức người dùng chốt cho REQ ở SCOPE §2>
+- Kỹ thuật: <tên chuẩn, cách nhau dấu phẩy — danh mục ở qa-testcase-design §1, vd: giá trị biên, chuyển trạng thái>
 - Nguồn: REQ-FEAT-1
 - Regression: không
 - Tag: 

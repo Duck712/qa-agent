@@ -22,6 +22,9 @@ qa/evidence/
     └── ghi-chu.md            (tuỳ chọn: một dòng bối cảnh, đường dẫn video)
 ```
 Một thư mục một TC một run; chạy lại ở run khác → thư mục run mới, cũ giữ nguyên. File đánh số theo bước.
+Tool MCP (ảnh, snapshot, kết quả evaluate) → khai `filename`/`saveTo` là **đường dẫn tuyệt đối** vào đúng thư mục TC;
+không dựa vào `_inbox/` khi có nhiều tester chạy song song (dễ lấy nhầm ảnh của nhau). RUNLOG trỏ tới đúng thư mục
+`qa/evidence/<run-id>/<TC-ID>/` — trỏ thư mục chung (`qa/evidence/`, `qa/evidence/<run-id>/`) không được tính.
 Hook `guard_evidence` chặn ảnh/video ghi ra ngoài `qa/evidence/` (ảnh môi trường thật mang dữ liệu thật —
 nằm rải rác ở /tmp là rò rỉ, và RUNLOG không trỏ được tới).
 
@@ -36,6 +39,8 @@ nằm rải rác ở /tmp là rò rỉ, và RUNLOG không trỏ được tới).
 | ai | Transcript nguyên văn N lượt + `cham.md` (lượt × tiêu chí) |
 | library | Chương trình dùng thử + output + version gói và runtime |
 | tích-hợp | Cả hai đầu: hành động + hộp thư test/log webhook/sandbox |
+| khôi-phục | Trạng thái **trước** khi ngắt + cách ngắt (lệnh/thao tác + thời điểm) + trạng thái **sau** khi tiếp tục (dữ liệu, bản ghi, file) |
+| tương-thích | Cấu hình/phiên bản đang chạy (trình duyệt/OS/runtime/bản cũ) + kết quả trên từng cấu hình; dữ liệu cũ: bản ghi trước/sau nâng cấp |
 | cross-target | Cặp: hành động ở A + kết quả ở B + network của B |
 | hình-thức | Giá trị đo + selector/phần tử + màn (`color: rgb(37,99,235) @ button.cta`) |
 | hiệu-năng | Từng lần đo + p50/p95 + cách đo + thời điểm |
@@ -61,7 +66,8 @@ Thiếu bằng chứng đúng loại → `BLOCKED`, không phải `PASS`.
 Câu nào "không" → chưa được ghi PASS.
 
 ## 5. qa-evidence-check
-Trước REPORT: bốc ≥ 30% dòng PASS (ưu tiên phân quyền, cross, hình thức, hiệu năng, ai), mở thư mục và **đọc
-thật**. Dấu hiệu lệch: thư mục rỗng · file 0 byte · ảnh trùng nhau giữa nhiều TC · timestamp giống hệt cả
+Trước REPORT: bốc ≥ 30% dòng PASS (tối thiểu 5, hoặc tất cả nếu ít hơn; ưu tiên phân quyền, cross, hình thức,
+hiệu năng, ai, bảo mật và mọi TC R1) + **mọi** dòng FAIL, mở thư mục và **đọc thật**. Dấu hiệu lệch: thư mục rỗng · file 0 byte · ảnh trùng nhau giữa nhiều TC · timestamp giống hệt cả
 chục TC · không có dấu môi trường · TC hình thức không có số đo · phân quyền không có response · AI thiếu lượt.
-Lệch → chạy lại TC hoặc hạ về `BLOCKED`. **Không sửa dòng PASS cho đẹp mà không chạy lại.**
+Lệch → **trình người dùng**; người dùng quyết chạy lại TC hay hạ về `BLOCKED` (ghi DECISIONS). Ghi
+`Đã soi bằng chứng <ngày> — <x> lệch` vào Nhật ký RUNLOG. **Không sửa dòng PASS cho đẹp mà không chạy lại.**

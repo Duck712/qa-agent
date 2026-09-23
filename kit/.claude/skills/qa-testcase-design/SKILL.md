@@ -18,7 +18,7 @@ description: >
 ## 0. Trước khi viết
 1. Đọc REQ trong `qa/ANALYSIS.md` và phạm vi trong `qa/SCOPE.md` — chỉ viết TC cho thứ trong phạm vi.
    REQ còn `(chờ trả lời)` → không đoán kỳ vọng, hỏi trước.
-2. Mở `qa-knowledge`: `bug-patterns.md` (luôn) + checklist theo đối tượng/loại target. Đọc `qa/LESSONS.md`.
+2. Mở `qa-knowledge`: `qa-knowledge/bug-patterns.md` (luôn) + checklist theo đối tượng/loại target. Đọc `qa/LESSONS.md`.
 3. Mở `qa-targets/<loại>.md` — bước TC phải **thực hiện được** bằng công cụ của target đó.
 4. Có code → đọc để biết bề mặt thật (endpoint, validate, nhánh, mã lỗi) — `ky-thuat/hop-trang.md`.
 5. Dedupe: `grep -rn "<hành vi>" qa/testcases/` — trùng rõ thì dùng lại; na ná không chắc thì hỏi.
@@ -43,15 +43,35 @@ description: >
 | Hiệu năng, khả dụng, a11y, tương thích, i18n, tin cậy | Kỹ thuật phi chức năng | `ky-thuat/phi-chuc-nang.md` |
 
 Một REQ thường cần **nhiều** kỹ thuật (ô đặt lịch: phân vùng + biên + chuyển trạng thái + phân quyền). Ghi kỹ
-thuật đã dùng vào trường `Kỹ thuật:` của TC — `python3 .claude/qa-scripts/qa_check.py trace` cho thấy REQ nào mới chỉ được nhìn một góc.
+thuật đã dùng vào trường `Kỹ thuật:` của TC bằng **tên chuẩn** dưới (qa_check cảnh báo tên lạ) —
+`python3 .claude/qa-scripts/qa_check.py trace` cho thấy REQ nào mới chỉ được nhìn một góc.
+
+| Họ | Tên chuẩn dùng trong `Kỹ thuật:` |
+|---|---|
+| dữ liệu | `phân vùng` · `giá trị biên` · `biên nhiều chiều` · `syntax` |
+| logic | `bảng quyết định` · `phân quyền` · `CRUD` · `chuyển trạng thái` · `use case` · `pairwise` · `classification tree` · `hộp trắng` |
+| oracle | `metamorphic` · `property` · `fuzz` · `đồng thời` |
+| kinh nghiệm | `error guessing` · `checklist` · `khám phá` |
+| phi chức năng | `phi chức năng` · `a11y` · `khả dụng` · `hiệu năng` · `tương thích` · `i18n` |
+
+R1 cần kỹ thuật thuộc **≥ 2 họ** khác nhau (phân vùng + giá trị biên cùng họ "dữ liệu" — chưa đủ, vì BVA là phần mở
+rộng của EP, không thêm góc nhìn).
 
 ## 2. Mật độ theo mức rủi ro
 
-| Mức | Khi nào | Tối thiểu |
-|---|---|---|
-| **R1** | Sai là mất tiền / mất dữ liệu / lộ quyền / sập luồng lõi | ≥ 2 kỹ thuật khác nhau · biên 3 giá trị · mọi ô ✗ phân quyền · mọi chuyển cấm · luồng ngoại lệ của use case |
-| **R2** | Sai thì khó chịu, có đường vòng | Phân vùng + biên 2 giá trị · luồng chính + luồng thay thế chính |
-| **R3** | Sai thì lặt vặt | Happy path + 1 ca abnormal tiêu biểu |
+Mức R của REQ do **người dùng xác nhận** ở SCOPE §2 (đề xuất từ bảng rủi ro `qa-knowledge/analysis-review.md` §7);
+`Mức:` của TC = mức đó, không tự nâng/hạ.
+
+| Kỹ thuật \ Mức | R1 (mất tiền/dữ liệu/lộ quyền/sập luồng lõi) | R2 (khó chịu, có đường vòng) | R3 (lặt vặt) |
+|---|---|---|---|
+| Họ kỹ thuật | ≥ 2 họ | ≥ 1 | ≥ 1 |
+| Phân vùng | mọi lớp | mọi lớp không hợp lệ chính | 1 hợp lệ + 1 không hợp lệ tiêu biểu |
+| Giá trị biên | 3 giá trị mỗi mép | 2 giá trị mỗi mép | mép chính |
+| Bảng quyết định | mọi quy tắc | mọi quy tắc sau gộp | quy tắc chính |
+| Phân quyền | **mọi ô ✗** (lỗ = S1, ở mọi mức) | mọi ô ✗ | mọi ô ✗ |
+| Chuyển trạng thái | 0-switch + mọi ô ✗ + 1-switch | 0-switch + ô ✗ nguy hiểm | luồng chính |
+| Use case | chính + thay thế + mọi ngoại lệ đã biết | chính + thay thế chính | chính |
+| Tổ hợp | pairwise + tích đầy đủ cho cặp R1 | pairwise | 1 cấu hình chính |
 
 **Mọi mức: mỗi REQ ≥ 1 TC `Kiểu: normal` và ≥ 1 TC `Kiểu: abnormal`** (đầu vào sai, thiếu quyền, trạng thái
 không hợp lệ, phụ thuộc lỗi…). `python3 .claude/qa-scripts/qa_check.py tc` đếm luật này; REQ R1 dùng < 2 kỹ thuật bị cảnh báo.
@@ -59,29 +79,39 @@ không hợp lệ, phụ thuộc lỗi…). `python3 .claude/qa-scripts/qa_check
 ## 3. Khuôn TC
 File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: `qa/testcases/_TEMPLATE.md`):
 ```markdown
-## TC-DATLICH-003 — Đặt lịch vào khung giờ đã kín bị từ chối
+## TC-DATLICH-003 — Khung giờ đã đủ chỗ không đặt thêm được, kể cả gọi thẳng API
 - REQ: REQ-DATLICH-2
 - Target: booking-web
 - Loại: biên
 - Kiểu: abnormal
 - Mức: R1
 - Kỹ thuật: giá trị biên, chuyển trạng thái
-- Nguồn: REQ-DATLICH-2 · form-input §3
+- Nguồn: REQ-DATLICH-2 (sức chứa 3 lịch/khung) · bug-patterns #11
 - Regression: có
 - Tiền điều kiện: khung 09:00 ngày mai đã có 3/3 lịch (seed QA-<run>-full)
 - Dữ liệu: khách QA-<run>-k1, khung 09:00
 - Bước:
-  1. Mở trang đặt lịch, chọn ngày mai
-  2. Chọn khung 09:00, bấm "Đặt"
+  1. Mở trang đặt lịch, chọn ngày mai, xem khung 09:00
+  2. Gọi thẳng `POST <endpoint đặt lịch>` cho khung 09:00 bằng tài khoản khách (bỏ qua giao diện)
+  3. Mở lại danh sách lịch khung 09:00
 - Kỳ vọng:
-  1. Khung 09:00 hiện "Đã kín", không chọn được
-  2. Gọi thẳng API đặt khung 09:00 → 409 kèm thông điệp "khung giờ đã kín"
-- Bằng chứng cần: ảnh bước 1 + Page URL · request/response bước 2
+  1. Khung 09:00 hiện trạng thái đã đủ chỗ và không bấm chọn được (chữ hiển thị theo REQ-DATLICH-2)
+  2. Bị từ chối, không tạo lịch (mã/thông điệp theo API doc — tài liệu chưa nêu → hỏi, ANALYSIS §5 #4)
+  3. Vẫn đúng 3 lịch, không có lịch của QA-<run>-k1
+- Bằng chứng cần: ảnh + snapshot bước 1 · request/response nguyên văn bước 2 · ảnh/response bước 3
 ```
 ID `TC-<TÍNH-NĂNG>-<3 chữ số>`, không tái dùng ID đã xoá. Bắt buộc: REQ, Target, Loại, Kiểu, Mức, Nguồn, Bước,
 Kỳ vọng, Bằng chứng cần. Nên có: Kỹ thuật. Tiêu đề/kỳ vọng viết theo hành vi người dùng; chi tiết kỹ thuật
-(selector, endpoint, lệnh) chỉ ở Bước/Dữ liệu. Một TC nhiều ca dữ liệu (bảng phân vùng) được — mỗi dòng dữ liệu
-một kỳ vọng.
+(selector, endpoint, lệnh) chỉ ở Bước/Dữ liệu. Mỗi kỳ vọng ứng với một bước — hành động nào kiểm ở kỳ vọng phải có
+trong Bước.
+
+**Kỳ vọng phải có nguồn**: mọi con số, thông điệp, mã trạng thái trong Kỳ vọng truy được về REQ, API doc hoặc câu
+trả lời ở ANALYSIS §5. Tài liệu không nêu → ghi hành vi bắt buộc (bị chặn · không tạo/sửa bản ghi · có thông báo chỉ
+ra trường lỗi) và mở điểm hỏi cho thông điệp/mã chính xác. Không ghi hai đáp án "A hoặc B" (vd "403/404" — TC gần
+như không thể FAIL, và 403 vs 404 còn khác nhau về lộ sự tồn tại bản ghi).
+
+**Một TC nhiều dòng dữ liệu** được (bảng phân vùng cùng bước): mỗi dòng một kỳ vọng; một dòng sai = TC FAIL, ghi
+dòng nào trong bug. Lớp không hợp lệ vẫn mỗi dòng một lớp sai.
 
 **Bốn câu tự hỏi mỗi TC**: (1) bắt được kiểu hỏng nào? (2) người chưa biết sản phẩm chạy được không? (3) kỳ vọng
 quan sát được không — "hoạt động đúng" không phải kỳ vọng? (4) bằng chứng nào chứng minh PASS?

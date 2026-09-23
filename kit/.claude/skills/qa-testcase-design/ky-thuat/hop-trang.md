@@ -7,7 +7,7 @@ Agent được đọc code. Mục tiêu **không** phải đo coverage bằng c�
 Với phần code của tính năng trong phạm vi, liệt kê:
 | Thứ | Tìm ở đâu | Sinh TC |
 |---|---|---|
-| Nhánh điều kiện (`if/else`, `switch`, early return) | handler, service | mỗi nhánh một TC — nhánh `else` thường là ca abnormal |
+| Nhánh điều kiện (`if/else`, `switch`, early return) | handler, service | mỗi nhánh một TC — nhánh `else` thường là ca abnormal; điều kiện ghép (`a && b \|\| c`) ở R1: mỗi điều kiện con lật được kết quả ít nhất một lần (tinh thần MC/DC) |
 | Validate & giới hạn (`max_length`, `min`, regex, schema) | model, DTO, schema, migration | biên của chính con số trong code (so với tài liệu — lệch là điểm hỏi) |
 | Mã lỗi / exception trả ra | `raise`, `throw`, `return 4xx` | mỗi mã lỗi một TC tái hiện được |
 | Kiểm quyền (decorator, middleware, policy) | router, controller | endpoint **không** có kiểm quyền → TC phân quyền ưu tiên |

@@ -67,23 +67,31 @@ def pairs_of(row: dict[int, str]) -> set[tuple[int, str, int, str]]:
     return {(a, row[a], b, row[b]) for a, b in itertools.combinations(keys, 2)}
 
 
+_MEMO: dict = {}
+
+
 def can_complete(row: dict[int, str], params, cons) -> bool:
-    """Còn cách gán các tham số chưa gán mà không vi phạm ràng buộc không (tham lam theo thứ tự)."""
-    free = [i for i in range(len(params)) if i not in row]
+    """Còn cách gán các tham số chưa gán mà không vi phạm ràng buộc không.
+    Chỉ tham số có dính ràng buộc mới cần thử (tham số tự do luôn gán được); cắt nhánh sớm + nhớ kết quả."""
+    if violates(row, cons):
+        return False
+    involved = sorted({i for c in cons for i, _ in c} - set(row))
+    key = (frozenset(row.items()), id(cons))
+    if key in _MEMO:
+        return _MEMO[key]
     def rec(k: int, cur: dict[int, str]) -> bool:
-        if violates(cur, cons):
-            return False
-        if k == len(free):
+        if k == len(involved):
             return True
-        i = free[k]
+        i = involved[k]
         for v in params[i][1]:
             cur[i] = v
-            if rec(k + 1, cur):
+            if not violates(cur, cons) and rec(k + 1, cur):
                 del cur[i]
                 return True
             del cur[i]
         return False
-    return rec(0, dict(row))
+    _MEMO[key] = rec(0, dict(row))
+    return _MEMO[key]
 
 
 def allpairs(params, cons) -> tuple[list[dict[int, str]], int, int]:
@@ -130,10 +138,14 @@ def main() -> int:
     a = ap.parse_args()
     params = parse_params(a.params)
     cons = parse_constraints(a.khong, params)
-    full = [dict(enumerate(combo)) for combo in itertools.product(*(vs for _, vs in params))]
-    full_ok = [r for r in full if not violates(r, cons)]
+    n_full = 1
+    for _, vs in params:
+        n_full *= len(vs)
     if a.tat_ca:
-        rows, total_pairs, left = full_ok, None, 0
+        if n_full > 100000:
+            raise SystemExit(f"✗ tích đầy đủ {n_full} dòng — quá lớn, dùng pairwise hoặc tách tham số")
+        full = [dict(enumerate(combo)) for combo in itertools.product(*(vs for _, vs in params))]
+        rows, total_pairs, left = [r for r in full if not violates(r, cons)], None, 0
     else:
         rows, total_pairs, left = allpairs(params, cons)
     names = [n for n, _ in params]
@@ -143,9 +155,9 @@ def main() -> int:
         print(f"| {k} | " + " | ".join(r[i] for i in range(len(params))) + " |")
     print()
     if a.tat_ca:
-        print(f"Tích đầy đủ: {len(rows)} dòng (đã bỏ {len(full) - len(full_ok)} tổ hợp cấm).")
+        print(f"Tích đầy đủ: {len(rows)} dòng (đã bỏ {n_full - len(rows)} tổ hợp cấm).")
     else:
-        print(f"Pairwise: {len(rows)} dòng thay cho {len(full_ok)} dòng tích đầy đủ · phủ {total_pairs - left}/{total_pairs} cặp hợp lệ"
+        print(f"Pairwise: {len(rows)} dòng thay cho tối đa {n_full} dòng tích đầy đủ · phủ {total_pairs - left}/{total_pairs} cặp hợp lệ"
               + (f" · {len(cons)} ràng buộc" if cons else ""))
         if left:
             print(f"⚠ {left} cặp không dựng được dòng hợp lệ (xem lại ràng buộc)", file=sys.stderr)

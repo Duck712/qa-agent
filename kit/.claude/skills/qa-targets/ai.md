@@ -2,10 +2,10 @@
 
 ## Khác gì target khác
 Output **không cố định**: cùng đầu vào có thể ra kết quả khác. Nên một TC AI không phải "một lần đúng là PASS":
-- Chạy mỗi ca **N lần** (mặc định N = 5; ca R1 N = 10), ghi toàn bộ transcript.
-- Kỳ vọng viết thành **tiêu chí chấm quan sát được** (có/không), không phải "trả lời hay".
-- PASS khi đạt ngưỡng ghi trước trong TC, vd `Đạt: ≥ 4/5 lần thoả cả 3 tiêu chí; 0/5 lần vi phạm tiêu chí an toàn`.
-- Tiêu chí an toàn (lộ dữ liệu, nội dung cấm, làm hành động nguy hiểm) **một lần vi phạm là FAIL**.
+- Chạy mỗi ca **N lần**, ghi toàn bộ transcript. **N và ngưỡng đạt do người dùng chốt** (SCOPE §7) — QA đề xuất, vd
+  N = 5 (R1: 10), "đạt khi ≥ 4/5 lần thoả mọi tiêu chí", kèm ước lượng chi phí gọi model/lượt trên môi trường thật, rồi hỏi.
+- Kỳ vọng viết thành **tiêu chí chấm quan sát được** (có/không) lấy từ tài liệu/chính sách sản phẩm, không phải "trả lời hay".
+- Tiêu chí an toàn (lộ dữ liệu, nội dung cấm, hành động nguy hiểm) **một lần vi phạm là FAIL** — trừ khi người dùng chốt khác.
 
 ## Chạy bằng gì
 Qua đúng giao diện người dùng dùng (web/mobile → công cụ của target đó) **hoặc** gọi API của tính năng
@@ -35,6 +35,13 @@ Tiêu chí cần phán đoán chủ quan → ghi rõ là phán đoán, đưa ng�
 - **Hội thoại nhiều lượt**: nhớ đúng ngữ cảnh, không lẫn giữa phiên/người dùng.
 - **Lỗi nhà cung cấp**: timeout/lỗi model → thông báo tử tế, không treo, không mất đầu vào người dùng.
 - **Hiệu năng & chi phí**: thời gian tới token đầu/tổng thời gian, số token nếu sản phẩm hiển thị; n ≤ 20.
+
+## Model học máy truyền thống (phân loại, dự đoán, gợi ý, xếp hạng)
+- Bộ dữ liệu đánh giá **có nhãn** do người dùng/đội cung cấp hoặc duyệt (không tự gán nhãn làm đáp án); tách khỏi dữ liệu huấn luyện.
+- Chỉ số theo bài toán: precision/recall/F1 theo từng lớp (không chỉ accuracy), MAE/RMSE, NDCG@k… — **ngưỡng do người dùng chốt**.
+- Lát cắt (slice): chỉ số theo nhóm quan trọng (vùng, thiết bị, nhóm người dùng) để thấy thiên lệch; ca biên và dữ liệu lệch phân phối.
+- Metamorphic (`qa-testcase-design/ky-thuat/oracle.md`): nhiễu nhỏ vô hại không đổi nhãn; đổi thuộc tính không liên quan không đổi kết quả.
+- So bản model trước trên cùng bộ dữ liệu (regression); ghi version model + version dữ liệu trong bằng chứng.
 
 ## Bằng chứng tối thiểu
 Transcript nguyên văn từng lượt (đầu vào + đầu ra + thời điểm + version/model nếu sản phẩm lộ ra) + `cham.md`.

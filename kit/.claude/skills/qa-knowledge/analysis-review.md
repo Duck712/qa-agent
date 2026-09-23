@@ -25,9 +25,11 @@
 | Khả thi (feasible) | Làm được trong ràng buộc kỹ thuật/thời gian? | mâu thuẫn vật lý ("realtime" qua email) |
 | Truy vết được | Biết đến từ đâu (ticket, người yêu cầu), sẽ có TC nào? | yêu cầu mồ côi |
 | Cần thiết / đúng chỗ | Là yêu cầu hay là giải pháp thiết kế trá hình? | "dùng dropdown" thay vì "chọn một trong N" |
+| Đơn nhất (singular) | Một câu một yêu cầu? | "và", "đồng thời", nhiều động từ trong một câu → tách thành nhiều REQ |
 
 **User story** thêm **INVEST**: Independent · Negotiable · Valuable · Estimable · Small · Testable. Story không có
-tiêu chí chấp nhận → đề xuất tiêu chí dạng **Given–When–Then** và hỏi xác nhận:
+tiêu chí chấp nhận → đề xuất tiêu chí dạng **Given–When–Then** và hỏi xác nhận (ví dụ dưới là **đề xuất** —
+thông điệp/con số trong đó chỉ thành kỳ vọng khi người dùng xác nhận):
 ```
 Given khách đã đăng nhập và giỏ có 2 sản phẩm
 When  áp mã GIAM10 hết hạn
@@ -37,7 +39,8 @@ Then  hiện "Mã đã hết hạn", tổng tiền không đổi
 ### 2.1 Từ yếu — gặp là soi
 nhanh · chậm · dễ · thân thiện · trực quan · hợp lý · phù hợp · tối ưu · hiệu quả · linh hoạt · ổn định · an toàn ·
 đúng · chuẩn · bình thường · hỗ trợ · xử lý · quản lý · có thể · nên · tuỳ chọn · nếu cần · khi cần · thường ·
-thông thường · hầu hết · tất cả · mọi · không bao giờ · luôn luôn · v.v. · … · và/hoặc · tương tự · như trên · TBD.
+thông thường · hầu hết · tất cả · mọi · không bao giờ · luôn luôn · v.v. · … · và/hoặc · tương tự · như trên · TBD ·
+tử tế · rõ ràng · mượt · OK · đủ lâu · kịp thời · gần như ngay lập tức.
 Mỗi từ yếu → hỏi: con số là bao nhiêu? hành vi quan sát được là gì? "tất cả" gồm những gì, có ngoại lệ không?
 
 ## 3. Đọc theo góc nhìn (perspective-based reading)
@@ -50,12 +53,15 @@ Mỗi từ yếu → hỏi: con số là bao nhiêu? hành vi quan sát được
 | Bảo mật & quyền | Ai được làm gì? Dữ liệu nhạy cảm ở đâu? Người ngoài/tenant khác chạm được gì? |
 | Chủ sản phẩm / nghiệp vụ | Luật nghiệp vụ, tiền, hạn chót, pháp lý — có chỗ nào mâu thuẫn quy định? |
 
-## 4. Yêu cầu ngầm — duyệt theo ISO 25010
-Tài liệu hay chỉ viết chức năng. Với mỗi đặc tính, hỏi có yêu cầu không, con số là gì, hay để ngoài phạm vi:
-**Chức năng** (đúng, đủ, phù hợp) · **Hiệu năng** (thời gian phản hồi, dung lượng, tài nguyên) · **Tương thích**
-(trình duyệt/OS/thiết bị, tích hợp hệ khác, bản cũ) · **Khả dụng** (dễ học, phòng lỗi, a11y — WCAG mức nào) ·
-**Tin cậy** (sẵn sàng, chịu lỗi, khôi phục, sao lưu) · **Bảo mật** (xác thực, phân quyền, bảo mật dữ liệu, nhật ký
-kiểm toán) · **Bảo trì** (log, cấu hình) · **Khả chuyển** (cài đặt, nâng cấp, gỡ, bản địa hoá/múi giờ).
+## 4. Yêu cầu ngầm — duyệt theo ISO 25010 (bản 2023)
+Tài liệu hay chỉ viết chức năng. Với mỗi đặc tính, hỏi có yêu cầu không, con số là gì, hay để ngoài phạm vi (bảng
+ANALYSIS §7 có đúng các dòng này):
+**Chức năng** (đủ, đúng, phù hợp) · **Hiệu năng** (thời gian phản hồi, dung lượng, tài nguyên) · **Tương thích**
+(cùng tồn tại và tương tác với hệ khác, API/bản cũ) · **Khả dụng / khả năng tương tác** (dễ học, phòng lỗi, a11y — WCAG
+mức nào) · **Tin cậy** (sẵn sàng, chịu lỗi, khôi phục, sao lưu) · **Bảo mật** (xác thực, phân quyền, bảo mật dữ liệu,
+nhật ký kiểm toán, quyền riêng tư) · **Bảo trì** (log, cấu hình, khả năng kiểm thử) · **Linh hoạt** (cài đặt, nâng cấp,
+chạy trên trình duyệt/OS/thiết bị khác, bản địa hoá/múi giờ) · **An toàn** (hệ có thể gây hại người/tài sản: IoT, y tế,
+xe, điều khiển thiết bị — trạng thái an toàn khi lỗi, cảnh báo).
 Ghi vào `ANALYSIS §7`. Không có con số → điểm hỏi, không tự đặt.
 
 ## 5. Example mapping — làm rõ bằng ví dụ
@@ -81,7 +87,16 @@ Mỗi tính năng/REQ chấm hai trục, 1–3:
 |---|---|---|---|---|
 | REQ-TT-1 thanh toán | 3 | 3 | 9 | R1 |
 | REQ-HS-2 đổi ảnh đại diện | 1 | 1 | 1 | R3 |
-Rủi ro 6–9 → R1 · 3–4 → R2 · 1–2 → R3. Bảng này trình người dùng ở bước chốt scope — mức R do người dùng xác nhận.
+Mốc chấm:
+| Điểm | Xác suất lỗi | Thiệt hại |
+|---|---|---|
+| 1 | không đổi, đơn giản, đã chạy ổn | thẩm mỹ, lặt vặt |
+| 2 | sửa một phần, logic có nhánh | tính năng hỏng, có đường vòng |
+| 3 | mới, tích hợp ngoài, đổi nhiều, đồng thời | mất tiền / mất dữ liệu / lộ quyền / pháp lý / sập luồng lõi |
+
+Rủi ro 6–9 → R1 · 3–4 → R2 · 1–2 → R3, **nhưng Thiệt hại = 3 thì tối thiểu R1** bất kể xác suất (một REQ thanh toán ít
+thay đổi vẫn là R1). Điểm do QA chấm là **đề xuất** — trình người dùng ở bước chốt scope; mức chính thức là mức người
+dùng xác nhận ở SCOPE §2.
 
 ## 8. Phân tích ảnh hưởng — chọn regression
 Khi có bản mới: đọc changelog/release note/ticket + `git diff`/`git log` giữa bản cũ và mới (nếu có code) →

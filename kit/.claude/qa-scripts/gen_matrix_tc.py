@@ -20,7 +20,8 @@ import re
 import sys
 from pathlib import Path
 
-DENY = {"✗", "x", "✘", "không", "no", "❌"}
+DENY = {"✗", "x", "✘", "✖", "✖️", "không", "no", "❌", "cấm"}
+ALLOW = {"✓", "✔", "✔️", "v", "có", "yes", "✅", "cho", ""}
 
 
 def matrix(text: str) -> tuple[list[str], list[tuple[str, list[str]]]]:
@@ -54,13 +55,16 @@ def main() -> int:
         return 1
     out = Path(a.out) if a.out else None
     existing = out.read_text(encoding="utf-8") if out and out.exists() else ""
-    feat = re.sub(r"[^A-Z0-9]", "", a.feature.upper())
+    feat = re.sub(r"[^\w]", "", a.feature.upper())
     used = [int(n) for n in re.findall(rf"^##\s+TC-{feat}-(\d{{3}})", existing, re.M)]
     n = max([a.start - 1, *used, 0]) + 1
-    blocks, skipped = [], 0
+    blocks, skipped, unknown = [], 0, []
     for action, cells in rows:
         for role, cell in zip(roles, cells):
-            if cell.strip().lower() not in DENY:
+            first = re.split(r"[\s(]", cell.strip(), maxsplit=1)[0].lower()   # "✗ (403)" → "✗"
+            if first not in DENY:
+                if first not in ALLOW:
+                    unknown.append(f"{action} × {role} = `{cell}`")
                 continue
             key = f"Ô ma trận: {action} × {role} = ✗"
             if key in existing:
@@ -81,7 +85,7 @@ def main() -> int:
   1. Vai `{role}` gọi thẳng <API/URL/lệnh của hành động "{action}"> tới bản ghi trên (bỏ qua giao diện)
   2. Vai được phép mở lại bản ghi
 - Kỳ vọng:
-  1. Bị chặn ở server: <mã 401/403/404 theo tài liệu>, thông điệp không lộ dữ liệu
+  1. Bị chặn ở server (mã/thông điệp theo API doc — tài liệu không nêu thì hỏi), không lộ dữ liệu
   2. Bản ghi không đổi
 - Bằng chứng cần: request + response nguyên văn bước 1 · ảnh/response bước 2
 """)
@@ -95,7 +99,9 @@ def main() -> int:
         print(f"Đã thêm {len(blocks)} TC vào {out} · bỏ qua {skipped} ô đã có TC")
     else:
         print(text)
-    print("Nhớ điền <…> theo sản phẩm; chỗ nào không suy ra được từ tài liệu → hỏi người dùng.", file=sys.stderr)
+    for u in unknown:
+        print(f"⚠ ô không nhận ra (không phải ✓/✗): {u} — hỏi người dùng ô này cho hay cấm", file=sys.stderr)
+    print("Nhớ điền <…> theo sản phẩm; mã chặn/thông điệp không có trong tài liệu → hỏi người dùng, không tự đặt.", file=sys.stderr)
     return 0
 
 

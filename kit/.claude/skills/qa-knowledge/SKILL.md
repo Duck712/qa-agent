@@ -1,7 +1,9 @@
 ---
 name: qa-knowledge
 description: >
-  Kinh nghiệm kiểm thử tích luỹ qua nhiều dự án — checklist theo đối tượng (form, đăng nhập/phân quyền,
+  Kinh nghiệm kiểm thử tích luỹ qua nhiều dự án — kỹ thuật phân tích & review tài liệu (tiêu chí chất lượng yêu
+  cầu, INVEST, Given–When–Then, từ yếu, đọc theo góc nhìn, yêu cầu ngầm ISO 25010, example mapping, rủi ro, phân
+  tích ảnh hưởng), checklist theo đối tượng (form, đăng nhập/phân quyền,
   upload, API, ca bất thường, thanh toán, thông báo, realtime/chat/gọi, tìm kiếm/danh sách/export, ngày giờ/
   lịch), checklist theo loại target (CLI, job/pipeline dữ liệu, AI/LLM), danh sách lỗi dev hay mắc
   (bug-patterns) và mẹo nghề (khám phá có kỷ luật, viết bug, soi yêu cầu mơ hồ, cắt phạm vi, viết báo cáo).
@@ -29,6 +31,8 @@ description: >
 | `checklists/realtime.md` | Chat, cộng tác nhiều người, gọi thoại/video, trạng thái online |
 | `checklists/search-list.md` | Tìm kiếm, danh sách, lọc, sắp xếp, phân trang, export |
 | `checklists/datetime.md` | Ngày giờ, lịch, sự kiện lặp, múi giờ, nhắc nhở |
+| `checklists/privacy-pii.md` | Có dữ liệu cá nhân: che/ẩn, xoá tài khoản, tải dữ liệu, đồng ý |
+| `checklists/a11y.md` | Tiếp cận theo WCAG 2.2 (mức A/AA do người dùng chốt) |
 | `checklists/cli.md` | Target `cli` |
 | `checklists/batch-data.md` | Target `batch` — job, ETL, pipeline |
 | `checklists/ai-llm.md` | Target `ai` — chatbot, tóm tắt, phân loại, agent |
@@ -40,7 +44,7 @@ phải thử (`auth-login §3`, `form-input §2`, `api-common`).
 
 ## Dùng thế nào
 - **Phân tích tài liệu** — theo `analysis-review.md` (quy trình §1) + `bug-patterns`: điều tài liệu không nói → `ANALYSIS §5` kèm đề xuất.
-- **Viết TC** — mỗi đối tượng trong phạm vi mở checklist tương ứng; mục áp dụng được mà chưa có TC → viết TC, `Nguồn:` ghi `<checklist> §<mục>`.
+- **Viết TC** — mỗi đối tượng trong phạm vi mở checklist tương ứng; mục áp dụng được mà chưa có TC → viết TC, `Nguồn:` ghi `<checklist> <số mục>` (vd `form-input 2.3`, `bug-patterns #11`).
 - **Chạy test** — tester nạp checklist của loại mình để biết chỗ đáng đào, nhưng chỉ chạy TC được giao; thấy chỗ đáng ngờ ngoài danh sách → báo thành phát hiện.
 - **Sau một lượt** — kiểu lỗi mới ghi `REPORT §Bài học`; đề xuất thành một dòng ở đây → người dùng duyệt rõ ràng mới sửa.
 

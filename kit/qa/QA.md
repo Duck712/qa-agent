@@ -39,4 +39,5 @@
 | | | | |
 
 - Prefix dữ liệu test: QA-
+- Cách tạo/dọn dữ liệu được phép: <!-- UI / API / lệnh sản phẩm / script qa/scripts — hỏi người dùng nếu chưa rõ -->
 - Hộp thư/số điện thoại nhận thông báo test: 

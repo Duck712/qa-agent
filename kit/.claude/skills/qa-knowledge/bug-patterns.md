@@ -10,7 +10,9 @@
 7. **Quên phân quyền ở API phụ** (export, download, autocomplete) — chỉ gắn quyền ở API chính.
 8. **Lỗi chỉ xuất hiện với data thật số lượng lớn** (1000+ bản ghi): chậm, timeout, UI vỡ — seed data lớn trước khi test list.
 9. **Message lỗi generic "Có lỗi xảy ra"** che mất lỗi thật → luôn mở DevTools/Network xem response gốc.
-10. **Ký tự unicode nhiều byte làm sai đếm độ dài** (FE đếm 1 emoji = 1, DB varchar đếm = 4).
+10. **Đếm độ dài lệch giữa các tầng**: JS `.length` đếm UTF-16 (😀 = 2, 👨‍👩‍👧 = 8) trong khi người dùng thấy 1 ký tự; cột
+    MySQL `utf8` (mb3) từ chối ký tự 4 byte (emoji); Oracle `VARCHAR2` theo BYTE; tiếng Việt dạng tổ hợp (NFD, "ệ" = 2–3
+    code point) → thử emoji, emoji ghép, tiếng Việt NFC và NFD ở đúng giới hạn độ dài.
 11. **Luật nghiệp vụ chỉ chặn ở UI** (tối thiểu N người, bắt buộc chọn…) → gọi thẳng API là vượt được.
 12. **Token/link dùng một lần dùng lại được** (mời, kích hoạt, đặt lại mật khẩu) sau khi đã dùng hoặc sau khi tài khoản đã active → ghi đè dữ liệu. Thử dùng lại mọi link một lần.
 13. **Bản ghi trùng treo vĩnh viễn**: mời trùng email, tạo trùng tên → không bị chặn, để lại trạng thái `pending` không ai xử.

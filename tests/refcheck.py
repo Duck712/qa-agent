@@ -80,6 +80,12 @@ def main() -> int:
                     continue   # đường dẫn sinh lúc chạy / script mẫu của người dùng
                 if not exists(part, f):
                     bad.append(f"{rel}: file `{part}` không tồn tại")
+        # tham chiếu trần sang skill khác: agent đang ở skill/lệnh khác sẽ tìm sai thư mục
+        owner = {"ky-thuat/": "qa-testcase-design", "analysis-review.md": "qa-knowledge",
+                 "techniques-judgement": "qa-knowledge", "bug-patterns.md": "qa-knowledge", "checklists/": "qa-knowledge"}
+        for m in re.finditer(r"`(ky-thuat/|analysis-review\.md|techniques-judgement|bug-patterns\.md|checklists/)", text):
+            if owner[m.group(1)] not in f.parts:
+                bad.append(f"{rel}: `{m.group(1)}…` thiếu tên skill phía trước (`{owner[m.group(1)]}/{m.group(1)}…`)")
         for m in re.finditer(r"(?:skill|agent|spawn|Nạp)\s+`(qa[a-z-]*)`", text):
             if m.group(1) not in skill_names | agent_names:
                 bad.append(f"{rel}: skill/agent `{m.group(1)}` không tồn tại")
@@ -94,7 +100,8 @@ def main() -> int:
             for m in re.finditer(pat, text):
                 for n in filter(None, m.groups()):
                     if n not in secs:
-                        bad.append(f"{rel}: `{key} §{n}` — mục không tồn tại (có: {', '.join(sorted(secs, key=lambda x: int(re.sub(r'\\D', '', x))))})")
+                        have = ", ".join(sorted(secs, key=lambda x: int(re.sub(r"\D", "", x) or 0)))
+                        bad.append(f"{rel}: `{key} §{n}` — mục không tồn tại (có: {have})")
     for b in sorted(set(bad)):
         print(f"  ✗ {b}")
     print(f"refcheck: quét {len(files)} file · {len(set(bad))} tham chiếu hỏng")
