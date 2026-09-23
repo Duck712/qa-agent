@@ -57,6 +57,6 @@ phải thử (`auth-login §3`, `form-input §2`, `api-common`).
 - Ghi nguồn cuối dòng: `(bài học <dự án>)`.
 - Không xoá dòng vì "dự án này không dùng" — dự án khác vẫn dùng. Dòng sai thật → đề xuất sửa, người dùng duyệt mới sửa (ghi DECISIONS trích lời duyệt).
 - Kho này dùng chung nhiều dự án: bài học riêng của một sản phẩm (tên màn, tên API) → viết lại cho tổng quát trước khi thêm.
-- Sửa ở **repo qa-agent** (đường dẫn: `source` trong `.claude/qa-agent.json`) trên một nhánh riêng, rồi đề xuất người dùng
-  mở PR/đẩy lên repo chung — bài học nằm trong bản clone riêng của một người thì dự án của người khác không nhận được.
+- Sửa ở **repo qa-agent** (đường dẫn: `source` trong `.claude/qa-agent.json`), rồi nhắc người dùng commit + push lên repo
+  chung (thẳng `main` hoặc qua PR, tuỳ đội) — bài học nằm trong bản clone riêng của một người thì dự án của người khác không nhận được.
   Máy dùng chung nhiều người: nên dùng một bản clone chung cho cả nhóm, hoặc luôn đi qua PR.

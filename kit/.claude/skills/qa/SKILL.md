@@ -198,7 +198,7 @@ Hai tầng, để kinh nghiệm không mất khi hết phiên:
 - **Nâng lên kho chung**: bài học dùng được cho dự án khác → viết lại cho tổng quát, hỏi người dùng; đồng ý → sửa
   `kit/.claude/skills/qa-knowledge/…` trong repo qa-agent (ghi `(bài học <dự án>)`) và bản trong dự án, đánh dấu dòng
   LESSONS `đã nâng`. Các dự án khác nhận bài học khi chạy `python3 <repo qa-agent>/install.py <dự án> --update`.
-  Repo qa-agent là repo khác — sửa trên nhánh riêng, đề xuất người dùng mở PR/đẩy lên repo chung (commit/push do họ quyết);
+  Repo qa-agent là repo khác — sửa xong nhắc người dùng commit + push lên repo chung (thẳng `main` hoặc PR tuỳ đội; commit/push do họ làm);
   bài học chỉ nằm trong bản clone của một người thì dự án người khác không nhận được.
 
 ## 7. Dữ liệu test & test tự động

@@ -23,22 +23,77 @@ Nguyên tắc bao trùm: **agent không tự ý làm thay người dùng** — k
 số lần chạy; không tự đổi trạng thái/severity bug ngoài các chuyển được phép ghi ở `qa/BUGS.md`, tự chạy lại hay hạ kết quả, tự cài công cụ, tự sửa repo sản phẩm.
 Kit không có con số mặc định: thiếu thì đề xuất và hỏi; chưa chốt tiêu chí thì kết luận là `CHƯA KẾT LUẬN`.
 
-## Cài
+## Cài — từng bước
 
-```bash
-git clone https://github.com/Duck712/qa-agent ~/qa-agent
-python3 ~/qa-agent/install.py <thư-mục-dự-án> --name "Tên sản phẩm"
-python3 ~/qa-agent/install.py <thư-mục-dự-án> --dry-run      # xem trước
-python3 ~/qa-agent/install.py <thư-mục-dự-án> --update       # nhận bản mới (skill, checklist, bài học chung)
+> Hình dung: thư mục **`qa-agent`** là **bộ cài** (giữ một chỗ, không làm việc trong đó). Mỗi dự án cần test có
+> **một thư mục riêng**; bộ cài chép agent vào thư mục đó, bạn mở thư mục đó bằng Claude Code để làm việc.
+>
+> Cần có: **Python 3.9+**, **Claude Code** (qua Orca, VS Code hoặc terminal). Chỉ khi chạy test web/mobile mới cần
+> thêm Node 18+ (Xcode/Android SDK nếu có app mobile). Lệnh dưới ghi cho Windows (PowerShell) — máy Mac/Linux thay
+> `python` bằng `python3` và `$HOME\Documents\…` bằng `~/Documents/…`.
+
+### Bước 1 — Lấy bộ cài về máy (làm một lần)
+GitHub Desktop → **File → Clone repository** → chọn `Duck712/qa-agent`. Bạn có thư mục
+`Documents\GitHub\qa-agent`. (Dùng lệnh: `git clone https://github.com/Duck712/qa-agent $HOME\Documents\GitHub\qa-agent`.)
+
+### Bước 2 — Cài vào dự án mới (mỗi dự án một lần)
+Mở PowerShell, chạy (đổi `du-an-dat-lich` và `"Đặt lịch"` theo dự án của bạn):
+```powershell
+python $HOME\Documents\GitHub\qa-agent\install.py $HOME\Documents\QA\du-an-dat-lich --name "Đặt lịch"
 ```
+Thư mục chưa có thì bộ cài **tự tạo**, kèm thư mục `docs\` cho tài liệu. Cài xong thấy các dòng `✓` và mục
+**Tiếp theo** — bên trong dự án giờ có `.claude\` (agent) và `qa\` (nơi agent ghi phân tích, quan điểm test, test case,
+bài học).
 
+### Bước 3 — Bỏ tài liệu đặc tả vào `docs\`
+Tài liệu trên Google Drive / Sheets / Excel → tải về thư mục `docs\` của dự án (agent không tự mở link Drive):
+
+| Tài liệu | Tải về dạng | Agent đối chiếu trích dẫn tự động? |
+|---|---|---|
+| Google Docs | File → Download → **Plain text (.txt)** hoặc **Markdown (.md)** | ✅ |
+| Google Sheets / Excel | File → Download → **CSV** (mỗi sheet một file) | ✅ |
+| PDF | giữ nguyên | ⚠️ agent đọc được, đối chiếu do `qa-source-check` |
+| Word (.docx) | nên lưu thành .txt | ❌ chưa đọc thẳng |
+
+Đặt tên kèm ngày tải (vd `docs\prd-dat-lich-2026-09-23.txt`) và ghi link gốc vào `qa\QA.md` mục **Tài liệu** —
+tài liệu trên Drive hay bị sửa, cần biết test đang bám bản nào. Có bản mới thì tải lại.
+
+### Bước 4 — Mở dự án bằng Claude Code
+Trong Orca (hoặc VS Code) mở **thư mục dự án** (`Documents\QA\du-an-dat-lich`) — **không** mở thư mục `qa-agent`.
+Terminal: `cd $HOME\Documents\QA\du-an-dat-lich` rồi `claude`. Lần đầu có hai câu hỏi, cả hai chọn **đồng ý**:
+tin cậy thư mục (trust — không đồng ý thì hook và quyền của agent không chạy) và bật MCP `browser`/`mobile`.
+
+### Bước 5 — Làm việc
+Gõ `/qa-status` (in ra tình trạng = agent đã chạy đúng), rồi lần lượt:
+```text
+/qa-analyze docs           phân tích tài liệu → yêu cầu (REQ) + câu hỏi cho bạn
+/qa-viewpoint <tính-năng>  quan điểm test → bạn duyệt
+/qa-plan <tên đợt>         chốt scope + tiêu chí đạt
+/qa-testcase <tính-năng>   viết test case từ quan điểm đã duyệt
+/qa-review all             review quan điểm + test case + scope
+```
+Cần giao test case/quan điểm dưới dạng Excel: nói *"xuất test case ra Excel"* (agent tạo CSV trong `qa\export\`, mở bằng
+Excel hoặc import vào Google Sheets). TC người khác viết trên Sheets: tải CSV rồi nói *"review file tc.csv"*.
+
+**Dự án tiếp theo**: lặp lại Bước 2 → 5 với thư mục mới. Bước 1 không cần làm lại.
+
+### Nhận bản mới của bộ cài
+GitHub Desktop → repo `qa-agent` → **Fetch/Pull origin**, rồi với **từng** dự án:
+```powershell
+python $HOME\Documents\GitHub\qa-agent\install.py $HOME\Documents\QA\du-an-dat-lich --update
+```
+Dữ liệu trong `qa\` không bị ghi đè; file mẫu cũ cần gộp tay thì bộ cài báo ra.
+
+### Tuỳ chọn nâng cao
+```bash
+python install.py <dự án> --dry-run          # xem trước sẽ đổi gì, không ghi
+python install.py <dự án> --settings-local   # cài vào REPO CODE mà dev khác cũng dùng Claude Code
+```
 `install.py` **gộp**, không ghi đè: giữ `settings.json` / `.mcp.json` / file sẵn có của dự án (server MCP đã chỉnh tay
 được giữ nguyên và báo ra); không bao giờ đụng dữ liệu trong `qa/`; `--update` giữ file người dùng đã sửa tay và báo ra.
-- Cài vào **repo sản phẩm mà dev khác cũng dùng Claude Code** → thêm `--settings-local`: quyền + hook ghi vào
-  `.claude/settings.local.json` (không commit), dev khác không bị hook của QA chặn.
-- Thư mục bằng chứng trong `.mcp.json` và agent là **đường dẫn tuyệt đối** của máy cài → clone dự án sang máy/account
-  khác thì chạy lại `install.py <dự án> --update` trên máy đó. Cần Python 3.9+ và git; Node 18+ cho web/mobile
-(Playwright MCP, mobile-mcp); Xcode/Android SDK chỉ khi có app mobile.
+- `--settings-local`: quyền + hook ghi vào `.claude/settings.local.json` (không commit) — dev khác không bị hook của QA chặn.
+- Thư mục bằng chứng trong `.mcp.json` và agent là **đường dẫn tuyệt đối** của máy cài → chép dự án sang máy/account
+  khác thì chạy lại `install.py <dự án> --update` trên máy đó.
 
 ## Dùng
 
@@ -105,7 +160,17 @@ chính/thay thế · R3 happy path + 1 ca abnormal — mọi REQ luôn có cả 
 | Tầng | Ở đâu | Ghi khi nào |
 |---|---|---|
 | Dự án | `qa/LESSONS.md` | Ngay khi gặp: kiểu lỗi đáng nhớ, lỗ quan điểm, sự cố môi trường/công cụ, điều người dùng sửa lưng ("lần sau đừng…"), câu hỏi đã chốt. Hook `hook_session` nạp bài học đang hiệu lực vào **mọi phiên**; hook `hook_prompt` thấy câu sửa lưng thì nhắc ghi ngay; subagent nhận bài học liên quan qua `qa_check.py lessons --for …`; dòng xong cất bằng `lessons --archive` |
-| Dùng chung | `kit/.claude/skills/qa-knowledge/` trong repo này | Bài học dùng được cho dự án khác → hỏi người dùng → thêm vào checklist/bug-patterns trên nhánh riêng → PR vào repo chung → các dự án nhận qua `install.py --update` (máy dùng chung: một bản clone chung cho nhóm, hoặc luôn qua PR) |
+| Dùng chung | `kit/.claude/skills/qa-knowledge/` trong repo này | Bài học dùng được cho dự án khác → hỏi người dùng → thêm vào checklist/bug-patterns → người dùng commit + push lên repo chung (thẳng `main` hoặc qua PR, tuỳ đội) → các dự án nhận qua `install.py --update` |
+
+**Đưa bài học lên kho chung, từng bước:**
+1. Làm việc bình thường — agent tự ghi bài học vào `qa/LESSONS.md` của dự án (bug đáng nhớ, sự cố, lần bạn sửa lưng).
+2. Cuối đợt (`/qa-report`) agent hỏi bài học nào dùng được cho dự án khác. Bạn đồng ý → agent viết lại cho tổng quát
+   (bỏ tên màn/API riêng) và thêm vào checklist chung trong thư mục **`qa-agent`** (bộ cài).
+3. GitHub Desktop → repo `qa-agent` → thấy file checklist vừa đổi → ghi mô tả → **Commit to main** → **Push origin**.
+4. Mọi người: **Pull** repo `qa-agent`, rồi `install.py <dự án> --update` cho từng dự án — từ đó gặp tính năng tương tự
+   (thanh toán, form, đăng nhập, lịch…) agent tự kiểm luôn điểm này.
+
+Agent chỉ đưa bài học vào kho chung khi **bạn đồng ý** — kho chung không lẫn bài sai hoặc chỉ đúng cho một dự án.
 
 Kho chung đã có 15 checklist (form, đăng nhập/phân quyền/MFA/SSO, upload, API, ca bất thường, thanh toán, thông báo, realtime,
 tìm kiếm/danh sách, ngày giờ/lịch, dữ liệu cá nhân, a11y WCAG 2.2, CLI, job/dữ liệu, AI/LLM), đánh số từng mục để TC trích nguồn và 24 kiểu lỗi dev hay mắc.

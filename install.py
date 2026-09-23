@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """install.py — cài bộ qa-agent vào một dự án bất kỳ (repo sản phẩm, hoặc thư mục QA riêng).
 
-    python3 install.py <thư-mục-dự-án> [--name "Tên sản phẩm"] [--dry-run]
+    python3 install.py <thư-mục-dự-án> [--name "Tên sản phẩm"] [--dry-run]   # thư mục chưa có → tự tạo (kèm docs/)
     python3 install.py <thư-mục-dự-án> --update      # cập nhật skill/agent/lệnh/script lên bản mới của repo này
 
 Làm gì:
@@ -265,9 +265,14 @@ def main() -> int:
     a = ap.parse_args()
 
     proj = Path(a.project).expanduser().resolve()
-    if not proj.is_dir():
-        print(f"✗ {proj} không phải thư mục", file=sys.stderr)
+    if proj.exists() and not proj.is_dir():
+        print(f"✗ {proj} là một file, không phải thư mục", file=sys.stderr)
         return 2
+    created = not proj.exists()
+    if created and a.update:
+        print(f"✗ {proj} chưa có — dự án chưa cài qa-agent, bỏ --update để cài mới", file=sys.stderr)
+        return 2
+    fresh_dir = created or not any(proj.iterdir())          # thư mục QA riêng mới tinh → tạo sẵn docs/ cho tài liệu
     if proj == HERE or HERE in proj.parents:
         print("✗ không cài vào chính repo qa-agent (hay thư mục con của nó)", file=sys.stderr)
         return 2
@@ -286,6 +291,10 @@ def main() -> int:
         "DATE": dt.date.today().isoformat(),
     }
     log: list[str] = [f"qa-agent {VERSION} → {proj}" + (" (dry-run)" if a.dry_run else "")]
+    if created:
+        log.append(f"  ✓ {'sẽ tạo' if a.dry_run else 'tạo'} thư mục dự án mới {proj}")
+        if not a.dry_run:
+            proj.mkdir(parents=True)
     hashes: dict[str, str] = {}
     old_hashes = old.get("files", {})
 
@@ -336,6 +345,10 @@ def main() -> int:
     for sub in ("evidence/_inbox", "sandbox"):
         if not a.dry_run:
             (proj / "qa" / sub).mkdir(parents=True, exist_ok=True)
+    if fresh_dir:
+        if not a.dry_run:
+            (proj / "docs").mkdir(exist_ok=True)
+        log.append("  ✓ thư mục docs/ — bỏ tài liệu đặc tả vào đây")
     log.append(f"  ✓ workspace qa/: tạo {made} file mới (file đã có giữ nguyên)")
     for note in migrate_notes(proj):
         log.append(f"  ⚠ {note}")
@@ -380,13 +393,24 @@ def main() -> int:
 
     print("\n".join(log))
     if not a.update:
+        win = os.name == "nt"
         print(f"""
 Tiếp theo:
-  cd {proj}
-  claude                       # duyệt MCP server browser/mobile khi được hỏi
-  /qa <việc cần làm>           # vd: /qa phân tích tài liệu docs/prd.md
-  /qa-status                   # xem đang ở đâu
-Điền qa/QA.md (tài liệu, target, môi trường, đường dẫn chỉ đọc) — hoặc để /qa-analyze hỏi dần.""")
+  1. Bỏ tài liệu đặc tả vào {proj / 'docs'}
+       Google Docs → File → Download → Plain text (.txt) hoặc Markdown (.md)
+       Google Sheets / Excel → File → Download → CSV (mỗi sheet một file)
+       PDF → giữ nguyên
+     Ghi link gốc + ngày tải vào qa/QA.md mục Tài liệu (tài liệu trên Drive hay bị sửa).
+  2. Mở thư mục {proj} bằng Claude Code (Orca, hoặc terminal: cd "{proj}" rồi gõ claude).
+     Lần đầu: chọn TIN CẬY thư mục (trust) và ĐỒNG Ý bật MCP browser/mobile khi được hỏi.
+  3. Gõ /qa-status để kiểm tra, rồi lần lượt:
+       /qa-analyze docs           phân tích tài liệu → yêu cầu (REQ) + câu hỏi cho bạn
+       /qa-viewpoint <tính-năng>  quan điểm test → bạn duyệt
+       /qa-plan <tên đợt>         chốt scope + tiêu chí đạt
+       /qa-testcase <tính-năng>   viết test case từ quan điểm đã duyệt
+       /qa-review all             review quan điểm + test case + scope
+Bản mới của bộ cài: git pull trong thư mục qa-agent, rồi
+  {'python' if win else 'python3'} "{HERE / 'install.py'}" "{proj}" --update""")
     return 0
 
 

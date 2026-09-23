@@ -21,7 +21,7 @@ Run: $ARGUMENTS (trống → run mới nhất trong `qa/runs/`).
    với lời nguyên văn, kết luận máy vẫn giữ.
 4. **Bài học**: rà bug và sự cố của run → ghi mỗi bài học một dòng `qa/LESSONS.md` (skill `qa` §6), liệt kê
    trong `REPORT §Bài học`. Bài học dùng được cho dự án khác → **hỏi người dùng** có đưa vào kho chung
-   `qa-knowledge` không; đồng ý mới sửa skill (nhánh riêng trong repo qa-agent, đề xuất PR), đánh dấu dòng LESSONS là
+   `qa-knowledge` không; đồng ý mới sửa skill trong repo qa-agent, rồi nhắc người dùng commit + push repo đó, đánh dấu dòng LESSONS là
    `đã nâng`. Bug FAIL mà không quan điểm test nào phủ → dòng `lỗ quan điểm` + đề xuất quan điểm mới.
    `python3 .claude/qa-scripts/qa_check.py lessons` báo trùng/quá nhiều → gộp (hỏi nếu đổi nghĩa), rồi `lessons --archive` cất dòng `đã nâng`/`bỏ`.
 5. Đề xuất việc tiếp theo (vd test lại khi dev sửa xong).

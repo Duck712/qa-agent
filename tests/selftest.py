@@ -910,6 +910,16 @@ def main() -> int:
     r = run([sys.executable, str(REPO / "install.py"), str(vp), "--update"], tmp)
     check("chưa có cột `Trích nguyên văn`" in r.stdout, "--update báo khuôn workspace cũ cần gộp tay", r.stdout)
 
+    print("\n[17] cài vào thư mục chưa có")
+    nd = tmp / "moi" / "du-an-dat-lich"
+    r = run([sys.executable, str(REPO / "install.py"), str(nd), "--name", "Đặt lịch"], tmp)
+    check(r.returncode == 0 and (nd / "qa/QA.md").exists() and (nd / "docs").is_dir() and "Tiếp theo" in r.stdout and "/qa-analyze docs" in r.stdout,
+          "thư mục dự án chưa có → tự tạo, kèm docs/ và hướng dẫn từng bước", r.stdout + r.stderr)
+    r = run([sys.executable, str(REPO / "install.py"), str(tmp / "chua-co"), "--update"], tmp)
+    check(r.returncode == 2 and not (tmp / "chua-co").exists(), "--update vào thư mục chưa có → báo lỗi, không tạo", r.stderr)
+    f = tmp / "la-file.txt"; f.write_text("x")
+    check(run([sys.executable, str(REPO / "install.py"), str(f)], tmp).returncode == 2, "đường dẫn là file → báo lỗi")
+    check(not (proj / "docs").exists(), "cài vào repo đã có sẵn nội dung → không tự thêm docs/")
     print(f"\n{'=' * 50}\n  {OK} ✓ · {BAD} ✗")
     if keep:
         print(f"  giữ thư mục nháp: {tmp}")
