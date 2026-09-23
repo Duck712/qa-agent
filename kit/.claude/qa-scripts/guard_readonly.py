@@ -23,7 +23,7 @@ import unicodedata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _root import expand, is_redir, project_root, split_commands, tokens  # noqa: E402
+from _root import SUB_CLOSE, SUB_OPEN, drop_inputs, expand, is_redir, opt_value, project_root, split_commands, tokens  # noqa: E402
 
 ROOT = project_root().resolve()
 QA_DIR = ROOT / "qa"
@@ -92,21 +92,6 @@ def short_flag(tok: str, letter: str) -> bool:
     return bool(re.fullmatch(rf"-[A-Za-z]*{letter}[A-Za-z]*", tok))
 
 
-def opt_value(rest: list[str], shorts: str, longs: tuple[str, ...]) -> list[str]:
-    """Giá trị của cờ: `-o x`, cờ gộp `-sSo x`, `--output x`, `--output=x`."""
-    vals = []
-    for k, a in enumerate(rest):
-        if a.startswith("--"):
-            for lg in longs:
-                if a == lg and k + 1 < len(rest):
-                    vals.append(rest[k + 1])
-                elif a.startswith(lg + "="):
-                    vals.append(a.split("=", 1)[1])
-        elif re.fullmatch(r"-[A-Za-z]+", a) and a[-1] in shorts and k + 1 < len(rest):
-            vals.append(rest[k + 1])
-    return vals
-
-
 def git_hit(rest: list[str], roots, cwd, env) -> Path | None:
     gdir, i, sub, sub_args = cwd, 0, "", []
     while i < len(rest):
@@ -133,6 +118,10 @@ def git_hit(rest: list[str], roots, cwd, env) -> Path | None:
             sub_args.append(t)
         i += 1
     pos = [a for a in sub_args if not a.startswith("-")]
+    if len(pos) <= 1 and ((sub == "checkout" and any(a in ("-b", "-B", "--orphan") for a in sub_args)) or
+                          (sub == "switch" and any(a in ("-c", "-C", "--create", "--force-create", "--orphan")
+                                                   for a in sub_args))):
+        return None                                        # tạo nhánh mới từ HEAD: không đổi file nào trong cây
     read_only = {
         "branch": not pos or any(a in ("-l", "--list", "-a", "-r", "--show-current", "-v", "-vv", "--contains",
                                         "--merged", "--no-merged", "--points-at", "--sort", "--format") for a in sub_args),
@@ -158,7 +147,8 @@ def git_hit(rest: list[str], roots, cwd, env) -> Path | None:
     if r:
         return r
     if sub in GIT_TREE and not paths:                      # chạy ở gốc repo, không pathspec → đổi cả cây, gồm vùng chỉ đọc
-        return hit(str(gdir), roots, cwd, env, ancestor=True)
+        inner = [r for r in roots if not (r / ".git").exists()]   # vùng chỉ đọc là repo git RIÊNG lồng bên trong:
+        return hit(str(gdir), inner, cwd, env, ancestor=True)     # lệnh của repo ngoài không đụng tới nó
     return None
 
 
@@ -167,8 +157,15 @@ def check_bash(cmd: str, roots: list[Path], depth: int = 0) -> Path | None:
     cwd = cwd0
     env: dict = {}
     prev: list[str] = []
+    stack: list[Path] = []
     for seg in split_commands(cmd):
-        toks = tokens(seg)
+        if seg == SUB_OPEN:                                # ( cd src && … ): cd không ra khỏi subshell
+            stack.append(cwd)
+            continue
+        if seg == SUB_CLOSE:
+            cwd = stack.pop() if stack else cwd0
+            continue
+        toks = drop_inputs(tokens(seg))
         for i, t in enumerate(toks):
             if is_redir(t) and i + 1 < len(toks) and toks[i + 1] != "/dev/null":
                 r = hit(toks[i + 1], roots, cwd, env)

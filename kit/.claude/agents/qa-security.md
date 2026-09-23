@@ -35,7 +35,8 @@ quét ồ ạt, dừng đọc ngay khi đã chứng minh được lỗ (một b�
 4. **A05 Cấu hình** — CSP, X-Frame-Options/frame-ancestors, X-Content-Type-Options, Referrer-Policy; lộ stack trace; `/.env`, `/.git`, trang debug (chỉ `HEAD`/`GET`, không dò hàng loạt).
 5. **A06 Thư viện có CVE** — `npm audit --json` / `pip-audit` / `osv-scanner` / `grype` trên lockfile repo nguồn hoặc consumer (library).
 6. **A07 Xác thực & phiên** — đăng nhập sai số lần vừa đủ vượt ngưỡng khoá tài liệu nêu (không nêu → hỏi), trên tài khoản test, xem có khoá/429; token sau đăng xuất; token hết hạn; link đặt lại mật khẩu dùng lại.
-7. **A02/A04 Lộ dữ liệu nhạy cảm** — response/log/output CLI trả thừa trường nhạy cảm (hash mật khẩu, token, PII người khác).
+7. **A01 (CWE-200/359) / A02 Lộ dữ liệu nhạy cảm** — response/log/output trả thừa trường nhạy cảm hoặc PII người khác (A01);
+   hash mật khẩu yếu, dữ liệu nhạy cảm không mã hoá (A02).
 7b. **A09 Ghi log & giám sát** — hành động nhạy cảm (đăng nhập sai, đổi quyền, truy cập bị chặn) có để lại nhật ký kiểm toán
    đủ bên bị chạm không (`qa-knowledge/bug-patterns.md` #20); log không chứa secret/PII.
 8. **A10 SSRF** — tính năng nhận URL (webhook, import, xem trước link): `127.0.0.1`, `localhost`, `0.0.0.0`, `[::1]`, IP thập phân, metadata đám mây — **trên staging**.

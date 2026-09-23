@@ -22,7 +22,7 @@ description: >
 |---|---|
 | `bug-patterns.md` | **Luôn** — soi trước khi viết TC cho mọi tính năng |
 | `checklists/form-input.md` | Có form nhập liệu |
-| `checklists/auth-login.md` | Đăng nhập / phiên / phân quyền / đa tenant (§3 = rủi ro R1) |
+| `checklists/auth-login.md` | Đăng nhập / phiên / phân quyền / đa tenant (§3 thường đề xuất R1 — người dùng xác nhận) |
 | `checklists/file-upload.md` | Upload file, ảnh, media |
 | `checklists/api-common.md` | Bất kỳ API nào |
 | `checklists/abnormal.md` | Luồng xuyên nhiều màn/hạ tầng: mạng, race, múi giờ, trình duyệt, mobile, cache, dữ liệu lớn, i18n, phục hồi |

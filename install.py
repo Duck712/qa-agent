@@ -9,6 +9,8 @@ Làm gì:
      tên bắt đầu `qa`; file khác của dự án không đụng).
   2. Tạo workspace `<dự án>/qa/` từ `kit/qa/` — file đã có thì GIỮ NGUYÊN (không bao giờ ghi đè dữ liệu QA).
   3. GỘP `kit/.claude/settings.qa.json` vào `<dự án>/.claude/settings.json` (thêm quyền + 2 hook, giữ phần có sẵn).
+     `--update` không thêm lại quyền/hook người dùng đã xoá, không ghi đè hook đã chỉnh tay; chuyển file settings chỉ
+     gỡ quyền do qa-agent thêm (manifest ghi lại), không gỡ quyền người dùng tự có.
   4. GỘP server `browser` + `mobile` vào `<dự án>/.mcp.json` — version khoá cứng, `--output-dir` là đường dẫn
      TUYỆT ĐỐI tới `<dự án>/qa/evidence/_inbox/…` (ảnh không lạc sang thư mục khác dù mở phiên ở đâu).
   5. Ghi `<dự án>/.claude/qa-agent.json`: nguồn cài, version, băm từng file đã chép — `--update` dùng để
@@ -23,6 +25,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -46,13 +49,25 @@ def render(text: str, ctx: dict, as_json: bool = False) -> str:
     return text
 
 
-def strip_qa(cur: dict) -> None:
-    """Gỡ quyền + hook của qa-agent khỏi một settings đã đọc (dùng khi chuyển giữa settings.json và settings.local.json)."""
-    src = json.loads((KIT / ".claude" / "settings.qa.json").read_text(encoding="utf-8"))
+def hook_key(h: dict) -> str | None:
+    m = re.search(r"(guard_\w+)\.py", json.dumps(h))
+    return m.group(1) if m else None
+
+
+def hook_sha(matcher, h: dict) -> str:
+    return sha(json.dumps({"matcher": matcher, "hook": h}, sort_keys=True).encode())
+
+
+def strip_qa(cur: dict, perms_ours: dict | None) -> None:
+    """Gỡ quyền + hook của qa-agent khỏi một settings đã đọc (dùng khi chuyển giữa settings.json và settings.local.json).
+    perms_ours: quyền qa-agent đã THÊM vào file này (theo manifest) — quyền người dùng tự có từ trước không bị gỡ.
+    None = manifest bản cũ không ghi → gỡ theo danh sách của kit như trước."""
+    if perms_ours is None:
+        perms_ours = json.loads((KIT / ".claude" / "settings.qa.json").read_text(encoding="utf-8"))["permissions"]
     perms = cur.get("permissions") if isinstance(cur.get("permissions"), dict) else {}
     for k in ("allow", "ask", "deny"):
         if isinstance(perms.get(k), list):
-            perms[k] = [x for x in perms[k] if x not in src["permissions"][k]]
+            perms[k] = [x for x in perms[k] if x not in perms_ours.get(k, [])]
     hooks = cur.get("hooks", {}).get("PreToolUse") if isinstance(cur.get("hooks"), dict) else None
     if isinstance(hooks, list):
         for e in hooks:
@@ -77,7 +92,11 @@ def merge_list(dst: list, src: list) -> list:
     return dst
 
 
-def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list) -> None:
+def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list, rec: dict | None) -> dict | None:
+    """Gộp quyền + hook vào `path`. rec = bản ghi lần cài trước cho CHÍNH file này ({perms, hooks}) hoặc {} khi là bản
+    manifest cũ chưa ghi (coi quyền/hook có sẵn là của qa-agent), None khi cài mới vào file này.
+    Không thêm lại quyền/hook người dùng đã xoá; không ghi đè hook người dùng đã sửa (matcher, timeout…).
+    Trả về bản ghi mới để lưu manifest (None nếu không gộp được)."""
     src = json.loads(render((KIT / ".claude" / "settings.qa.json").read_text(encoding="utf-8"), ctx, as_json=True))
     cur = {}
     if path.exists():
@@ -85,7 +104,7 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list) -> None
             cur = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             log.append(f"  ⚠ {path} không phải JSON hợp lệ — KHÔNG gộp, thêm tay theo kit/.claude/settings.qa.json")
-            return
+            return None
     shape_ok = isinstance(cur, dict) and isinstance(cur.get("permissions", {}), dict) \
         and all(isinstance(cur.get("permissions", {}).get(k, []), list) for k in ("allow", "ask", "deny")) \
         and isinstance(cur.get("hooks", {}), dict) and isinstance(cur.get("hooks", {}).get("PreToolUse", []), list) \
@@ -93,24 +112,64 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list) -> None
                 for e in cur.get("hooks", {}).get("PreToolUse", []))
     if not shape_ok:
         log.append(f"  ⚠ {path} có cấu trúc lạ (permissions/hooks không đúng kiểu) — KHÔNG gộp, thêm tay theo kit/.claude/settings.qa.json")
-        return
+        return None
+    tracked = bool(rec) and "perms" in rec
+    old_perms, old_hooks = (rec or {}).get("perms", {}), (rec or {}).get("hooks", {})
     perms = cur.setdefault("permissions", {})
+    new_perms: dict = {}
+    dropped: list[str] = []
     for k in ("allow", "ask", "deny"):
-        merge_list(perms.setdefault(k, []), src["permissions"][k])
+        lst, mine = perms.setdefault(k, []), []
+        for x in src["permissions"][k]:
+            if x in lst:
+                if rec == {} or x in old_perms.get(k, []):   # có sẵn: của qa-agent nếu lần trước qa-agent thêm
+                    mine.append(x)
+            elif tracked and x in old_perms.get(k, []):
+                dropped.append(x)                             # người dùng đã xoá → không thêm lại
+            else:
+                lst.append(x)
+                mine.append(x)
+        new_perms[k] = mine
+    if dropped:
+        log.append(f"  ⚠ {path.name}: người dùng đã gỡ quyền {', '.join(dropped)} — không thêm lại")
     hooks = cur.setdefault("hooks", {}).setdefault("PreToolUse", [])
-    # bỏ hook qa-agent cũ (mọi bản trước) rồi thêm bản hiện tại — không nhân đôi, không để sót bản cũ
-    ours = lambda h: ".claude/qa-scripts/guard_" in json.dumps(h)
-    for e in hooks:
-        e["hooks"] = [h for h in e.get("hooks", []) if not ours(h)]
+    new_hooks: dict = {}
+    present: set = set()
+    kept: set = set()
+    for e in hooks:                                           # hook qa-agent đang có: giữ bản đã sửa tay, gỡ bản nguyên gốc
+        keep = []
+        for h in e.get("hooks", []):
+            key = hook_key(h) if ".claude/qa-scripts/guard_" in json.dumps(h) else None
+            if not key:
+                keep.append(h)
+                continue
+            present.add(key)
+            if tracked and key in old_hooks and hook_sha(e.get("matcher"), h) != old_hooks[key] and key not in kept:
+                keep.append(h)
+                kept.add(key)
+                new_hooks[key] = old_hooks[key]
+                log.append(f"  ⚠ {path.name}: hook {key} đã được chỉnh tay — giữ nguyên; bản mới ở kit/.claude/settings.qa.json")
+        e["hooks"] = keep
     hooks[:] = [e for e in hooks if e.get("hooks")]
     for entry in src["hooks"]["PreToolUse"]:
         for h in entry["hooks"]:
             h["command"] = py
+        key = hook_key(entry)
+        if key in kept:
+            continue
+        if tracked and key in old_hooks and key not in present:
+            new_hooks[key] = old_hooks[key]
+            log.append(f"  ⚠ {path.name}: người dùng đã gỡ hook {key} — không thêm lại (muốn bật lại: thêm tay theo "
+                       f"kit/.claude/settings.qa.json)")
+            continue
         hooks.append(entry)
+        for h in entry["hooks"]:
+            new_hooks[key] = hook_sha(entry.get("matcher"), h)
     if not dry:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(cur, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     log.append(f"  ✓ gộp quyền + hook vào {path}")
+    return {"file": path.name, "perms": new_perms, "hooks": new_hooks}
 
 
 def merge_mcp(path: Path, ctx: dict, dry: bool, log: list, old_mcp: dict) -> dict:
@@ -237,18 +296,29 @@ def main() -> int:
     local = False if a.settings_shared else (a.settings_local or old.get("settings_local", False))
     target_file = proj / ".claude" / ("settings.local.json" if local else "settings.json")
     other = proj / ".claude" / ("settings.json" if local else "settings.local.json")
+    old_file = ("settings.local.json" if old.get("settings_local") else "settings.json") if old else None
+    old_set = old.get("settings") if isinstance(old.get("settings"), dict) else None
+    if old_set is None and old:                # manifest bản cũ: chưa ghi quyền/hook đã thêm
+        old_set = {"file": old_file}
     if other.exists():                      # chuyển đích → gỡ bản qa-agent ở file kia, không để hook chạy hai lần
         try:
             o = json.loads(other.read_text(encoding="utf-8"))
             before = json.dumps(o, sort_keys=True)
-            strip_qa(o)
+            # chỉ gỡ quyền qa-agent đã thêm vào CHÍNH file này; manifest cũ (không ghi quyền) → danh sách của kit
+            ours = old_set.get("perms") if old and old_set.get("file") == other.name else {}
+            strip_qa(o, ours)
             if json.dumps(o, sort_keys=True) != before:
                 if not a.dry_run:
                     other.write_text(json.dumps(o, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
                 log.append(f"  ✓ gỡ quyền + hook qa-agent khỏi {other.name} (chuyển sang {target_file.name})")
         except (json.JSONDecodeError, ValueError, AttributeError):
             log.append(f"  ⚠ {other} không đọc được — tự kiểm xem còn hook qa-agent ở đó không")
-    merge_settings(target_file, ctx, py, a.dry_run, log)
+    rec_in = None
+    if old_set is not None and old_set.get("file") == target_file.name:
+        rec_in = {k: v for k, v in old_set.items() if k in ("perms", "hooks")}   # {} = manifest cũ
+    set_rec = merge_settings(target_file, ctx, py, a.dry_run, log, rec_in)
+    if set_rec is None:
+        set_rec = old.get("settings") if isinstance(old.get("settings"), dict) else None
     mcp_hashes = merge_mcp(proj / ".mcp.json", ctx, a.dry_run, log, old.get("mcp", {}))
 
     # 5. manifest
@@ -256,7 +326,7 @@ def main() -> int:
         manifest_path.write_text(json.dumps({
             "version": VERSION, "name": ctx["PROJECT_NAME"], "source": str(HERE),
             "installed": dt.datetime.now().isoformat(timespec="seconds"), "files": hashes,
-            "mcp": mcp_hashes, "settings_local": local,
+            "mcp": mcp_hashes, "settings_local": local, "settings": set_rec,
         }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     log.append(f"  ✓ {manifest_path.relative_to(proj)} (nguồn: {HERE})")
 

@@ -15,14 +15,17 @@ dự án** (không phải `--output-dir`) — hook `guard_evidence` chặn. Bỏ
 | Tool | Việc |
 |---|---|
 | `browser_navigate` | Mở URL — vào từ trang đầu, không nhảy URL trong (trừ TC phân quyền) |
-| `browser_snapshot` | Nhìn màn hình (cây accessibility, có ref để bấm) — gọi sau mỗi thao tác; bước then chốt thêm `filename` tuyệt đối `…/NN-snapshot.md` để lưu nguyên văn |
+| `browser_snapshot` | Nhìn màn hình (cây accessibility, có ref để bấm) — gọi sau mỗi thao tác; bước then chốt thêm `filename` tuyệt đối `…/NN-snapshot.md` để lưu cây (URL lưu riêng — xem dưới) |
 | `browser_click` · `browser_type` · `browser_fill_form` · `browser_select_option` | Thao tác (tham số `target` = ref hoặc selector) |
 | `browser_take_screenshot` | Bằng chứng — `filename` tuyệt đối `…/qa/evidence/<run>/<TC>/01-buoc1.png` |
 | `browser_console_messages` · `browser_network_requests` | Lỗi JS, request/response thật |
 | `browser_evaluate` | Đo computed style, performance timing, gọi fetch bằng token vai khác — `filename` tuyệt đối để lưu kết quả nguyên văn |
 | `browser_run_code_unsafe` | Mô phỏng mạng, nhịp bấm, nhiều context |
 
-Screenshot headless **không có thanh URL** → bước then chốt kèm `browser_snapshot` có `filename` (file chứa dòng `Page URL:`).
+Screenshot headless **không có thanh URL**, và file do `browser_snapshot` ghi ra (khi có `filename`) chỉ chứa cây
+aria YAML — URL nằm trong **phản hồi** của tool, không nằm trong file. Bước then chốt lưu URL riêng: `browser_evaluate`
+với `() => location.href` và `filename` tuyệt đối `…/NN-url.txt`, hoặc chép nguyên văn dòng `- Page URL: …` của phản hồi
+vào `NN-url.txt` bằng Bash heredoc.
 
 ## Công thức
 **Biên — mạng/API lỗi**
@@ -51,7 +54,7 @@ kèm n. Ngưỡng do tài liệu/người dùng cho.
 **Cross-target**: `browser_tabs` mở tab B; hành động ở A, snapshot + network ở B (chứng minh không phải cache).
 
 ## Bằng chứng tối thiểu
-Ảnh bước then chốt + `Page URL:` · phân quyền/phá đầu vào: request + response nguyên văn · hình thức: giá trị computed style + selector · hiệu năng: từng lần đo + cách đo + giờ đo.
+Ảnh bước then chốt + URL trang (`NN-url.txt`) · phân quyền/phá đầu vào: request + response nguyên văn · hình thức: giá trị computed style + selector · hiệu năng: từng lần đo + cách đo + giờ đo.
 
 ## Hỏng thì xem
 | Triệu chứng | Nguyên nhân |

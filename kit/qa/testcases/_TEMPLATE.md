@@ -23,4 +23,4 @@
 - Kỳ vọng:
   1. <điều quan sát được ở bước 1>
   2. <điều quan sát được ở bước 2>
-- Bằng chứng cần: <theo skill qa-evidence, vd "ảnh bước 2 + Page URL">
+- Bằng chứng cần: <theo skill qa-evidence, vd "ảnh bước 2 + URL trang (NN-url.txt)">

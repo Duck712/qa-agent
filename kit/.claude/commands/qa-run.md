@@ -16,7 +16,8 @@ Phạm vi: $ARGUMENTS
    `regression` chọn theo phân tích ảnh hưởng (`qa-knowledge/analysis-review.md` §8) chứ không chỉ theo tag.
    Trình danh sách + môi trường + tài khoản sẽ dùng → **người dùng xác nhận** rồi mới chạy
    (trừ khi họ đã nói rõ phạm vi và "chạy luôn").
-3. **Tạo run**: `python3 .claude/qa-scripts/qa_check.py new-run <loại> <TC…>` → `qa/runs/<run-id>/RUNLOG.md`
+3. **Tạo run**: `python3 .claude/qa-scripts/qa_check.py new-run <loại> [phạm vi]` (`new-run retest BUG-012` · `new-run reg TC-…`
+   (thêm TC ngoài `Regression: có`) · `new-run smoke` · `new-run explore` · `new-run full TC-… TC-…`) → `qa/runs/<run-id>/RUNLOG.md`
    với mọi dòng `CHƯA CHẠY`; script chép tiêu chí đạt từ SCOPE §6 vào đầu RUNLOG (đóng băng cho run này — không sửa
    sau khi đã chạy). Điền bản đang kiểm, môi trường. SCOPE §6 còn trống → **không tự điền**: nếu người dùng
    đã nhờ chạy ngay thì chạy để thu bằng chứng (run ra `CHƯA KẾT LUẬN`), đề xuất tiêu chí và hỏi khi báo kết quả; nếu
@@ -41,7 +42,8 @@ Phạm vi: $ARGUMENTS
    phạm vi/trạng thái → một dòng DECISIONS trích nguyên văn; rồi chạy lại TC đó theo câu trả lời.
 7. **Ghi kết quả** vào RUNLOG ngay sau mỗi nhóm (kết quả, ngày, đường dẫn bằng chứng, BUG/lý do). FAIL → `/qa-bug`
    (retest: cập nhật trạng thái + `Lịch sử` của bug cũ).
-8. Hết phạm vi: `python3 .claude/qa-scripts/qa_check.py run <run-id>` phải sạch → spawn `qa-evidence-check` → ghi
+8. Hết phạm vi: `python3 .claude/qa-scripts/qa_check.py run <run-id>` phải sạch → spawn `qa-evidence-check` kèm run-id và tỉ lệ ở SCOPE §6 `Soi bằng chứng — tỉ lệ bốc mẫu PASS` (chưa có thì hỏi
+   người dùng trước khi spawn) → ghi
    `Đã soi bằng chứng <ngày> — <x> lệch` vào Nhật ký → **trình danh sách lệch cho người dùng**, người dùng quyết chạy
    lại hay hạ BLOCKED (ghi DECISIONS) → hỏi có dọn dữ liệu test không → ghi bài học mới vào `qa/LESSONS.md` → đề xuất
    `/qa-report <run-id>`. Đóng trình duyệt/simulator/tiến trình nền.

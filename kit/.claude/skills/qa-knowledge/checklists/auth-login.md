@@ -16,7 +16,7 @@
 - [ ] 2.4 Đổi password → các session/device khác có bị kick không?
 - [ ] 2.5 Remember me: đóng browser mở lại, và sau thời hạn
 
-## 3. Phân quyền (authorization) — rủi ro R1, lỗ = S1
+## 3. Phân quyền (authorization) — thường đề xuất R1 (Thiệt hại = 3, `analysis-review.md` §7; người dùng xác nhận ở SCOPE §2), lỗ = S1
 - [ ] 3.1 User quyền thấp gõ THẲNG URL trang admin → 403 hay lộ trang?
 - [ ] 3.2 Gọi THẲNG API của chức năng không có quyền (lấy endpoint từ DevTools) → 403?
 - [ ] 3.3 Sửa id trong URL/API (`/users/123` → `/users/124`) → xem được data người khác không? (IDOR)

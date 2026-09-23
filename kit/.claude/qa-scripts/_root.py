@@ -18,6 +18,7 @@ def project_root() -> Path:
     return Path(__file__).resolve().parents[2]   # <dự án>/.claude/qa-scripts/_root.py
 
 
+SUB_OPEN, SUB_CLOSE = "\x00(", "\x00)"          # đoạn đánh dấu subshell do split_commands trả về
 HEREDOC_RE = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][\w-]*)\1")
 
 
@@ -47,6 +48,7 @@ def split_commands(cmd: str) -> list[str]:
     cmd = normalize(strip_heredocs(cmd))
     inner = re.findall(r"\$\(([^()]*)\)", cmd) + re.findall(r"`([^`]*)`", cmd)
     out, cur, q, i = [], [], "", 0
+    parens: list[bool] = []                       # True = ngoặc subshell ở đầu lệnh; False = $( … ), <( … ), mảng…
     while i < len(cmd):
         c = cmd[i]
         if q:
@@ -64,6 +66,20 @@ def split_commands(cmd: str) -> list[str]:
                 cur.append(c)
                 cur.append(cmd[i + 1])
             i += 1
+        elif c == "(" and not "".join(cur).strip():
+            parens.append(True)
+            out.append(SUB_OPEN)
+        elif c == "(":
+            parens.append(False)
+            cur.append(c)
+        elif c == ")" and parens:
+            if parens.pop():
+                if "".join(cur).strip():
+                    out.append("".join(cur))
+                cur = []
+                out.append(SUB_CLOSE)
+            else:
+                cur.append(c)
         elif c in ";\n" or cmd[i:i + 2] in ("&&", "||") or c == "&" or (c == "|" and cmd[i - 1:i] != ">"):
             if "".join(cur).strip():
                 out.append("".join(cur))
@@ -76,12 +92,41 @@ def split_commands(cmd: str) -> list[str]:
     if "".join(cur).strip():
         out.append("".join(cur))
     segs = [s.strip() for s in out]
+    segs += [SUB_CLOSE] * sum(parens)             # ngoặc chưa đóng: coi như đóng ở cuối
     for x in inner:
         segs += split_commands(x)
     return segs
 
 
 KEYWORDS = {"do", "then", "else", "elif", "!", "{", "}", "time", "if", "while", "until"}
+
+
+def drop_inputs(toks: list[str]) -> list[str]:
+    """Bỏ `<`, `<<<`, `<<` và toán hạng đi sau — đó là thứ ĐỌC vào, không phải đích ghi (`tee x < src/a`)."""
+    out, skip = [], False
+    for t in toks:
+        if skip:
+            skip = False
+        elif re.fullmatch(r"\d?<(<<?|<-)?", t):
+            skip = True
+        else:
+            out.append(t)
+    return out
+
+
+def opt_value(rest: list[str], shorts: str, longs: tuple[str, ...]) -> list[str]:
+    """Giá trị của cờ: `-o x`, cờ gộp `-sSo x`, `--output x`, `--output=x`."""
+    vals = []
+    for k, a in enumerate(rest):
+        if a.startswith("--"):
+            for lg in longs:
+                if a == lg and k + 1 < len(rest):
+                    vals.append(rest[k + 1])
+                elif a.startswith(lg + "="):
+                    vals.append(a.split("=", 1)[1])
+        elif re.fullmatch(r"-[A-Za-z]+", a) and a[-1] in shorts and k + 1 < len(rest):
+            vals.append(rest[k + 1])
+    return vals
 
 
 def is_redir(t: str) -> bool:

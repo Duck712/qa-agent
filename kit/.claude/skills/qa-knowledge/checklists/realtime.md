@@ -11,5 +11,5 @@
 - [ ] 1.6 Người bị xoá khỏi nhóm/công ty: không nhận tin mới, không gửi được, không gọi được, không bị gọi
 - [ ] 1.7 Nhóm kín: người ngoài không đoán được hoạt động (đếm, preview, lịch sử cuộc gọi)
 - [ ] 1.8 Lịch sử hội thoại đủ loại sự kiện (cuộc gọi kết thúc, người vào/ra) và đúng khi tải lại
-- [ ] 1.9 Tin dài, nhiều emoji, file lớn, 1000+ tin trong một kênh (cuộn, tải thêm)
+- [ ] 1.9 Tin dài, nhiều emoji, file lớn, số lượng lớn tin (con số đề xuất và hỏi) trong một kênh (cuộn, tải thêm)
 - [ ] 1.10 Gọi: từ chối quyền micro/camera, đổi thiết bị âm thanh, mạng yếu, người thứ 3 vào giữa, cả hai cùng gọi nhau

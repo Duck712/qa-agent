@@ -99,7 +99,7 @@ File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: 
   1. Khung 09:00 hiện trạng thái đã đủ chỗ và không bấm chọn được (chữ hiển thị theo REQ-DATLICH-2)
   2. Bị từ chối, không tạo lịch — mã/thông điệp theo câu trả lời ANALYSIS §5 #4 (chưa trả lời thì kỳ vọng này ghi `(chờ trả lời #4)` và TC chưa vào run)
   3. Vẫn đúng 3 lịch, không có lịch của QA-<run>-k1
-- Bằng chứng cần: ảnh + snapshot bước 1 · request/response nguyên văn bước 2 · ảnh/response bước 3
+- Bằng chứng cần: ảnh + URL trang bước 1 · request/response nguyên văn bước 2 · ảnh/response bước 3
 ```
 ID `TC-<TÍNH-NĂNG>-<3 chữ số>`, không tái dùng ID đã xoá. Bắt buộc: REQ, Target, Loại, Kiểu, Mức, Nguồn, Bước,
 Kỳ vọng, Bằng chứng cần. Nên có: Kỹ thuật. Tiêu đề/kỳ vọng viết theo hành vi người dùng; chi tiết kỹ thuật

@@ -10,7 +10,7 @@
 - [ ] 1.5 Xoá/thêm bản ghi khi đang ở trang 2 → trang trống hay tự lùi
 - [ ] 1.6 Không hiện bản ghi không có quyền xem (kể cả trong đếm tổng, autocomplete, gợi ý)
 - [ ] 1.7 Export: đủ dòng (không cắt ở trang hiện tại), đúng quyền, mở được bằng Excel (UTF-8 BOM, dấu phẩy trong ô)
-- [ ] 1.8 10.000+ bản ghi: thời gian phản hồi, UI không vỡ
+- [ ] 1.8 số lượng lớn (con số đề xuất và hỏi): thời gian phản hồi, UI không vỡ
 
 ## 2. Bổ sung
 - [ ] 2.1 Gõ nhanh: phản hồi của lần tìm cũ về sau không đè kết quả lần tìm mới (race)

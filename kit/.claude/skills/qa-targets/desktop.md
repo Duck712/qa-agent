@@ -30,6 +30,7 @@ await app.close();
 ```
 **Native macOS — thao tác + chụp**:
 ```bash
+RUN=<run-id>; TC=<TC-ID>; D=qa/evidence/$RUN/$TC; mkdir -p "$D"   # cùng một lệnh Bash
 osascript -e 'tell application "TenApp" to activate' \
           -e 'tell application "System Events" to tell process "TenApp" to click button "Lưu" of window 1'
 R=$(osascript -e 'tell application "System Events" to tell process "TenApp" to get {position, size} of window 1' | tr -d ' ')

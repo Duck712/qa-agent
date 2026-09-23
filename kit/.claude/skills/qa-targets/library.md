@@ -5,7 +5,8 @@ Một **chương trình dùng thử** ở `qa/sandbox/<run-id>/consumer/`, cài 
 wheel được giao — version ở `QA.md §Target`), không import thẳng từ thư mục code nguồn (sẽ bỏ sót lỗi đóng gói).
 
 ```bash
-S=qa/sandbox/$RUN/consumer; mkdir -p $S && cd $S
+RUN=<run-id>   # gán trong cùng một lệnh Bash
+S=qa/sandbox/$RUN/consumer; mkdir -p "$S" && cd "$S"
 # JS:     npm init -y >/dev/null && npm i <goi>@<version>
 # Python: python3 -m venv .venv && .venv/bin/pip install <goi>==<version>
 # Java:   pom/gradle tối thiểu phụ thuộc <group:artifact:version>

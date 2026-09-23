@@ -2,11 +2,15 @@
 
 ## Chạy bằng gì
 `curl` (REST, GraphQL), `grpcurl` (gRPC), `websocat` (WebSocket), script Python chuẩn (`urllib`) cho kịch bản
-nhiều bước. Công cụ chưa cài → BLOCKED + đề xuất lệnh cài, không tự cài. Token/mật khẩu đọc từ `qa/.env` — **không in ra màn hình, che trong bằng chứng**.
+nhiều bước. Công cụ chưa cài → BLOCKED + đề xuất lệnh cài, không tự cài. Token/mật khẩu nạp từ `qa/.env` bằng `set -a; . qa/.env; set +a` (tool Read bị chặn đọc file này) — **không in ra màn hình, che trong bằng chứng**.
+
+> Mỗi khối lệnh dưới là **một** lệnh Bash: biến không giữ giữa các lần gọi. Tool Read bị chặn đọc `qa/.env` —
+> nạp bí mật bằng `set -a; . qa/.env; set +a` trong cùng lệnh, không in ra.
 
 Lưu mỗi lời gọi thành bằng chứng ngay khi chạy:
 ```bash
-D=qa/evidence/$RUN/$TC; mkdir -p $D
+RUN=<run-id>; TC=<TC-ID>; set -a; . qa/.env; set +a   # BASE, TOKEN_B… trong qa/.env
+D=qa/evidence/$RUN/$TC; mkdir -p "$D"
 BODY='{"name":"QA-'$RUN'-o1"}'                       # body thật — dùng lại cho cả request và file bằng chứng
 curl -sS -X POST "$BASE/api/orders" -H "Authorization: Bearer $TOKEN_B" -H 'Content-Type: application/json' \
   -d "$BODY" -o $D/01-response.json -w 'HTTP %{http_code} · %{time_total}s\n' \

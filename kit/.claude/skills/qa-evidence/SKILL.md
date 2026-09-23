@@ -31,7 +31,7 @@ nằm rải rác ở /tmp là rò rỉ, và RUNLOG không trỏ được tới).
 ## 2. Tối thiểu để được ghi PASS/FAIL
 | Loại test / target | Bằng chứng |
 |---|---|
-| chức năng · workflow · biên (web) | Ảnh bước then chốt + `Page URL:` từ snapshot. Workflow: ảnh từng chặng kèm vai |
+| chức năng · workflow · biên (web) | Ảnh bước then chốt + URL trang (`NN-url.txt`, hoặc dòng `Page URL:` chép từ phản hồi tool — file snapshot không chứa URL). Workflow: ảnh từng chặng kèm vai |
 | mobile · desktop | Ảnh + bundle id/version app + trích cây UI; crash: log nguyên văn |
 | api · phân-quyền · phá-đầu-vào | Request đã gửi (che token) + response **nguyên văn** (mã + body) + thời điểm. Ảnh "không thấy nút" không tính |
 | cli | Lệnh nguyên văn + stdout + stderr + exit code + version tool |
@@ -59,7 +59,8 @@ Thiếu bằng chứng đúng loại → `BLOCKED`, không phải `PASS`.
 1. Tôi có **chạy thật** không, hay đang suy từ code/tài liệu?
 2. Bằng chứng có chứng minh **đúng môi trường / đúng bản** không?
 3. Kỳ vọng **từng bước** đã đối chiếu, hay gộp cả TC thành một kết luận?
-4. Kết quả "gần đúng" (thiếu một trường, lệch chữ, số chênh nhỏ) → đó là FAIL hoặc câu hỏi, **không** phải PASS.
+4. Kết quả "gần đúng" (thiếu một trường, lệch chữ, số chênh nhỏ) → **không** phải PASS: ghi `BLOCKED` + `chờ trả lời #n` và
+   hỏi (skill `qa` §1.3); chỉ chấm FAIL khi mọi cách hiểu đều cho FAIL.
 5. Phân quyền: có response nguyên văn của lời gọi bị cấm? Cross-target: có cả hai phía? AI: đủ N lượt?
 6. Cả đợt toàn PASS, không phát hiện gì — thật không, hay chưa đi hết?
 

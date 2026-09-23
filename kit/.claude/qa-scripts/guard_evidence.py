@@ -8,9 +8,10 @@ Playwright MCP tính đường dẫn TƯƠNG ĐỐI theo gốc dự án (không 
 dữ liệu môi trường thật (ảnh, token trong log mạng, cookie) nằm rải rác không ai dọn.
 
 Luật:
-  · mọi tool mcp__browser…/mcp__mobile… có tham số đường dẫn (filename, path, saveTo, output, outputPath, file):
-    đường dẫn (tương đối tính từ gốc dự án) phải nằm dưới qa/evidence/. Không khai → cho qua (dùng --output-dir),
-    trừ quay màn hình mobile (bắt buộc khai). browser_run_code_unsafe: soi `path:` trong code (cả template string).
+  · mọi tool mcp__browser…/mcp__mobile… có tham số đường dẫn GHI RA (filename, path, saveTo, output, outputPath, file;
+    trừ tham số đầu vào như `path` của mobile_install_app): đường dẫn (tương đối tính từ gốc dự án) phải nằm dưới
+    qa/evidence/. Không khai → cho qua (dùng --output-dir), trừ quay màn hình mobile (bắt buộc khai).
+    mobile_batch_commands: xét từng bước `steps[].arguments`. browser_run_code_unsafe: soi `path:` trong code.
   · Bash: chặn khi chép/nén/đọc-ra thứ ĐANG nằm trong qa/evidence/ tới ngoài qa/ (cp, mv, rsync, scp, tar, zip,
     cat > …), hoặc lệnh chụp/quay màn hình của máy (screencapture, simctl io screenshot/recordVideo, adb exec-out)
     ghi ra ngoài qa/. `adb shell screencap /sdcard/…` (ghi trên thiết bị) đi qua. Việc bình thường của dev đi qua.
@@ -24,12 +25,13 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _root import expand, is_redir, project_root, split_commands, tokens  # noqa: E402
+from _root import SUB_CLOSE, SUB_OPEN, drop_inputs, expand, is_redir, opt_value, project_root, split_commands, tokens  # noqa: E402
 
 ROOT = project_root()
 QA_DIR = ROOT / "qa"
 EVIDENCE = QA_DIR / "evidence"
 PATH_KEYS = ("filename", "path", "saveTo", "output", "outputPath", "file")
+INPUT_KEYS = {"mobile_install_app": {"path"}}      # tham số là file ĐỌC vào (bản build bàn giao), không phải thứ ghi ra
 EMIT = {"cat", "base64", "xxd", "od", "head", "tail", "dd", "openssl", "gzip", "bzip2", "xz", "zstd", "tar", "zip", "cpio"}
 CONVERT = {"ffmpeg", "convert", "magick", "sips", "pngquant", "cwebp", "gifsicle"}
 HOW = ("Bằng chứng phải nằm trong qa/evidence/:\n"
@@ -77,8 +79,15 @@ def out_of_qa(raw: str, cwd: Path, env: dict) -> bool:
 
 def check_bash(command: str) -> tuple[bool, str]:
     cwd, env = Path.cwd(), {}
+    stack: list[Path] = []
     for seg in split_commands(command):
-        toks = tokens(seg)
+        if seg == SUB_OPEN:
+            stack.append(cwd)
+            continue
+        if seg == SUB_CLOSE:
+            cwd = stack.pop() if stack else Path.cwd()
+            continue
+        toks = drop_inputs(tokens(seg))
         redirs = [toks[i + 1] for i, t in enumerate(toks) if is_redir(t) and i + 1 < len(toks)]
         toks = [t for j, t in enumerate(toks) if not is_redir(t) and not (j > 0 and is_redir(toks[j - 1]))]
         while toks and re.match(r"^\w+=", toks[0]):
@@ -96,20 +105,21 @@ def check_bash(command: str) -> tuple[bool, str]:
         plain = [a for a in args if not a.startswith("-")]
         base = cwd
         if head == "tar":                                    # tar -C qa -czf /tmp/x evidence → nguồn tính từ -C
-            cs = [args[k + 1] for k, a in enumerate(args) if a in ("-C", "--directory") and k + 1 < len(args)]
+            cs = opt_value(args, "C", ("--directory",))
             if cs:
                 base = resolve(cs[0], cwd, env)
         ev_args = [a for a in plain if inside(resolve(a, base, env), EVIDENCE)]
         real_redirs = [r for r in redirs if r not in ("/dev/null", "/dev/stderr", "/dev/stdout")]
         dests: list[str] = list(real_redirs) if ev_args and head in EMIT else []   # ls/find/file > … chỉ là danh sách tên
-        if head in ("cp", "mv", "rsync", "ditto", "install", "scp") and len(plain) >= 2:
-            tdir = [args[k + 1] for k, a in enumerate(args) if a == "-t" and k + 1 < len(args)]
+        tdir = opt_value(args, "t", ("--target-directory",)) if head in ("cp", "mv", "install") else []
+        if head in ("cp", "mv", "rsync", "ditto", "install", "scp") and (len(plain) >= 2 or tdir):
             dest = tdir[0] if tdir else plain[-1]
             srcs = [a for a in plain if a != dest]
             if any(inside(resolve(s, cwd, env), EVIDENCE) for s in srcs):
                 dests.append(dest)
         elif head == "tar" and ev_args:
-            dests += [args[k + 1] for k, a in enumerate(args) if (a == "-f" or re.fullmatch(r"-?[a-z]*f", a)) and k + 1 < len(args)]
+            dests += [args[k + 1] for k, a in enumerate(args) if re.fullmatch(r"-?[a-z]*f", a) and k + 1 < len(args)]
+            dests += opt_value(args, "", ("--file",))
         elif head == "zip" and ev_args and plain:
             dests.append(plain[0])
         elif head in CONVERT and ev_args and plain:
@@ -142,6 +152,31 @@ def check_code(code: str) -> tuple[bool, str]:
     return True, ""
 
 
+def check_mcp(tool: str, name: str, ti: dict, depth: int = 0) -> int:
+    """name = tên tool không tiền tố server (browser_take_screenshot, mobile_start_screen_recording…)."""
+    if name == "browser_run_code_unsafe":
+        ok, why = check_code(str(ti.get("code") or ti.get("function") or ""))
+        return 0 if ok else block(tool, why)
+    if name == "mobile_batch_commands" and depth == 0:
+        for st in ti.get("steps") or []:
+            if isinstance(st, dict) and isinstance(st.get("arguments") or {}, dict):
+                rc = check_mcp(f"{tool} › {st.get('name')}", str(st.get("name") or "").rsplit("__", 1)[-1],
+                               st.get("arguments") or {}, depth + 1)
+                if rc:
+                    return rc
+        return 0
+    skip = INPUT_KEYS.get(name, set())
+    for k in PATH_KEYS:
+        if k not in skip and isinstance(ti.get(k), str):
+            ok, why = verdict(ti[k])
+            if not ok:
+                return block(tool, why)
+    if name == "mobile_start_screen_recording" and not ti.get("output"):
+        return block(tool, "thiếu `output` — mobile-mcp sẽ ghi vào thư mục tạm ngoài dự án",
+                     "Khai `output` tuyệt đối dưới qa/evidence/<run-id>/<TC-ID>/ (video không commit).\n")
+    return 0
+
+
 def main() -> int:
     try:
         payload = json.loads(sys.stdin.buffer.read().decode("utf-8", errors="replace"))
@@ -152,18 +187,7 @@ def main() -> int:
     if not isinstance(ti, dict):
         return 0
     if tool.startswith(("mcp__browser", "mcp__mobile")):
-        if tool.endswith("__browser_run_code_unsafe"):
-            ok, why = check_code(str(ti.get("code") or ti.get("function") or ""))
-            return 0 if ok else block(tool, why)
-        for k in PATH_KEYS:
-            if isinstance(ti.get(k), str):
-                ok, why = verdict(ti[k])
-                if not ok:
-                    return block(tool, why)
-        if tool.endswith("__mobile_start_screen_recording") and not ti.get("output"):
-            return block(tool, "thiếu `output` — mobile-mcp sẽ ghi vào thư mục tạm ngoài dự án",
-                         "Khai `output` tuyệt đối dưới qa/evidence/<run-id>/<TC-ID>/ (video không commit).\n")
-        return 0
+        return check_mcp(tool, tool.rsplit("__", 1)[-1], ti)
     if tool == "Bash":
         ok, why = check_bash(str(ti.get("command") or ""))
         return 0 if ok else block("lệnh Bash", why)

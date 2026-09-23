@@ -59,7 +59,8 @@ VAGUE = ["hoạt động đúng", "hiển thị đúng", "chạy đúng", "hoạ
          "đúng nghiệp vụ", "đúng yêu cầu", "đúng thiết kế", "xử lý đúng", "tử tế", "thân thiện", "rõ ràng",
          "performance ok", "ổn định", "mượt"]
 WAIT_RE = re.compile(r"\([^()]*chờ trả lời[^()]*\)", re.I)       # nhãn chờ duy nhất: (chờ trả lời #n)
-PLACEHOLDER_RE = re.compile(r"<(?!\s)(?=[^<>\n]*(?:\s|[^\x00-\x7f]))[^<>\n]{1,80}(?<!\s)>")   # <điền gì đó>, không phải <b>, < 100 và >
+PLACEHOLDER_RE = re.compile(r"<(?!\s)(?![A-Za-z][\w-]*\s+[\w:-]+\s*=)(?=[^<>\n]*(?:\s|[^\x00-\x7f]))[^<>\n]{1,80}(?<!\s)>")
+# ↑ <điền gì đó>; không phải <b>, "< 100 và >", hay thẻ HTML có thuộc tính (<svg onload=…>, <img src=x onerror=…>) trong TC
 TC_ID = r"TC-\w+(?:-\w+)*-\d{3}"
 REQ_ID = r"REQ-[\w.-]*\w"
 BUG_CLOSED = ("đóng", "đã đóng", "closed", "không sửa", "wontfix", "hoãn", "deferred", "trùng", "duplicate")
@@ -926,9 +927,11 @@ def cmd_release(args: list[str]) -> int:
     scope_tc, wait = drop_waiting(scope_tc)
     levels = scope_levels()
     latest: dict[str, tuple[str, str]] = {}
+    tc_case = {t.lower(): t for t in tcs}
     for rid in sorted(args, key=lambda a: order[a]):
         for r in table_rows(read(QA / "runs" / rid / "RUNLOG.md")):
             tid, _ = row_id(r[0]) if r else ("", False)
+            tid = tc_case.get(tid.lower(), tid)
             if tid.startswith("TC-") and len(r) >= 2:
                 latest[tid] = (result_of(r[1])[0], rid)
     crit, bad = parse_criteria(read(scope_file()))
@@ -990,9 +993,11 @@ def cmd_release(args: list[str]) -> int:
 def latest_results() -> dict[str, tuple[str, str]]:
     """TC → (kết quả, run-id) ở run gần nhất có TC đó."""
     out: dict[str, tuple[str, str]] = {}
+    tc_case = {t.lower(): t for t in load_tcs()[0]}
     for d in run_dirs():
         for r in table_rows(read(d / "RUNLOG.md")):
             tid, _ = row_id(r[0]) if r else ("", False)
+            tid = tc_case.get(tid.lower(), tid)
             if tid.startswith("TC-") and len(r) >= 2:
                 out[tid] = (result_of(r[1])[0], d.name)
     return out

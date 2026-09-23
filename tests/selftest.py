@@ -79,7 +79,7 @@ def main() -> int:
     args = mcp["mcpServers"]["browser"]["args"]
     od = args[args.index("--output-dir") + 1]
     check("db" in mcp["mcpServers"], ".mcp.json: giữ server cũ của dự án")
-    check(Path(od).is_absolute() and od.startswith(str(proj / "qa/evidence/_inbox")),
+    check(Path(od).is_absolute() and od.startswith((proj.resolve() / "qa/evidence/_inbox").as_posix()),
           ".mcp.json: --output-dir tuyệt đối trong qa/evidence/_inbox", od)
     check(not any("@latest" in a for a in args), ".mcp.json: version MCP khoá cứng, không @latest")
     agent = (proj / ".claude/agents/qa-tester.md").read_text()
@@ -619,6 +619,82 @@ def main() -> int:
     wrong = [f"{g} `{c}` → {hook(proj, g, 'Bash', {'command': c})} (cần {e_})" for e_, g, c in HOOK_CASES
              if hook(proj, g, "Bash", {"command": c}) != e_]
     check(not wrong, f"{len(HOOK_CASES)} ca đối kháng của hook (lọt + chặn nhầm) đều đúng", "\n".join(wrong))
+
+    print("\n[14] review lần 5: hook chặn nhầm việc thường, batch mobile, cờ dài, payload HTML, ID chữ thường")
+    ev_abs = str(proj / "qa/evidence/r1/TC-A-001")
+    MCP_CASES = [
+        (0, "mcp__mobile__mobile_install_app", {"device": "x", "path": "/tmp/build/app.apk"}),
+        (2, "mcp__mobile__mobile_batch_commands", {"steps": [{"name": "mobile_save_screenshot", "arguments": {"saveTo": "/tmp/a.png"}}]}),
+        (2, "mcp__mobile__mobile_batch_commands", {"steps": [{"name": "mobile_start_screen_recording", "arguments": {}}]}),
+        (0, "mcp__mobile__mobile_batch_commands", {"steps": [{"name": "mobile_save_screenshot", "arguments": {"saveTo": ev_abs + "/01.png"}},
+                                                             {"name": "mobile_install_app", "arguments": {"path": "/tmp/app.apk"}}]}),
+        (2, "mcp__mobile__mobile_save_screenshot", {"saveTo": "/tmp/a.png"}),
+    ]
+    wrong = [f"{t} {ti} → {hook(proj, 'guard_evidence.py', t, ti)} (cần {e_})" for e_, t, ti in MCP_CASES
+             if hook(proj, "guard_evidence.py", t, ti) != e_]
+    check(not wrong, "cài app mobile (path là đầu vào) đi qua; từng bước mobile_batch_commands được soi", "\n".join(wrong))
+    CASES5 = [
+        (0, "guard_readonly.py", "git checkout -b qa/tc-moi"), (0, "guard_readonly.py", "git switch -c qa/tc-moi"),
+        (2, "guard_readonly.py", "git checkout -b x origin/main"), (2, "guard_readonly.py", "git pull --rebase"),
+        (0, "guard_readonly.py", "(cd src && ls); touch qa/x"), (2, "guard_readonly.py", "(cd qa && ls); rm src/app.js"),
+        (2, "guard_readonly.py", "(cd src && rm app.js)"), (0, "guard_readonly.py", "echo $(cd src; ls) > qa/list.txt"),
+        (0, "guard_readonly.py", "tee qa/x < src/app.js"), (0, "guard_readonly.py", "wc -l < src/app.js > qa/n.txt"),
+        (2, "guard_evidence.py", "tar --file=/tmp/e.tgz -c qa/evidence/r1"), (2, "guard_evidence.py", "tar -c --file /tmp/e.tgz qa/evidence/r1"),
+        (2, "guard_evidence.py", "cp --target-directory=/tmp qa/evidence/r1/TC-A-001/01.png"),
+        (0, "guard_evidence.py", "(cd qa && cp evidence/r1/TC-A-001/01.png evidence/r2/)"),
+    ]
+    wrong = [f"{g} `{c}` → {hook(proj, g, 'Bash', {'command': c})} (cần {e_})" for e_, g, c in CASES5
+             if hook(proj, g, "Bash", {"command": c}) != e_]
+    check(not wrong, "tạo nhánh, subshell ( cd … ), `<` đầu vào, cờ dài --file=/--target-directory= xử lý đúng", "\n".join(wrong))
+    (proj / "src/.git").mkdir()
+    wrong = [c for c in ("git pull --rebase", "git stash", "git checkout main") if hook(proj, "guard_readonly.py", "Bash", {"command": c}) != 0]
+    wrong += [c for c in ("git -C src reset --hard",) if hook(proj, "guard_readonly.py", "Bash", {"command": c}) != 2]
+    check(not wrong, "vùng chỉ đọc là repo git riêng lồng bên trong: lệnh git của repo ngoài đi qua, lệnh vào chính nó vẫn chặn",
+          ", ".join(wrong))
+    (proj / "src/.git").rmdir()
+    ph = proj / "qa/testcases/xss.md"
+    ph.write_text(tc1.replace("TC-DK-001", "TC-XSS-001").replace("Ô email nhận giá trị",
+                                                                 "Nhập <svg onload=alert(1)> và <img src=x onerror=alert(1)> — hiện nguyên văn"))
+    r = qa(proj, "tc", "xss")
+    check("chỗ trống" not in r.stdout, "payload XSS dạng thẻ HTML không bị báo nhầm là chỗ trống", r.stdout)
+    ph.unlink()
+    ids_all = [t for t in qa(proj, "select", "all").stdout.split("\n")[1:] if t.startswith("TC-")]
+    ra = mkrun([(t, "PASS", "") for t in ids_all], good, name="2099-06-01-full")
+    lg = proj / "qa/runs" / ra / "RUNLOG.md"
+    txt = lg.read_text()
+    for t in ids_all:
+        txt = txt.replace(f"| {t} | PASS", f"| {t.lower()} | PASS")
+    lg.write_text(txt)
+    r = qa(proj, "release", ra)
+    check("chưa có kết quả 0" in r.stdout, "release nhận ID TC viết thường trong RUNLOG", r.stdout)
+    r = qa(proj, "trace")
+    check(f"PASS {len(ids_all)}" in r.stdout, "trace nhận ID TC viết thường", r.stdout)
+    shutil.rmtree(proj / "qa/runs" / ra, ignore_errors=True)
+    # installer: không gỡ quyền người dùng tự có, không thêm lại thứ người dùng đã xoá, không ghi đè hook đã chỉnh
+    ip = tmp / "inst5"; (ip / ".claude").mkdir(parents=True)
+    (ip / ".claude/settings.local.json").write_text(json.dumps({"permissions": {"allow": ["mcp__browser"]}}))
+    run([sys.executable, str(REPO / "install.py"), str(ip)], tmp)
+    run([sys.executable, str(REPO / "install.py"), str(ip), "--update", "--settings-local"], tmp)
+    run([sys.executable, str(REPO / "install.py"), str(ip), "--update", "--settings-shared"], tmp)
+    loc = json.loads((ip / ".claude/settings.local.json").read_text())
+    check("mcp__browser" in loc["permissions"]["allow"], "chuyển settings qua lại không gỡ quyền người dùng tự có từ trước", json.dumps(loc))
+    sp = ip / ".claude/settings.json"
+    st = json.loads(sp.read_text())
+    st["permissions"]["ask"].remove("Bash(psql:*)")
+    for e in st["hooks"]["PreToolUse"]:
+        if "guard_evidence" in json.dumps(e):
+            e["hooks"][0]["timeout"] = 30
+        if "guard_readonly" in json.dumps(e):
+            e["hooks"] = []
+    st["hooks"]["PreToolUse"] = [e for e in st["hooks"]["PreToolUse"] if e["hooks"]]
+    sp.write_text(json.dumps(st))
+    r = run([sys.executable, str(REPO / "install.py"), str(ip), "--update"], tmp)
+    st = json.loads(sp.read_text())
+    ev_h = [h for e in st["hooks"]["PreToolUse"] for h in e["hooks"] if "guard_evidence" in json.dumps(h)]
+    ro_h = [h for e in st["hooks"]["PreToolUse"] for h in e["hooks"] if "guard_readonly" in json.dumps(h)]
+    check("Bash(psql:*)" not in st["permissions"]["ask"] and len(ev_h) == 1 and ev_h[0].get("timeout") == 30 and not ro_h
+          and "đã được chỉnh tay" in r.stdout and "đã gỡ hook" in r.stdout,
+          "--update không thêm lại quyền/hook người dùng đã xoá, giữ hook đã chỉnh tay", r.stdout + json.dumps(st))
 
     print(f"\n{'=' * 50}\n  {OK} ✓ · {BAD} ✗")
     if keep:

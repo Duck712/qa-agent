@@ -6,7 +6,8 @@ Bash, trong thư mục riêng mỗi TC: `qa/sandbox/<run-id>/<TC-ID>/` (không c
 
 Ghi mỗi lệnh thành bằng chứng:
 ```bash
-D=qa/evidence/$RUN/$TC; S=qa/sandbox/$RUN/$TC; mkdir -p $D $S
+RUN=<run-id>; TC=<TC-ID>   # gán trong cùng một lệnh Bash
+D=qa/evidence/$RUN/$TC; S=qa/sandbox/$RUN/$TC; mkdir -p "$D" "$S"
 ( cd $S && echo '$ tool convert in.csv --out out.json' && tool convert in.csv --out out.json ) \
   > $D/01-stdout.txt 2> $D/01-stderr.txt; echo "exit=$?" > $D/01-exit.txt
 cp $S/out.json $D/01-out.json 2>/dev/null

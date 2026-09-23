@@ -17,7 +17,7 @@ argument-hint: [tên đợt, vd "sprint 12" | "release 2.3"]
    (để trống cho tới khi người dùng chốt — chỉ **đề xuất** con số trong câu hỏi) · §7 quyền đặc biệt (bảo mật, tải, chạm
    DB staging — mặc định `không`; test AI: đề xuất N lần chạy và ngưỡng đạt, cả chi phí gọi model, rồi hỏi).
 4. **Hỏi người dùng**, gom một lượt: điểm mơ hồ còn mở ở `ANALYSIS §5`, phạm vi đề xuất, mức rủi ro từng REQ, tiêu
-   chí đạt, môi trường/tài khoản/cách tạo-dọn dữ liệu còn thiếu, quyền bảo mật/tải/DB. Mỗi câu kèm đề xuất + rủi ro.
+   chí đạt, tỉ lệ bốc mẫu soi bằng chứng (SCOPE §6), môi trường/tài khoản/cách tạo-dọn dữ liệu còn thiếu, quyền bảo mật/tải/DB. Mỗi câu kèm đề xuất + rủi ro.
    Ghi trả lời đúng một nơi: yêu cầu → cột `Trả lời` ANALYSIS §5 (gỡ `(chờ trả lời #n)` ở REQ/TC liên quan); quyết định
    → DECISIONS.md. SCOPE §8 chỉ trỏ số tham chiếu.
 5. Người dùng đồng ý → điền mức R + ba dòng tiêu chí đúng con số họ chốt, `Trạng thái: CHỐT`, `Chốt bởi`, `Ngày

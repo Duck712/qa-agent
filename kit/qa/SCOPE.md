@@ -36,12 +36,12 @@
 <!-- NGƯỜI DÙNG chốt ba dòng dưới (qa_check.py đọc đúng định dạng này). Để trống = chưa chốt → run ra CHƯA KẾT LUẬN.
      Định dạng: `Bug mở không được phép: S1, S2` (hoặc `S1–S3`, `S2 trở lên`, `không`) · `Tỉ lệ PASS tối thiểu: <số>%` ·
      `Tỉ lệ BLOCKED tối đa: <số>%` — mỗi dòng đúng MỘT số có %. Tiêu chí theo mức → thêm dòng riêng
-     `- Tỉ lệ PASS tối thiểu R1: <số>%` (tính trên TC `Mức: R1`). Tiêu chí không vừa khuôn → ghi DECISIONS, báo người
+     `- Tỉ lệ PASS tối thiểu R1: <số>%` (tính trên TC thuộc REQ có mức R1 ở SCOPE §2; `Mức:` của TC chỉ dùng khi REQ chưa có mức). Tiêu chí không vừa khuôn → ghi DECISIONS, báo người
      dùng máy không tính được (run ra CHƯA KẾT LUẬN). -->
 - Bug mở không được phép: 
 - Tỉ lệ PASS tối thiểu: 
 - Tỉ lệ BLOCKED tối đa: 
-- Soi bằng chứng — tỉ lệ bốc mẫu PASS: <!-- vd 30% (luôn soi mọi FAIL và nhóm ưu tiên) -->
+- Soi bằng chứng — tỉ lệ bốc mẫu PASS: <!-- vd 30% — mọi FAIL luôn soi; nhóm ưu tiên (qa-evidence §5) được bốc trước trong tỉ lệ này -->
 
 ## 7. Quyền đặc biệt
 <!-- "có" chỉ khi người dùng cho phép rõ ràng — trích nguyên văn vào DECISIONS. -->

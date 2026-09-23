@@ -8,7 +8,8 @@
 5. **Trạng thái không đồng bộ giữa list và detail** sau khi update (cache, stale data).
 6. **Race khi double-submit** → mọi nút tạo/thanh toán đều thử double-click.
 7. **Quên phân quyền ở API phụ** (export, download, autocomplete) — chỉ gắn quyền ở API chính.
-8. **Lỗi chỉ xuất hiện với data thật số lượng lớn** (1000+ bản ghi): chậm, timeout, UI vỡ — seed data lớn trước khi test list.
+8. **Lỗi chỉ xuất hiện với dữ liệu số lượng lớn**: chậm, timeout, UI vỡ → đề xuất cỡ dữ liệu (theo giới hạn tài liệu/hệ
+   thống) và hỏi; seed vượt trần `qa-targets` §3 mục 4 → hỏi.
 9. **Message lỗi generic "Có lỗi xảy ra"** che mất lỗi thật → luôn mở DevTools/Network xem response gốc.
 10. **Đếm độ dài lệch giữa các tầng**: JS `.length` đếm UTF-16 (😀 = 2, 👨‍👩‍👧 = 8) trong khi người dùng thấy 1 ký tự; cột
     MySQL `utf8` (mb3) từ chối ký tự 4 byte (emoji); Oracle `VARCHAR2` theo BYTE; tiếng Việt dạng tổ hợp (NFD, "ệ" = 2–3
