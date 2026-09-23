@@ -96,6 +96,8 @@ def split_commands(cmd: str, _norm: bool = True) -> list[str]:
                 k = match_paren(cmd, i + 1)
                 k = len(cmd) - 1 if k < 0 else k
                 body = cmd[i + 2:k]
+                if body.startswith("(") and body.endswith(")"):  # "$(( … ))" số học: không phải lệnh
+                    body = body[1:-1] if ("$(" in body or "`" in body) else ""   # chỉ soi lệnh lồng trong biểu thức
             out.extend([SUB_OPEN, *split_commands(body, False), SUB_CLOSE])
             cur.append(SUB_TOKEN)
             i = k
@@ -118,8 +120,8 @@ def split_commands(cmd: str, _norm: bool = True) -> list[str]:
             k = match_paren(cmd, i)
             k = len(cmd) - 1 if k < 0 else k
             body = cmd[i + 1:k]
-            if body.startswith("(") and body.endswith(")"):      # $(( … )) số học
-                body = body[1:-1]
+            if body.startswith("(") and body.endswith(")"):      # $(( … )) số học: không phải lệnh
+                body = body[1:-1] if ("$(" in body or "`" in body) else ""   # chỉ soi lệnh lồng trong biểu thức
             out.extend([SUB_OPEN, *split_commands(body, False), SUB_CLOSE])
             if cmd[i - 1:i] == "$":
                 cur.append(SUB_TOKEN[1:])                         # `$` đã nằm trong cur → "$__SUB__"

@@ -680,6 +680,10 @@ def main() -> int:
         (2, "guard_evidence.py", "cat <(cat qa/evidence/r1/TC-A-001/01.png) > /tmp/o"),
         (0, "guard_evidence.py", "wc -l < qa/evidence/r1/TC-A-001/log.txt > /tmp/n"),
         (0, "guard_evidence.py", "curl -s https://x > qa/evidence/r1/TC-A-001/$(date +%s).json"),
+        (2, "guard_readonly.py", 'cd src && npm test > "test-$(date +%s).log"'), (2, "guard_readonly.py", "cd src && touch a$(date)"),
+        (2, "guard_readonly.py", 'cd src && npm test 2>&1 | tee "run-$(date +%s).log"'),
+        (0, "guard_readonly.py", 'cd qa && echo x > "out-$(date)"'), (0, "guard_readonly.py", 'mkdir -p "$D" "$D/sub"'),
+        (0, "guard_readonly.py", 'cd src && echo "$((1>0))"'),
     ]
     wrong = [f"{g} `{c}` → {hook(proj, g, 'Bash', {'command': c})} (cần {e_})" for e_, g, c in CASES5
              if hook(proj, g, "Bash", {"command": c}) != e_]

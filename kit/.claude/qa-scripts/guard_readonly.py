@@ -59,9 +59,9 @@ def resolve(path: str, cwd: Path, env: dict) -> list[Path]:
     raw = expand(path.strip("\"'"), env)
     if raw and "$" in raw:                              # src/`date`.log, src/$(date).log: phần thư mục cố định phía trước
         fixed = raw.split("$", 1)[0]
-        d = fixed if fixed.endswith("/") else fixed.rsplit("/", 1)[0] + "/" if "/" in fixed else ""
-        if not d:
+        if not fixed:                                   # bắt đầu bằng giá trị tính lúc chạy ("$D/x"): không biết thư mục
             return []
+        d = fixed if fixed.endswith("/") else fixed.rsplit("/", 1)[0] + "/" if "/" in fixed else "./"
         raw = d + PARTIAL
     if not raw:
         return []
