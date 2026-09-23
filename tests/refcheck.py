@@ -19,10 +19,12 @@ from pathlib import Path
 
 # tên xuất hiện như VÍ DỤ đầu ra lúc chạy — không phải file của bộ công cụ
 RUNTIME = {"qa/TRACE.md", "TRACE.md", "qa/.env", "qa/API-SURFACE.md", "cham.md", "ghi-chu.md", "out.json", "RUNLOG.md",
-           "REPORT.md", "SKILL.md", "ghi-chep.md", "qa/testcases/phan-quyen.md", "qa/evidence/_inbox/tester/"}
+           "REPORT.md", "SKILL.md", "ghi-chep.md", "qa/testcases/phan-quyen.md", "qa/evidence/_inbox/tester/",
+           "LESSONS-archive.md", "qa/LESSONS-archive.md", ".claude/qa-agent.json"}
 WORKSPACE = {"QA.md", "ANALYSIS.md", "SCOPE.md", "BUGS.md", "DECISIONS.md", "LESSONS.md", "TRACE.md"}
-SCRIPTS = {"qa_check.py", "pairwise.py", "gen_matrix_tc.py", "guard_evidence.py", "guard_readonly.py"}
-QA_CHECK_CMDS = {"status", "tc", "select", "new-run", "run", "trace", "release"}
+SCRIPTS = {"qa_check.py", "pairwise.py", "gen_matrix_tc.py", "guard_evidence.py", "guard_readonly.py", "hook_session.py",
+           "hook_prompt.py"}
+QA_CHECK_CMDS = {"status", "tc", "select", "new-run", "run", "trace", "release", "vp", "src", "export", "import", "lessons"}
 
 
 def sections(path: Path) -> set[str]:
@@ -39,6 +41,7 @@ def main() -> int:
     sec_files = {
         "ANALYSIS": proj / "qa/ANALYSIS.md", "SCOPE": proj / "qa/SCOPE.md",
         "analysis-review": skills / "qa-knowledge/analysis-review.md",
+        "scope-review": skills / "qa-knowledge/scope-review.md",
         "techniques-judgement": skills / "qa-knowledge/techniques-judgement.md",
         "skill `qa`": skills / "qa/SKILL.md", "qa-targets": skills / "qa-targets/SKILL.md",
         "qa-evidence": skills / "qa-evidence/SKILL.md",
@@ -47,7 +50,8 @@ def main() -> int:
     }
     sec_of = {k: sections(v) for k, v in sec_files.items()}
     files = [*(cl / "commands").glob("*.md"), *(cl / "agents").glob("*.md"), *skills.rglob("*.md"),
-             *[p for p in (proj / "qa").glob("*.md")], *(proj / "qa/runs").glob("_*.md"), *(proj / "qa/testcases").glob("_*.md")]
+             *[p for p in (proj / "qa").glob("*.md")], *(proj / "qa/runs").glob("_*.md"), *(proj / "qa/testcases").glob("_*.md"),
+             *(proj / "qa/viewpoints").glob("_*.md")]
     bad: list[str] = []
 
     def exists(part: str, here: Path) -> bool:
@@ -61,6 +65,8 @@ def main() -> int:
             cands.append(cl / "qa-scripts" / name)
         if name.startswith(("ky-thuat/",)):
             cands.append(skills / "qa-testcase-design" / name)
+        if name.startswith("viewpoints/"):
+            cands.append(proj / "qa" / name)
         if name.startswith(("_EXPLORE", "_RUNLOG", "_REPORT")):
             cands.append(proj / "qa/runs" / name)
         return any(c.exists() for c in cands)
@@ -81,9 +87,9 @@ def main() -> int:
                 if not exists(part, f):
                     bad.append(f"{rel}: file `{part}` không tồn tại")
         # tham chiếu trần sang skill khác: agent đang ở skill/lệnh khác sẽ tìm sai thư mục
-        owner = {"ky-thuat/": "qa-testcase-design", "analysis-review.md": "qa-knowledge",
+        owner = {"ky-thuat/": "qa-testcase-design", "analysis-review.md": "qa-knowledge", "scope-review.md": "qa-knowledge",
                  "techniques-judgement": "qa-knowledge", "bug-patterns.md": "qa-knowledge", "checklists/": "qa-knowledge"}
-        for m in re.finditer(r"`(ky-thuat/|analysis-review\.md|techniques-judgement|bug-patterns\.md|checklists/)", text):
+        for m in re.finditer(r"`(ky-thuat/|analysis-review\.md|scope-review\.md|techniques-judgement|bug-patterns\.md|checklists/)", text):
             if owner[m.group(1)] not in f.parts:
                 bad.append(f"{rel}: `{m.group(1)}…` thiếu tên skill phía trước (`{owner[m.group(1)]}/{m.group(1)}…`)")
         for m in re.finditer(r"(?:skill|agent|spawn|Nạp)\s+`(qa[a-z-]*)`", text):

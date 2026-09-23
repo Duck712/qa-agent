@@ -1,5 +1,5 @@
 ---
-description: Trợ lý QA — nhờ bất kỳ việc kiểm thử nào (phân tích, kế hoạch, TC, chạy test, smoke, regression, test lại bug, khám phá, automation, báo cáo…)
+description: Trợ lý QA — nhờ bất kỳ việc kiểm thử nào (phân tích, quan điểm test, kế hoạch, TC, review, chạy test, smoke, regression, test lại bug, khám phá, automation, báo cáo…)
 argument-hint: <việc cần làm, vd "viết TC cho màn đăng ký" | "smoke sau deploy v2.3" | "dev fix BUG-012">
 ---
 

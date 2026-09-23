@@ -8,7 +8,8 @@ Làm gì:
   1. Chép `kit/.claude/{commands,agents,skills,qa-scripts}` vào `<dự án>/.claude/` (chỉ file của qa-agent —
      tên bắt đầu `qa`; file khác của dự án không đụng).
   2. Tạo workspace `<dự án>/qa/` từ `kit/qa/` — file đã có thì GIỮ NGUYÊN (không bao giờ ghi đè dữ liệu QA).
-  3. GỘP `kit/.claude/settings.qa.json` vào `<dự án>/.claude/settings.json` (thêm quyền + 2 hook, giữ phần có sẵn).
+  3. GỘP `kit/.claude/settings.qa.json` vào `<dự án>/.claude/settings.json` (thêm quyền + hook PreToolUse/SessionStart/
+     UserPromptSubmit, giữ phần có sẵn).
      `--update` không thêm lại quyền/hook người dùng đã xoá, không ghi đè hook đã chỉnh tay; chuyển file settings chỉ
      gỡ quyền do qa-agent thêm (manifest ghi lại), không gỡ quyền người dùng tự có.
   4. GỘP server `browser` + `mobile` vào `<dự án>/.mcp.json` — version khoá cứng, `--output-dir` là đường dẫn
@@ -28,6 +29,7 @@ import os
 import re
 import shutil
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -49,9 +51,21 @@ def render(text: str, ctx: dict, as_json: bool = False) -> str:
     return text
 
 
+@lru_cache(maxsize=None)
+def kit_hook_names() -> frozenset[str]:
+    """Tên script hook của qa-agent (theo settings.qa.json) — hook khác trỏ vào .claude/qa-scripts/ (vd người dùng tự
+    thêm `qa_check.py status` lúc mở phiên) KHÔNG phải của kit, không được gỡ/thay."""
+    hooks = json.loads((KIT / ".claude" / "settings.qa.json").read_text(encoding="utf-8"))["hooks"]   # chỉ phần hook, không lấy quyền
+    return frozenset(re.findall(r"qa-scripts/(\w+)\.py", json.dumps(hooks))) | {"guard_evidence", "guard_readonly"}
+
+
 def hook_key(h: dict) -> str | None:
-    m = re.search(r"(guard_\w+)\.py", json.dumps(h))
-    return m.group(1) if m else None
+    m = re.search(r"\.claude/qa-scripts/(\w+)\.py", json.dumps(h))
+    return m.group(1) if m and m.group(1) in kit_hook_names() else None
+
+
+def event_lists(hooks) -> list:
+    return [v for v in hooks.values() if isinstance(v, list)] if isinstance(hooks, dict) else []
 
 
 def hook_sha(matcher, h: dict) -> str:
@@ -68,12 +82,34 @@ def strip_qa(cur: dict, perms_ours: dict | None) -> None:
     for k in ("allow", "ask", "deny"):
         if isinstance(perms.get(k), list):
             perms[k] = [x for x in perms[k] if x not in perms_ours.get(k, [])]
-    hooks = cur.get("hooks", {}).get("PreToolUse") if isinstance(cur.get("hooks"), dict) else None
-    if isinstance(hooks, list):
+    for hooks in event_lists(cur.get("hooks")):
         for e in hooks:
             if isinstance(e, dict) and isinstance(e.get("hooks"), list):
-                e["hooks"] = [h for h in e["hooks"] if ".claude/qa-scripts/guard_" not in json.dumps(h)]
+                e["hooks"] = [h for h in e["hooks"] if not hook_key(h)]
         hooks[:] = [e for e in hooks if not isinstance(e, dict) or e.get("hooks")]
+    if isinstance(cur.get("hooks"), dict):
+        for ev in [k for k, v in cur["hooks"].items() if v == []]:
+            del cur["hooks"][ev]
+
+
+def migrate_notes(proj: Path) -> list[str]:
+    """Workspace qa/ không bao giờ bị ghi đè — khuôn cũ thiếu phần của bản mới thì báo để người dùng tự gộp."""
+    out = []
+    qa = proj / "qa"
+    an = qa / "ANALYSIS.md"
+    if an.is_file() and "Trích nguyên văn" not in an.read_text(encoding="utf-8", errors="replace"):
+        out.append("qa/ANALYSIS.md bản cũ: §3 chưa có cột `Trích nguyên văn` (qa_check.py src sẽ nhắc từng REQ) — thêm cột "
+                   "cuối bảng §3 và mục `## 9. Thuật ngữ` theo kit/qa/ANALYSIS.md")
+    tpl = qa / "testcases" / "_TEMPLATE.md"
+    if tpl.is_file() and "- VP:" not in tpl.read_text(encoding="utf-8", errors="replace"):
+        out.append("qa/testcases/_TEMPLATE.md bản cũ: chưa có dòng `- VP:` — chép lại từ kit/qa/testcases/_TEMPLATE.md")
+    sc = qa / "SCOPE.md"
+    if sc.is_file() and "Tiêu chí vào" not in sc.read_text(encoding="utf-8", errors="replace"):
+        out.append("qa/SCOPE.md bản cũ: chưa có §9–§12 (vào/ra, lịch, bàn giao, rủi ro dự án) — thêm theo kit/qa/SCOPE.md khi lập đợt mới")
+    les = qa / "LESSONS.md"
+    if les.is_file() and "Phạm vi áp" not in les.read_text(encoding="utf-8", errors="replace"):
+        out.append("qa/LESSONS.md bản cũ: chưa có cột `Phạm vi áp` (lessons --for coi mọi bài là chung) — thêm cột cuối bảng nếu cần")
+    return out
 
 
 def kit_files() -> list[Path]:
@@ -105,11 +141,13 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list, rec: di
         except json.JSONDecodeError:
             log.append(f"  ⚠ {path} không phải JSON hợp lệ — KHÔNG gộp, thêm tay theo kit/.claude/settings.qa.json")
             return None
+    events = list(src["hooks"])
     shape_ok = isinstance(cur, dict) and isinstance(cur.get("permissions", {}), dict) \
         and all(isinstance(cur.get("permissions", {}).get(k, []), list) for k in ("allow", "ask", "deny")) \
-        and isinstance(cur.get("hooks", {}), dict) and isinstance(cur.get("hooks", {}).get("PreToolUse", []), list) \
+        and isinstance(cur.get("hooks", {}), dict) \
+        and all(isinstance(cur.get("hooks", {}).get(ev, []), list) for ev in events) \
         and all(isinstance(e, dict) and isinstance(e.get("hooks", []), list) and all(isinstance(h, dict) for h in e.get("hooks", []))
-                for e in cur.get("hooks", {}).get("PreToolUse", []))
+                for ev in events for e in cur.get("hooks", {}).get(ev, []))
     if not shape_ok:
         log.append(f"  ⚠ {path} có cấu trúc lạ (permissions/hooks không đúng kiểu) — KHÔNG gộp, thêm tay theo kit/.claude/settings.qa.json")
         return None
@@ -133,39 +171,46 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list, rec: di
         new_perms[k] = mine
     if dropped:
         log.append(f"  ⚠ {path.name}: người dùng đã gỡ quyền {', '.join(dropped)} — không thêm lại")
-    hooks = cur.setdefault("hooks", {}).setdefault("PreToolUse", [])
+    all_hooks = cur.setdefault("hooks", {})
+    had = set(all_hooks)
     new_hooks: dict = {}
     present: set = set()
     kept: set = set()
-    for e in hooks:                                           # hook qa-agent đang có: giữ bản đã sửa tay, gỡ bản nguyên gốc
-        keep = []
-        for h in e.get("hooks", []):
-            key = hook_key(h) if ".claude/qa-scripts/guard_" in json.dumps(h) else None
-            if not key:
-                keep.append(h)
+    for ev in events:
+        hooks = all_hooks.setdefault(ev, [])
+        for e in hooks:                                       # hook qa-agent đang có: giữ bản đã sửa tay, gỡ bản nguyên gốc
+            keep = []
+            for h in e.get("hooks", []):
+                key = hook_key(h)
+                if not key:
+                    keep.append(h)
+                    continue
+                present.add(key)
+                if tracked and key in old_hooks and hook_sha(e.get("matcher"), h) != old_hooks[key] and key not in kept:
+                    keep.append(h)
+                    kept.add(key)
+                    new_hooks[key] = old_hooks[key]
+                    log.append(f"  ⚠ {path.name}: hook {key} đã được chỉnh tay — giữ nguyên; bản mới ở kit/.claude/settings.qa.json")
+            e["hooks"] = keep
+        hooks[:] = [e for e in hooks if e.get("hooks")]
+    for ev in events:
+        for entry in src["hooks"][ev]:
+            for h in entry["hooks"]:
+                h["command"] = py
+            key = hook_key(entry)
+            if key in kept:
                 continue
-            present.add(key)
-            if tracked and key in old_hooks and hook_sha(e.get("matcher"), h) != old_hooks[key] and key not in kept:
-                keep.append(h)
-                kept.add(key)
+            if tracked and key in old_hooks and key not in present:
                 new_hooks[key] = old_hooks[key]
-                log.append(f"  ⚠ {path.name}: hook {key} đã được chỉnh tay — giữ nguyên; bản mới ở kit/.claude/settings.qa.json")
-        e["hooks"] = keep
-    hooks[:] = [e for e in hooks if e.get("hooks")]
-    for entry in src["hooks"]["PreToolUse"]:
-        for h in entry["hooks"]:
-            h["command"] = py
-        key = hook_key(entry)
-        if key in kept:
-            continue
-        if tracked and key in old_hooks and key not in present:
-            new_hooks[key] = old_hooks[key]
-            log.append(f"  ⚠ {path.name}: người dùng đã gỡ hook {key} — không thêm lại (muốn bật lại: thêm tay theo "
-                       f"kit/.claude/settings.qa.json)")
-            continue
-        hooks.append(entry)
-        for h in entry["hooks"]:
-            new_hooks[key] = hook_sha(entry.get("matcher"), h)
+                log.append(f"  ⚠ {path.name}: người dùng đã gỡ hook {key} — không thêm lại (muốn bật lại: thêm tay theo "
+                           f"kit/.claude/settings.qa.json)")
+                continue
+            all_hooks[ev].append(entry)
+            for h in entry["hooks"]:
+                new_hooks[key] = hook_sha(entry.get("matcher"), h)
+    for ev in events:
+        if not all_hooks.get(ev) and ev not in had:
+            del all_hooks[ev]
     if not dry:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(cur, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -292,6 +337,8 @@ def main() -> int:
         if not a.dry_run:
             (proj / "qa" / sub).mkdir(parents=True, exist_ok=True)
     log.append(f"  ✓ workspace qa/: tạo {made} file mới (file đã có giữ nguyên)")
+    for note in migrate_notes(proj):
+        log.append(f"  ⚠ {note}")
 
     # 3–4. cấu hình
     local = False if a.settings_shared else (a.settings_local or old.get("settings_local", False))

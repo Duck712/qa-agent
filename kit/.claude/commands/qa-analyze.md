@@ -19,7 +19,8 @@ Nguồn: $ARGUMENTS (trống → dùng `qa/QA.md §Nguồn tài liệu`) — tà
    - Không tìm thấy/không mở được nguồn nào → hỏi người dùng, không phân tích từ trí nhớ.
 3. Điền/cập nhật `qa/ANALYSIS.md`:
    - §2 vai và ma trận được/không được làm; §3 mỗi yêu cầu một `REQ-<TÍNH-NĂNG>-<n>` viết thành **hành vi
-     quan sát được**, ghi target và nguồn (file + mục, hoặc `file:dòng` với code); §4 mô hình (use case luồng
+     quan sát được**, ghi target, nguồn (file + mục, hoặc `file:dòng` với code) và **trích nguyên văn** câu gốc — Mô tả
+     không được nói nhiều hơn câu trích (phần thêm → §5); §9 thuật ngữ/viết tắt; §4 mô hình (use case luồng
      chính/thay thế/ngoại lệ, bảng trạng thái × sự kiện, CRUD); §6 bảng rủi ro xác suất × thiệt hại; §7 yêu cầu
      ngầm/phi chức năng; §8 thay đổi & ảnh hưởng (khi có bản trước).
    - §5 mọi điểm mơ hồ / thiếu / mâu thuẫn — mỗi điểm một đề xuất + rủi ro nếu hiểu sai. **Không** tự đoán
@@ -27,5 +28,7 @@ Nguồn: $ARGUMENTS (trống → dùng `qa/QA.md §Nguồn tài liệu`) — tà
 4. **Hỏi người dùng** các điểm §5 (gom một lượt, xếp theo mức chặn, mỗi câu kèm đề xuất + rủi ro). Luật nghiệp vụ
    khó nói rõ → hỏi bằng ví dụ cụ thể (example mapping, `qa-knowledge/analysis-review.md` §5). Ghi câu trả lời vào cột `Trả lời`,
    gỡ dấu `(chờ trả lời #n)`. Câu nào người dùng chưa trả lời → giữ nguyên, không tự điền.
+   Xong thì `python3 .claude/qa-scripts/qa_check.py src` — REQ thiếu nguồn/trích dẫn hoặc trích không khớp file → sửa;
+   nguồn là URL/pdf/docx máy không mở được → spawn `qa-source-check` đối chiếu trước khi trình.
 5. Trình theo khuôn `qa-knowledge/analysis-review.md` §9: REQ theo tính năng, yêu cầu ngầm, điểm còn chờ trả lời, lệch tài liệu ↔
-   code, rủi ro đề xuất; bước tiếp theo (thường `/qa-plan`).
+   code, rủi ro đề xuất; bước tiếp theo (thường `/qa-viewpoint`, rồi `/qa-plan`).

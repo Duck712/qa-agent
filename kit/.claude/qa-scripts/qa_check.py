@@ -10,7 +10,15 @@
     python3 .claude/qa-scripts/qa_check.py release <run-id> [<run-id>…]
                                                                   "phát hành được chưa": gộp kết quả mới nhất của mọi TC trong SCOPE
                                                                   qua các run, xét MỌI bug mở mức cấm
-    python3 .claude/qa-scripts/qa_check.py trace [--write]        ma trận truy vết REQ × TC × kỹ thuật × kết quả × bug
+    python3 .claude/qa-scripts/qa_check.py trace [--write]        ma trận truy vết REQ × VP × TC × kỹ thuật × kết quả × bug
+    python3 .claude/qa-scripts/qa_check.py vp [REQ-…|<tính năng>] [--strict]
+                                                                  soát quan điểm test (qa/viewpoints/): trường, trích dẫn, duyệt, phủ
+    python3 .claude/qa-scripts/qa_check.py src [--strict] [--list]  soát nguồn: REQ/VP có nguồn + trích nguyên văn khớp tài liệu
+    python3 .claude/qa-scripts/qa_check.py export <tc|vp> [--out <file.csv>]   xuất CSV (UTF-8 BOM, mở bằng Excel)
+    python3 .claude/qa-scripts/qa_check.py import <tc|vp> <file.csv> --feature <tính-năng>
+                                                                  nhập CSV (Excel "Lưu thành CSV UTF-8") thành markdown để soát/review
+    python3 .claude/qa-scripts/qa_check.py lessons [--brief] [--for <từ khoá>] [--archive]
+                                                                  bài học: liệt kê · bản ngắn đầu phiên · lọc cho tester · cất dòng đã xong
 
 Không phải cổng chặn — chỉ báo. Không tự đặt con số nào: tiêu chí đạt, mức rủi ro, N lần chạy AI lấy từ SCOPE do
 người dùng chốt; thiếu hoặc không đọc được thì báo "chưa chốt", không dùng mặc định. Exit 0 sạch · 1 có lỗi · 2 sai cách gọi.
@@ -18,7 +26,9 @@ người dùng chốt; thiếu hoặc không đọc được thì báo "chưa ch
 
 from __future__ import annotations
 
+import csv
 import datetime as dt
+import io
 import os
 import re
 import sys
@@ -54,7 +64,7 @@ MUC = ("R1", "R2", "R3")
 LOAI = {"chức năng", "biên", "phá-đầu-vào", "phân-quyền", "workflow", "api", "tích-hợp", "tương-thích",
         "hình-thức", "hiệu-năng", "bảo-mật", "khôi-phục", "cross-target", "khám-phá", "smoke"}
 REQUIRED = ["REQ", "Target", "Loại", "Kiểu", "Mức", "Nguồn", "Bước", "Kỳ vọng", "Bằng chứng cần"]
-OPTIONAL = ["Regression", "Tag", "Ticket", "Kỹ thuật", "Tiền điều kiện", "Dữ liệu", "Ô ma trận"]
+OPTIONAL = ["VP", "Regression", "Tag", "Ticket", "Kỹ thuật", "Tiền điều kiện", "Dữ liệu", "Ô ma trận"]
 VAGUE = ["hoạt động đúng", "hiển thị đúng", "chạy đúng", "hoạt động bình thường", "hợp lý", "như mong đợi",
          "đúng nghiệp vụ", "đúng yêu cầu", "đúng thiết kế", "xử lý đúng", "tử tế", "thân thiện", "rõ ràng",
          "performance ok", "ổn định", "mượt"]
@@ -63,6 +73,7 @@ PLACEHOLDER_RE = re.compile(r"<(?!\s)(?![A-Za-z][\w-]*\s+[\w:-]+\s*=)(?=[^<>\n]*
 # ↑ <điền gì đó>; không phải <b>, "< 100 và >", hay thẻ HTML có thuộc tính (<svg onload=…>, <img src=x onerror=…>) trong TC
 TC_ID = r"TC-\w+(?:-\w+)*-\d{3}"
 REQ_ID = r"REQ-[\w.-]*\w"
+VP_ID = r"VP-\w+(?:-\w+)*-\d{3}"
 BUG_CLOSED = ("đóng", "đã đóng", "closed", "không sửa", "wontfix", "hoãn", "deferred", "trùng", "duplicate")
 BUG_OPEN = ("mở", "open", "đã sửa", "fixed", "mở lại", "reopened")
 
@@ -205,6 +216,7 @@ def load_tcs() -> tuple[dict[str, dict], list[str]]:
             for k in ("Kiểu", "Mức", "Loại", "Regression", "Tag"):
                 tc[k] = no_paren(plain(tc[k]))
             tc["reqs"] = req_ids(tc["REQ"])
+            tc["vps"] = [x.upper() for x in re.findall(VP_ID, tc["VP"], re.I)]
             tc["steps"] = block_items(body, "Bước")
             tc["expects"] = block_items(body, "Kỳ vọng")
             tcs[tid] = tc
@@ -299,6 +311,190 @@ def load_bugs() -> dict[str, dict]:
                             "status": plain(status).lower(), "open": is_open, "known": known,
                             "tc": re.findall(TC_ID, field(body, "TC")), "run": run}
     return bugs
+
+
+# ---------------------------------------------------------------- bảng có tên cột
+
+def table_dicts(text: str, first: str) -> list[dict]:
+    """Các dòng của MỌI bảng có cột đầu tên `first` (không phân biệt hoa thường), khoá = tên cột viết thường.
+    Tên cột đọc theo tiêu đề nên bảng cũ thiếu cột mới vẫn đọc được."""
+    out: list[dict] = []
+    head: list[str] | None = None
+    sep_seen = False
+    for line in text.splitlines():
+        s = line.strip()
+        if not s.startswith("|"):
+            head, sep_seen = None, False
+            continue
+        cells = [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", s.strip("|"))]
+        if head is None:
+            names = [plain(c).lower() for c in cells]
+            head = names if names and names[0] == first.lower() else []
+            continue
+        if not sep_seen:
+            sep_seen = all(re.fullmatch(r":?-{2,}:?", c) for c in cells if c)
+            if sep_seen:
+                continue
+        if head and any(cells):
+            out.append({head[i]: (cells[i] if i < len(cells) else "") for i in range(len(head))})
+    return out
+
+
+def col(row: dict, *prefixes: str) -> str:
+    """Giá trị cột đầu tiên có tên bắt đầu bằng một trong các tiền tố (viết thường)."""
+    for p in prefixes:
+        for k, v in row.items():
+            if k.startswith(p):
+                return v
+    return ""
+
+
+# ---------------------------------------------------------------- nguồn & trích dẫn
+
+BINARY_EXT = {".pdf", ".docx", ".doc", ".xlsx", ".xls", ".pptx", ".ppt", ".png", ".jpg", ".jpeg", ".gif", ".webp",
+              ".fig", ".sketch", ".zip", ".odt", ".ods"}
+_doc_cache: dict[Path, str] = {}
+
+
+def norm_text(s: str) -> str:
+    """So trích dẫn: bỏ định dạng markdown, nháy cong, khoảng trắng thừa; không phân biệt hoa thường."""
+    s = unicodedata.normalize("NFC", s or "")
+    s = s.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'").replace(" ", " ")
+    s = re.sub(r"<br\s*/?>", " ", s, flags=re.I)
+    s = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", s)              # [chữ](link) → chữ
+    s = re.sub(r"\\([\\`*_{}\[\]()#+\-.!|>~])", r"\1", s)       # \* \_ \| … → ký tự thường
+    s = re.sub(r"[*_`>#|]", " ", s)
+    s = re.sub(r"^\s*(?:[-+]|\d+[.)])\s+", " ", s, flags=re.M)
+    return re.sub(r"\s+", " ", s).strip().casefold()
+
+
+def quote_parts(q: str) -> list[str]:
+    q = (q or "").strip().strip('"“”\'‘’').strip()
+    parts = re.split(r"\s*(?:…|\.\.\.|\[\.\.\.\]|\[…\])\s*", q)
+    return [norm_text(p).strip('"\' ') for p in parts if norm_text(p).strip('"\' ')]
+
+
+def source_files(src: str) -> tuple[list[Path], list[str]]:
+    """→ (file cục bộ đọc được, phần nguồn không kiểm được bằng máy: URL, pdf/docx, file không có)."""
+    files, other = [], []
+    raw = re.sub(r"\[([^\]]*)\]\(([^)]+)\)", r" `\2` ", src or "")
+    whole = [t.strip() for t in re.findall(r"`([^`]+)`", raw)]            # `docs/Đặc tả v2.md` — giữ dấu cách
+    raw = re.sub(r"`[^`]+`", " ", raw)
+    head = re.split(r"\s*(?:§|,|;|·|:\d)", raw.strip(), maxsplit=1)[0].strip()
+    if " " in head and re.search(r"\.\w{1,8}$", head) and (ROOT / head).is_file():
+        whole.append(head)                                                    # docs/Đặc tả v2.md §2 (không backtick)
+        raw = raw.replace(head, " ", 1)
+    for tok in whole + re.split(r"[\s,;·]+", raw):
+        t = tok.strip("`*()[]\"'")
+        if not t or t.startswith("§") or t.lower() in ("mục", "dòng", "trang"):
+            continue
+        if re.match(r"https?://", t):
+            other.append(t)
+            continue
+        t = re.sub(r"(?::\d+(?:-\d+)?|#.*)$", "", t)
+        if not re.search(r"\.\w{1,8}$", t) and "/" not in t:
+            continue
+        p = Path(t).expanduser()
+        p = p if p.is_absolute() else ROOT / p
+        if p.suffix.lower() in BINARY_EXT:
+            other.append(t)
+        elif p.is_file():
+            files.append(p)
+        else:
+            other.append(t + " (không thấy file)")
+    return files, other
+
+
+def verify_quote(src: str, quote: str) -> tuple[str, str]:
+    """→ (trạng thái, ghi chú). Trạng thái: khớp · lệch · thiếu-nguồn · thiếu-trích · không-kiểm-máy."""
+    if not plain(src) or PLACEHOLDER_RE.search(src):
+        return "thiếu-nguồn", "cột Nguồn trống"
+    parts = quote_parts(quote)
+    if not parts:
+        return "thiếu-trích", "chưa trích nguyên văn câu trong tài liệu"
+    files, other = source_files(src)
+    if not files:
+        return "không-kiểm-máy", ("nguồn " + ", ".join(other) if other else "không nhận ra đường dẫn file trong Nguồn") \
+            + " — máy không mở được, cần qa-source-check đối chiếu"
+    docs = []
+    for f in files:
+        if f not in _doc_cache:
+            _doc_cache[f] = norm_text(read(f))
+        docs.append(_doc_cache[f])
+    short = [x for x in parts if len(x.split()) < (2 if len(parts) > 1 else 3)]
+    if short:
+        return "thiếu-trích", f"trích dẫn quá ngắn để đối chiếu (\"{short[0]}\") — chép nguyên câu, mỗi đoạn quanh `…` ≥ 2 từ"
+    where = ", ".join(str(f.relative_to(ROOT)) if ROOT in f.parents else str(f) for f in files)
+    for d in docs:                                   # mọi đoạn phải có trong CÙNG một file, đúng thứ tự
+        pos, ok = 0, True
+        for part in parts:
+            i = d.find(part, pos)
+            if i < 0:
+                ok = False
+                break
+            pos = i + len(part)
+        if ok:
+            return "khớp", ""
+    for part in parts:
+        if not any(part in d for d in docs):
+            return "lệch", f"không tìm thấy \"{part[:70]}\" trong {where}"
+    return "lệch", f"các đoạn quanh `…` có trong {where} nhưng không đúng thứ tự / không cùng một file"
+
+
+# ---------------------------------------------------------------- quan điểm test
+
+VP_OK = ("duyệt", "đã duyệt")
+VP_STATES = ("nháp", "duyệt", "đã duyệt", "bỏ")
+OUTSIDE_RE = re.compile(r"ngoài đặc tả", re.I)
+
+
+def vp_state(v: dict) -> str:
+    s = re.sub(r"\s+", " ", no_paren(plain(v.get("Trạng thái", ""))).lower()).strip()
+    return "duyệt" if s in VP_OK else s
+
+
+def vp_usable(v: dict | None) -> bool:
+    """VP dùng được để viết/chạy TC: đã duyệt, không còn chờ trả lời."""
+    return bool(v) and vp_state(v) == "duyệt" and not waiting(" ".join(str(x) for x in v.values() if isinstance(x, str)))
+
+
+def load_vps() -> tuple[dict[str, dict], list[str]]:
+    vps: dict[str, dict] = {}
+    errors: list[str] = []
+    d = QA / "viewpoints"
+    for f in sorted(d.glob("*.md")) if d.is_dir() else []:
+        if f.name.startswith("_"):
+            continue
+        text = read(f)
+        approver = field(text, "Duyệt bởi")
+        for row in table_dicts(re.sub(r"<!--.*?-->", "", text, flags=re.S), "VP"):
+            first = plain(row.get("vp", ""))
+            if not first:
+                continue
+            m = re.fullmatch(VP_ID, first, re.I)
+            if not m:
+                if first.upper().startswith("VP-"):
+                    errors.append(f"{f.name}: mã `{first}` không đúng khuôn VP-<TÍNH-NĂNG>-<3 chữ số> — dòng không được đếm")
+                continue
+            vid = first.upper()
+            if vid in vps:
+                errors.append(f"{vid}: mã trùng ({vps[vid]['file']} và {f.name})")
+                continue
+            v = {"id": vid, "file": f.name, "feature": f.stem, "approver": approver,
+                 "REQ": col(row, "req"), "Hạng mục": col(row, "hạng mục"), "Quan điểm": col(row, "quan điểm"),
+                 "Kiểu": no_paren(plain(col(row, "kiểu"))), "Kỹ thuật": col(row, "kỹ thuật"),
+                 "Mức": no_paren(plain(col(row, "mức"))), "Nguồn": col(row, "nguồn"),
+                 "Trích": col(row, "trích"), "Trạng thái": col(row, "trạng thái")}
+            v["reqs"] = req_ids(v["REQ"])
+            v["outside"] = bool(OUTSIDE_RE.search(" ".join(str(x) for x in row.values())))   # ghi nhầm cột vẫn tính
+            v["outside_misplaced"] = v["outside"] and not OUTSIDE_RE.search(v["Nguồn"])
+            vps[vid] = v
+    return vps, errors
+
+
+def analysis_rows() -> list[dict]:
+    """Dòng REQ ở ANALYSIS §3 (đọc theo tên cột — bản cũ không có cột Trích nguyên văn vẫn đọc được)."""
+    return [r for r in table_dicts(section(read(QA / "ANALYSIS.md"), "3."), "REQ") if req_ids(r.get("req", ""))]
 
 
 # ---------------------------------------------------------------- tiêu chí đạt
@@ -438,6 +634,7 @@ def cmd_tc(args: list[str]) -> int:
     warns: list[str] = []
     tg = set(target_types())
     levels = scope_levels()
+    vps, _ = load_vps()
     reqs_all = scope_reqs() or analysis_reqs()
     focus_reqs = [r for a in focus for r in req_ids(a)]
     focus_feat = [a for a in focus if not req_ids(a)]
@@ -459,6 +656,23 @@ def cmd_tc(args: list[str]) -> int:
             errors.append(f"{t['id']}: trường REQ `{t['REQ']}` không đọc được mã REQ-…")
         if t["Kiểu"] and t["Kiểu"].lower() not in KIEU:
             errors.append(f"{t['id']}: `Kiểu: {t['Kiểu']}` — phải là normal hoặc abnormal")
+        if vps:                                   # dự án đã dùng lớp quan điểm test → TC phải đi ra từ quan điểm đã duyệt
+            if not t["vps"]:
+                if plain(t["VP"]) and plain(t["VP"]) not in ("—", "-"):
+                    errors.append(f"{t['id']}: trường VP `{t['VP']}` không đọc được mã VP-<TÍNH-NĂNG>-<3 chữ số>")
+                elif not re.search(r"BUG-\d+", t["Nguồn"]):
+                    (errors if strict else warns).append(f"{t['id']}: chưa trỏ quan điểm test (`VP:`) — TC phải đi ra từ quan điểm đã duyệt")
+            for vid in t["vps"]:
+                v = vps.get(vid)
+                if not v:
+                    errors.append(f"{t['id']}: {vid} không có trong qa/viewpoints/")
+                elif not vp_usable(v):
+                    errors.append(f"{t['id']}: {vid} chưa `duyệt` hoặc còn chờ trả lời — chưa được viết/chạy TC từ quan điểm này")
+                else:
+                    if t["reqs"] and v["reqs"] and not set(t["reqs"]) <= set(v["reqs"]):
+                        warns.append(f"{t['id']}: REQ {', '.join(t['reqs'])} không khớp REQ của {vid} ({', '.join(v['reqs'])})")
+                    if t["Kiểu"] and v["Kiểu"] and t["Kiểu"].lower() != v["Kiểu"].lower():
+                        warns.append(f"{t['id']}: Kiểu {t['Kiểu']} khác kiểu {v['Kiểu']} của {vid}")
         if t["Mức"] and t["Mức"].upper() not in MUC:
             errors.append(f"{t['id']}: `Mức: {t['Mức']}` — phải là R1/R2/R3 (mức người dùng chốt ở SCOPE §2)")
         for r in t["reqs"]:
@@ -571,10 +785,12 @@ def select(args: list[str]) -> tuple[list[str], str, list[str]]:
 
 
 def drop_waiting(ids: list[str]) -> tuple[list[str], list[str]]:
-    """Bỏ TC còn nhãn chờ, hoặc trỏ tới REQ còn chờ xác nhận — chưa được đưa vào run."""
+    """Bỏ TC còn nhãn chờ, trỏ tới REQ còn chờ xác nhận, hoặc trỏ tới quan điểm test chưa duyệt — chưa được đưa vào run."""
     tcs, _ = load_tcs()
     wreq = waiting_reqs()
-    w = [i for i in ids if waiting(tcs.get(i, {}).get("body", "")) or set(tcs.get(i, {}).get("reqs", [])) & wreq]
+    vps, _ = load_vps()
+    w = [i for i in ids if waiting(tcs.get(i, {}).get("body", "")) or set(tcs.get(i, {}).get("reqs", [])) & wreq
+         or any(not vp_usable(vps.get(v)) for v in tcs.get(i, {}).get("vps", []))]
     return [i for i in ids if i not in w], w
 
 
@@ -1011,11 +1227,16 @@ def cmd_trace(args: list[str]) -> int:
     res = latest_results()
     levels = scope_levels()
     reqs = scope_reqs() or analysis_reqs()
+    vps, _ = load_vps()
+    live_vps = {k: v for k, v in vps.items() if vp_state(v) != "bỏ"}
     extra = sorted({r for t in tcs.values() for r in t["reqs"]} - set(reqs))
-    lines = ["| REQ | Mức (SCOPE) | TC normal | TC abnormal | Kỹ thuật | Kết quả gần nhất | Bug mở |",
-             "|---|---|---|---|---|---|---|"]
+    lines = ["| REQ | Mức (SCOPE) | Quan điểm (duyệt/tổng) | TC normal | TC abnormal | Kỹ thuật | Kết quả gần nhất | Bug mở |",
+             "|---|---|---|---|---|---|---|---|"]
     gaps = 0
     for r in reqs + extra:
+        rv = [v for v in live_vps.values() if r in v["reqs"]]
+        vcell = f"{', '.join(v['id'] for v in rv)} ({sum(vp_usable(v) for v in rv)}/{len(rv)})" if rv else ("**—**" if live_vps else "—")
+        no_vp_r = bool(live_vps) and not rv and r in reqs
         mine = [t for t in tcs.values() if r in t["reqs"]]
         nor = [t["id"] for t in mine if t["Kiểu"].lower() == "normal"]
         abn = [t["id"] for t in mine if t["Kiểu"].lower() == "abnormal"]
@@ -1025,16 +1246,30 @@ def cmd_trace(args: list[str]) -> int:
             k = res.get(t["id"], ("chưa chạy", ""))[0]
             cnt[k] = cnt.get(k, 0) + 1
         ob = sorted({b["id"] + f" ({b['sev']})" for b in bugs.values() if b["open"] and set(b["tc"]) & {t["id"] for t in mine}})
-        if not nor or not abn:
+        if not nor or not abn or no_vp_r:
             gaps += 1
         mark = "" if r in reqs else (" (regression)" if mine and all(t["Regression"].lower().startswith("có") for t in mine) else " ⚠ ngoài phạm vi")
-        lines.append(f"| {r}{mark} | {levels.get(r, '— chưa chốt')} | {', '.join(nor) or '**—**'} | {', '.join(abn) or '**—**'} | "
+        lines.append(f"| {r}{mark} | {levels.get(r, '— chưa chốt')} | {vcell} | {', '.join(nor) or '**—**'} | {', '.join(abn) or '**—**'} | "
                      f"{', '.join(tech) or '—'} | {' · '.join(f'{k} {v}' for k, v in sorted(cnt.items())) or '—'} | "
                      f"{', '.join(ob) or '—'} |")
     no_req = sorted(t["id"] for t in tcs.values() if not t["reqs"])
-    summary = (f"REQ: {len(reqs)} ({'SCOPE' if scope_reqs() else 'ANALYSIS'}) · TC: {len(tcs)} · "
-               f"REQ thiếu normal hoặc abnormal: {gaps}" + (f" · TC không trỏ REQ: {', '.join(no_req)}" if no_req else ""))
-    out = "\n".join(lines) + "\n\n" + summary + "\n"
+    vp_lines, vp_gaps = [], []
+    if live_vps:
+        vp_lines = ["", "| Quan điểm | REQ | Kiểu | Trạng thái | Nguồn | TC |", "|---|---|---|---|---|---|"]
+        for v in live_vps.values():
+            vt = [t["id"] for t in tcs.values() if v["id"] in t["vps"]]
+            if vp_usable(v) and not vt:
+                vp_gaps.append(v["id"])
+            vp_lines.append(f"| {v['id']} | {', '.join(v['reqs']) or '—'} | {v['Kiểu'] or '—'} | {vp_state(v) or '—'} | "
+                            f"{'ngoài đặc tả' if v['outside'] else 'đặc tả'} | {', '.join(vt) or '**—**'} |")
+    no_vp = sorted(t["id"] for t in tcs.values() if live_vps and not t["vps"] and not re.search(r"BUG-\d+", t["Nguồn"]))
+    summary = (f"REQ: {len(reqs)} ({'SCOPE' if scope_reqs() else 'ANALYSIS'}) · "
+               + (f"quan điểm: {len(live_vps)} · " if live_vps else "") + f"TC: {len(tcs)} · "
+               f"REQ thiếu quan điểm/normal/abnormal: {gaps}" + (f" · TC không trỏ REQ: {', '.join(no_req)}" if no_req else "")
+               + (f" · quan điểm đã duyệt chưa có TC: {', '.join(vp_gaps)}" if vp_gaps else "")
+               + (f" · TC không trỏ quan điểm: {', '.join(no_vp)}" if no_vp else ""))
+    gaps += len(vp_gaps)
+    out = "\n".join(lines + vp_lines) + "\n\n" + summary + "\n"
     if "--write" in args:
         (QA / "TRACE.md").write_text(
             f"# TRACE — ma trận truy vết\n\n> Sinh bởi `qa_check.py trace --write` lúc {dt.datetime.now():%Y-%m-%d %H:%M}. "
@@ -1043,6 +1278,442 @@ def cmd_trace(args: list[str]) -> int:
     print(out)
     return 1 if gaps else 0
 
+
+# ---------------------------------------------------------------- lệnh: vp
+
+def cmd_vp(args: list[str]) -> int:
+    strict = "--strict" in args
+    focus = [a for a in args if a != "--strict"]
+    vps, errors = load_vps()
+    warns: list[str] = []
+    levels = scope_levels()
+    known_reqs = set(scope_reqs()) | set(analysis_reqs())
+    wreq = waiting_reqs()
+    reqs_all = scope_reqs() or analysis_reqs()
+    focus_reqs = [r for a in focus for r in req_ids(a)]
+    focus_feat = [a for a in focus if not req_ids(a)]
+    if focus:
+        view = {k: v for k, v in vps.items() if set(v["reqs"]) & set(focus_reqs) or v["feature"] in focus_feat}
+        reqs = focus_reqs + [r for v in view.values() for r in v["reqs"] if r not in focus_reqs]
+        feats = {v["feature"] for v in vps.values()}
+        for f_ in focus_feat:
+            if f_ not in feats:
+                errors.append(f"phạm vi `{f_}` không phải REQ-… hay tính năng nào trong qa/viewpoints/ (có: {', '.join(sorted(feats)) or '—'})")
+    else:
+        view, reqs = vps, reqs_all
+    for v in view.values():
+        vid, st = v["id"], vp_state(v)
+        if st == "bỏ":
+            continue
+        miss = [k for k in ("REQ", "Quan điểm", "Kiểu", "Nguồn", "Trạng thái") if not plain(v[k])]
+        if miss:
+            errors.append(f"{vid} ({v['file']}): thiếu {', '.join(miss)}")
+        if v["REQ"] and not v["reqs"]:
+            errors.append(f"{vid}: cột REQ `{v['REQ']}` không đọc được mã REQ-…")
+        for r in v["reqs"]:
+            if known_reqs and r not in known_reqs:
+                errors.append(f"{vid}: {r} không có trong ANALYSIS §3 / SCOPE §2 — quan điểm phải bám một yêu cầu đã phân tích")
+            if r in wreq and not waiting(" ".join(str(x) for x in v.values() if isinstance(x, str))):
+                warns.append(f"{vid}: {r} còn `(chờ trả lời)` ở ANALYSIS — quan điểm này cũng phải chờ, chưa duyệt được")
+        if v["Kiểu"] and v["Kiểu"].lower() not in KIEU:
+            errors.append(f"{vid}: `Kiểu: {v['Kiểu']}` — phải là normal hoặc abnormal")
+        if st and st not in VP_STATES:
+            errors.append(f"{vid}: trạng thái `{v['Trạng thái']}` lạ — dùng nháp · duyệt · bỏ")
+        if v["Mức"]:
+            if v["Mức"].upper() not in MUC:
+                errors.append(f"{vid}: `Mức: {v['Mức']}` — phải là R1/R2/R3")
+            for r in v["reqs"]:
+                if r in levels and v["Mức"].upper() != levels[r]:
+                    warns.append(f"{vid}: mức {v['Mức']} khác mức {levels[r]} người dùng chốt cho {r} ở SCOPE §2")
+        for k in ("REQ", "Quan điểm", "Nguồn", "Trích"):
+            m = PLACEHOLDER_RE.search(re.sub(r"`[^`]*`", "", v[k] or ""))
+            if m:
+                errors.append(f"{vid}: `{k}` còn chỗ trống `{m.group()}` — điền theo tài liệu hoặc hỏi")
+        for w in VAGUE:
+            if w in (v["Quan điểm"] or "").lower():
+                warns.append(f"{vid}: quan điểm có từ mơ hồ `{w}` — nêu điều cụ thể cần kiểm")
+                break
+        tech = re.sub(r"<[^>]*>", "", v["Kỹ thuật"])
+        for k in {norm_technique(x) for x in re.split(r"[,;·+/]", tech) if x.strip()} - set(TECHNIQUES):
+            warns.append(f"{vid}: kỹ thuật `{k}` không có trong danh mục qa-testcase-design §1 — dùng tên chuẩn")
+        if v["outside_misplaced"]:
+            errors.append(f"{vid}: có chữ `ngoài đặc tả` nhưng không ở cột Nguồn — ghi `Nguồn: ngoài đặc tả — <lý do>` để "
+                          "không lẫn với quan điểm bám đặc tả")
+        if v["outside"]:
+            if st == "duyệt" and not re.search(r"DECISIONS\s*#?\d+|#\d+", " ".join([v["Nguồn"], v["Trạng thái"]])):
+                errors.append(f"{vid}: quan điểm ngoài đặc tả đã `duyệt` nhưng không trỏ dòng DECISIONS người dùng đồng ý")
+            elif st != "duyệt":
+                warns.append(f"{vid}: quan điểm NGOÀI đặc tả — trình người dùng, chỉ viết TC khi được duyệt (ghi DECISIONS)")
+        else:
+            state, why = verify_quote(v["Nguồn"], v["Trích"])
+            if state in ("lệch", "thiếu-nguồn", "thiếu-trích"):
+                errors.append(f"{vid}: {why} — quan điểm phải trích nguyên văn câu trong đặc tả (không có thì là điểm hỏi)")
+            elif state == "không-kiểm-máy":
+                warns.append(f"{vid}: {why}")
+        if waiting(" ".join(str(x) for x in v.values() if isinstance(x, str))):
+            warns.append(f"{vid}: còn `(chờ trả lời #n)` — hỏi người dùng; chưa viết TC từ quan điểm này")
+        if st == "duyệt" and not plain(v["approver"]):
+            warns.append(f"{vid}: `duyệt` nhưng {v['file']} chưa ghi `- Duyệt bởi:` — ai duyệt?")
+    by_req: dict[str, set] = {}
+    for v in vps.values():
+        if vp_state(v) != "bỏ":
+            for r in v["reqs"]:
+                by_req.setdefault(r, set()).add(v["Kiểu"].lower())
+    for r in reqs:
+        k = by_req.get(r, set())
+        if not k:
+            (errors if strict or r in focus_reqs else warns).append(f"{r}: chưa có quan điểm test nào")
+        else:
+            for need in ("normal", "abnormal"):
+                if need not in k:
+                    errors.append(f"{r}: thiếu quan điểm `Kiểu: {need}`")
+    n_ok = sum(1 for v in view.values() if vp_usable(v))
+    print(f"Quan điểm test: {len(view)}{' (phạm vi: ' + ' '.join(focus) + ')' if focus else ''} · đã duyệt dùng được {n_ok}"
+          f" · REQ đang xét: {len(reqs)}{' · --strict' if strict else ''}")
+    for e in errors:
+        print(f"  ✗ {e}")
+    for w in warns:
+        print(f"  ⚠ {w}")
+    if not errors:
+        print("  ✓ bộ quan điểm sạch")
+    return 1 if errors else 0
+
+
+# ---------------------------------------------------------------- lệnh: src
+
+def cmd_src(args: list[str]) -> int:
+    """Mọi REQ (ANALYSIS §3) và quan điểm test có nguồn; trích nguyên văn có thật trong tài liệu nguồn."""
+    strict, listing = "--strict" in args, "--list" in args
+    errors: list[str] = []
+    warns: list[str] = []
+    manual: list[tuple[str, str, str]] = []
+    rows = analysis_rows()
+    for r in rows:
+        rid = ", ".join(req_ids(r.get("req", "")))
+        src, quote = col(r, "nguồn"), col(r, "trích")
+        state, why = verify_quote(src, quote)
+        if state == "thiếu-nguồn":
+            errors.append(f"{rid}: {why} — REQ phải trỏ về tài liệu/code cụ thể")
+        elif state == "thiếu-trích":
+            (errors if strict else warns).append(f"{rid}: {why} (cột `Trích nguyên văn` ở ANALYSIS §3)")
+        elif state == "lệch":
+            errors.append(f"{rid}: {why} — sửa trích dẫn cho đúng nguyên văn, hoặc đây là điều tài liệu không nói → ANALYSIS §5")
+        elif state == "không-kiểm-máy":
+            manual.append((rid, src, quote))
+    vps, _ = load_vps()
+    for v in vps.values():
+        if vp_state(v) == "bỏ" or v["outside"]:
+            continue
+        state, why = verify_quote(v["Nguồn"], v["Trích"])
+        if state in ("thiếu-nguồn", "thiếu-trích", "lệch"):
+            errors.append(f"{v['id']}: {why}")
+        elif state == "không-kiểm-máy":
+            manual.append((v["id"], v["Nguồn"], v["Trích"]))
+    outside = [v["id"] for v in vps.values() if v["outside"] and vp_state(v) != "bỏ"]
+    print(f"Nguồn: {len(rows)} REQ · {len(vps)} quan điểm · máy không mở được nguồn: {len(manual)}"
+          + (f" · quan điểm ngoài đặc tả: {', '.join(outside)}" if outside else ""))
+    for e in errors:
+        print(f"  ✗ {e}")
+    for w in warns:
+        print(f"  ⚠ {w}")
+    if manual:
+        print(f"  ⚠ {len(manual)} mục nguồn là URL/pdf/docx/file không có — spawn `qa-source-check` để đối chiếu bằng mắt"
+              + ("" if listing else " (thêm --list để in danh sách)"))
+        if listing:
+            print("| Mục | Nguồn | Trích nguyên văn |\n|---|---|---|")
+            for m in manual:
+                print(f"| {m[0]} | {m[1]} | {m[2] or '—'} |")
+    if not errors:
+        print("  ✓ mọi trích dẫn máy mở được đều khớp tài liệu")
+    return 1 if errors else 0
+
+
+# ---------------------------------------------------------------- lệnh: export / import
+
+TC_COLS = ["ID", "Tiêu đề", "REQ", "VP", "Target", "Loại", "Kiểu", "Mức", "Kỹ thuật", "Nguồn", "Regression", "Tag",
+           "Ticket", "Tiền điều kiện", "Dữ liệu", "Ô ma trận", "Bước", "Kỳ vọng", "Bằng chứng cần"]
+TC_FIELDS = TC_COLS[2:16]            # REQ … Ô ma trận: một dòng `- Khoá: giá trị`
+VP_COLS = ["VP", "Tính năng", "REQ", "Hạng mục", "Quan điểm test", "Kiểu", "Kỹ thuật dự kiến", "Mức", "Nguồn",
+           "Trích nguyên văn", "Trạng thái"]
+ALIASES_COMMON = {
+    "requirement": "REQ", "yêu cầu": "REQ", "mức rủi ro": "Mức", "priority": "Mức", "type": "Kiểu",
+    "source": "Nguồn", "status": "Trạng thái",
+}
+ALIASES_TC = {  # tên cột hay gặp trong file Excel của đội → tên trường của kit
+    "mã tc": "ID", "tc": "ID", "tc id": "ID", "test case id": "ID", "id": "ID", "mã": "ID",
+    "tên tc": "Tiêu đề", "title": "Tiêu đề", "tên": "Tiêu đề", "mô tả": "Tiêu đề",
+    "viewpoint": "VP", "quan điểm": "VP", "mã vp": "VP", "vp id": "VP",
+    "precondition": "Tiền điều kiện", "pre-condition": "Tiền điều kiện", "test data": "Dữ liệu",
+    "steps": "Bước", "các bước": "Bước", "bước thực hiện": "Bước", "expected": "Kỳ vọng",
+    "expected result": "Kỳ vọng", "kết quả mong đợi": "Kỳ vọng", "kết quả mong muốn": "Kỳ vọng",
+    "evidence": "Bằng chứng cần",
+}
+ALIASES_VP = {
+    "mã vp": "VP", "vp id": "VP", "viewpoint id": "VP", "id": "VP", "mã": "VP",
+    "category": "Hạng mục", "check item": "Quan điểm test", "nội dung kiểm tra": "Quan điểm test",
+    "quan điểm": "Quan điểm test", "viewpoint": "Quan điểm test", "kỹ thuật": "Kỹ thuật dự kiến",
+    "quote": "Trích nguyên văn", "trích dẫn": "Trích nguyên văn",
+}
+FORMULA = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(c: str) -> str:
+    """Chống chèn công thức khi mở bằng Excel (TC phá-đầu-vào hay chứa `=HYPERLINK(…)`): thêm `'` phía trước."""
+    c = re.sub(r"<br\s*/?>", "\n", c or "")
+    return "'" + c if c.startswith(FORMULA) else c
+
+
+def csv_unsafe(c: str) -> str:
+    return c[1:] if c.startswith("'") and c[1:2] in FORMULA else c
+
+
+def cmd_export(args: list[str]) -> int:
+    kind = args[0].lower() if args else ""
+    if kind not in ("tc", "vp"):
+        print("cách gọi: export <tc|vp> [--out <file.csv>]", file=sys.stderr)
+        return 2
+    out = Path(args[args.index("--out") + 1]) if "--out" in args and args.index("--out") + 1 < len(args) \
+        else QA / "export" / f"{kind}-{dt.date.today().isoformat()}.csv"
+    out = out if out.is_absolute() else ROOT / out
+    rows: list[list[str]] = []
+    if kind == "tc":
+        tcs, _ = load_tcs()
+        num = lambda xs: "\n".join(f"{i}. {x}" for i, x in enumerate(xs, 1))
+        for t in tcs.values():                       # giá trị nguyên văn (kể cả chú thích trong ngoặc), không phải bản đã chuẩn hoá
+            rows.append([t["id"], t["title"]] + [field(t["body"], k) for k in TC_FIELDS]
+                        + [num(t["steps"]), num(t["expects"]), field(t["body"], "Bằng chứng cần")])
+        cols = TC_COLS
+    else:
+        vps, _ = load_vps()
+        rows = [[v["id"], v["feature"], v["REQ"], v["Hạng mục"], v["Quan điểm"], v["Kiểu"], v["Kỹ thuật"], v["Mức"],
+                 v["Nguồn"], v["Trích"], v["Trạng thái"]] for v in vps.values()]
+        cols = VP_COLS
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", encoding="utf-8-sig", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(cols)
+        w.writerows([[csv_safe(c) for c in r] for r in rows])
+    print(f"Đã xuất {len(rows)} {'TC' if kind == 'tc' else 'quan điểm'} → {out}")
+    return 0
+
+
+def read_csv(path: Path, kind: str) -> list[dict]:
+    text = path.read_text(encoding="utf-8-sig", errors="replace")
+    try:
+        dialect = csv.Sniffer().sniff(text[:4096], delimiters=",;\t")
+    except csv.Error:
+        dialect = csv.excel
+    rows = list(csv.reader(io.StringIO(text, newline=""), dialect))
+    if not rows:
+        return []
+    canon = set(TC_COLS if kind == "tc" else VP_COLS)
+    aliases = {**ALIASES_COMMON, **(ALIASES_TC if kind == "tc" else ALIASES_VP)}
+    raw = [unicodedata.normalize("NFC", h).strip() for h in rows[0]]
+    exact = {h for h in raw if h in canon}
+    head = []
+    for h in raw:                                   # tên đúng của kit thắng; bí danh không đè cột đã có tên đúng
+        k = h if h in canon else aliases.get(h.lower(), h)
+        head.append(k if k == h or k not in exact and k not in head else h)
+    return [dict(zip(head, [csv_unsafe(unicodedata.normalize("NFC", c).strip()) for c in r]))
+            for r in rows[1:] if any(c.strip() for c in r)]
+
+
+def one_line(s: str) -> str:
+    return " ".join((s or "").split())
+
+
+def cmd_import(args: list[str]) -> int:
+    if len(args) < 2 or args[0].lower() not in ("tc", "vp") or "--feature" not in args or args.index("--feature") + 1 >= len(args):
+        print("cách gọi: import <tc|vp> <file.csv> --feature <tính-năng>   (Excel: Lưu thành → CSV UTF-8)", file=sys.stderr)
+        return 2
+    kind, src = args[0].lower(), Path(args[1])
+    feat = args[args.index("--feature") + 1]
+    if src.suffix.lower() in (".xlsx", ".xls"):
+        print("✗ chưa đọc thẳng .xlsx — mở bằng Excel/Sheets, Lưu thành → CSV UTF-8, rồi nhập file .csv", file=sys.stderr)
+        return 2
+    src = src if src.is_absolute() else Path.cwd() / src
+    if not src.is_file():
+        print(f"✗ không thấy file {src}", file=sys.stderr)
+        return 2
+    rows = read_csv(src, kind)
+    if not rows:
+        print(f"✗ {src} rỗng hoặc không đọc được", file=sys.stderr)
+        return 1
+    problems: list[str] = []
+    seen: set[str] = set()
+    if kind == "tc":
+        out = QA / "testcases" / f"{feat}.md"
+        have, _ = load_tcs()
+        blocks = []
+        items = lambda s: [re.sub(r"^\s*(?:\d+[.)]|-)\s*", "", x) for x in re.split(r"\r?\n", s or "") if x.strip()]
+        for i, r in enumerate(rows, 2):
+            tid = plain(r.get("ID", "")).upper()
+            if not re.fullmatch(TC_ID, tid):
+                problems.append(f"dòng {i}: mã `{one_line(r.get('ID', ''))}` không đúng khuôn TC-<TÍNH-NĂNG>-<3 chữ số> — không nhập (không tự đặt mã)")
+                continue
+            if tid in have or tid in seen:
+                problems.append(f"dòng {i}: {tid} đã có ({have[tid]['file'] if tid in have else 'trùng trong chính file CSV'}) — bỏ qua")
+                continue
+            seen.add(tid)
+            lines = [f"## {tid} — {one_line(r.get('Tiêu đề', ''))}".rstrip(" —")]
+            lines += [f"- {k}: {one_line(r.get(k))}" for k in TC_FIELDS if k != "Ô ma trận" or r.get(k)]
+            for k in ("Bước", "Kỳ vọng"):
+                lines.append(f"- {k}:")
+                lines += [f"  {n}. {x}" for n, x in enumerate(items(r.get(k, "")), 1)]
+            lines.append(f"- Bằng chứng cần: {one_line(r.get('Bằng chứng cần'))}")
+            blocks.append("\n".join(lines) + "\n")
+        if blocks:
+            existing = read(out)
+            head = existing.rstrip() if existing else (f"# Test case — {feat}\n\n> Nhập từ {src.name} lúc {dt.datetime.now():%Y-%m-%d %H:%M}"
+                                                       " — bản sao định dạng để soát; trường trống giữ trống, không tự điền.")
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(head + "\n\n" + "\n".join(blocks), encoding="utf-8")
+        print(f"Đã nhập {len(blocks)} TC vào {out.relative_to(ROOT)} — chạy `qa_check.py tc {feat}` để soát")
+    else:
+        out = QA / "viewpoints" / f"{feat}.md"
+        have, _ = load_vps()
+        lines = []
+        for i, r in enumerate(rows, 2):
+            vid = plain(r.get("VP", "")).upper()
+            if not re.fullmatch(VP_ID, vid):
+                problems.append(f"dòng {i}: mã `{one_line(r.get('VP', ''))}` không đúng khuôn VP-<TÍNH-NĂNG>-<3 chữ số> — không nhập (không tự đặt mã)")
+                continue
+            if vid in have or vid in seen:
+                problems.append(f"dòng {i}: {vid} đã có ({have[vid]['file'] if vid in have else 'trùng trong chính file CSV'}) — bỏ qua")
+                continue
+            seen.add(vid)
+            lines.append("| " + " | ".join([vid] + [one_line(r.get(k)).replace("|", "\\|") for k in VP_COLS[2:]]) + " |")
+        existing = read(out)
+        if lines and existing:
+            problems.append(f"{out.name} đã có — {len(lines)} dòng mới in dưới, tự chép vào đúng bảng:")
+            problems += lines
+            lines = []
+        elif lines:
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(f"# Quan điểm test — {feat}\n\n> Nhập từ {src.name} lúc {dt.datetime.now():%Y-%m-%d %H:%M} — bản sao "
+                           "định dạng để soát; trường trống giữ trống, không tự điền.\n\n- Duyệt bởi: \n- Ngày duyệt: \n\n"
+                           "| " + " | ".join(["VP"] + VP_COLS[2:]) + " |\n|" + "---|" * (len(VP_COLS) - 1) + "\n"
+                           + "\n".join(lines) + "\n", encoding="utf-8")
+        print(f"Đã nhập {len(lines)} quan điểm vào {out.relative_to(ROOT)} — chạy `qa_check.py vp {feat}` để soát")
+    for p in problems:
+        print(f"  ⚠ {p}")
+    return 0
+
+
+# ---------------------------------------------------------------- lệnh: lessons
+
+LESSON_DONE = ("đã nâng", "bỏ")
+LESSON_HEAD = "| Ngày | Loại | Bài học | Nguồn | Trạng thái | Phạm vi áp |\n|---|---|---|---|---|---|\n"
+
+
+def split_cells(line: str) -> list[str]:
+    return [c.strip() for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+
+
+def lesson_lines(text: str) -> list[tuple[int, dict]]:
+    """(số dòng, bài học) cho từng dòng dữ liệu của bảng bài học — giữ số dòng để cất đúng dòng, không so theo chữ."""
+    out, head, sep = [], None, False
+    lines = text.splitlines()
+    in_comment = False
+    for n, line in enumerate(lines):
+        if "<!--" in line and "-->" not in line:
+            in_comment = True
+        if in_comment:
+            in_comment = "-->" not in line
+            continue
+        s = line.strip()
+        if not s.startswith("|"):
+            head, sep = None, False
+            continue
+        cells = [c.replace("\\|", "|") for c in split_cells(s)]
+        if head is None:
+            names = [plain(c).lower() for c in cells]
+            head = names if names and names[0] == "ngày" else []
+            continue
+        if not sep:
+            sep = all(re.fullmatch(r":?-{2,}:?", c) for c in cells if c)
+            if sep:
+                continue
+        if head:
+            r = {head[i]: (cells[i] if i < len(cells) else "") for i in range(len(head))}
+            if plain(col(r, "bài học")):
+                out.append((n, {"day": plain(col(r, "ngày")), "kind": plain(col(r, "loại")).lower(), "text": col(r, "bài học"),
+                                "src": col(r, "nguồn"), "scope": col(r, "phạm vi"),
+                                "state": no_paren(plain(col(r, "trạng thái"))).lower()}))
+    return out
+
+
+def lesson_rows(text: str | None = None) -> list[dict]:
+    return [r for _, r in lesson_lines(read(QA / "LESSONS.md") if text is None else text)]
+
+
+def fold_key(s: str) -> str:
+    return re.sub(r"[\s_\-–—/]+", " ", unicodedata.normalize("NFC", s or "").casefold()).strip()
+
+
+def lessons_brief(limit: int = 30) -> str:
+    rows = [r for r in lesson_rows() if not r["state"].startswith(LESSON_DONE)]
+    if not rows:
+        return ""
+    rows = sorted(rows, key=lambda r: r["day"], reverse=True)
+    lines = [f"- [{r['kind'] or '?'}{' · ' + r['scope'] if r['scope'] else ''}] {r['text']} ({r['state'] or '?'})" for r in rows[:limit]]
+    more = f"\n… còn {len(rows) - limit} bài học cũ hơn — `qa_check.py lessons` để xem hết" if len(rows) > limit else ""
+    return "\n".join(lines) + more
+
+
+def cmd_lessons(args: list[str]) -> int:
+    path = QA / "LESSONS.md"
+    if not path.is_file():
+        print("chưa có qa/LESSONS.md", file=sys.stderr)
+        return 1
+    if "--brief" in args:
+        b = lessons_brief()
+        print(b or "(chưa có bài học đang hiệu lực)")
+        return 0
+    rows = lesson_rows()
+    if "--for" in args:
+        i = args.index("--for")
+        keys = [fold_key(k) for k in args[i + 1:] if not k.startswith("--")]
+        sel = [r for r in rows if not r["state"].startswith(LESSON_DONE)
+               and (not plain(r["scope"]) or any(k and k in fold_key(r["scope"] + " " + r["text"]) for k in keys))]
+        print(f"# bài học áp cho {' '.join(keys) or '(chung)'}: {len(sel)} — dán vào prompt tester")
+        for r in sel:
+            print(f"- [{r['kind']}] {r['text']} (nguồn: {plain(r['src']) or '—'})")
+        return 0
+    if "--archive" in args:
+        text = read(path)
+        done = [(n, r) for n, r in lesson_lines(text) if r["state"].startswith(LESSON_DONE)]
+        if not done:
+            print("không có dòng `đã nâng`/`bỏ` để cất")
+            return 0
+        arch = QA / "LESSONS-archive.md"
+        atext = read(arch) or ("# LESSONS — lưu trữ\n\n> Dòng `đã nâng`/`bỏ` cất từ LESSONS.md bằng `qa_check.py lessons --archive`. "
+                               "Không nạp đầu phiên; tra khi cần.\n\n" + LESSON_HEAD)
+        esc = lambda s: (s or "").replace("|", "\\|")
+        atext = atext.rstrip("\n") + "\n" + "".join(
+            f"| {r['day']} | {r['kind']} | {esc(r['text'])} | {esc(r['src'])} | {r['state']} | {esc(r['scope'])} |\n" for _, r in done)
+        drop = {n for n, _ in done}
+        kept = [l for n, l in enumerate(text.splitlines(keepends=True)) if n not in drop]
+        arch.write_text(atext, encoding="utf-8")
+        path.write_text("".join(kept), encoding="utf-8")
+        print(f"Đã cất {len(done)} dòng sang {arch.relative_to(ROOT)}")
+        return 0
+    by: dict[str, int] = {}
+    for r in rows:
+        by[r["state"] or "?"] = by.get(r["state"] or "?", 0) + 1
+    print(f"Bài học: {len(rows)} ({', '.join(f'{k} {v}' for k, v in sorted(by.items())) or '—'})")
+    seen: dict[str, str] = {}
+    for r in rows:
+        k = norm_text(r["text"])
+        if k in seen:
+            print(f"  ⚠ trùng: \"{r['text'][:60]}\" ({seen[k]} và {r['day']}) — gộp thành một dòng")
+        seen[k] = r["day"]
+    active = [r for r in rows if not r["state"].startswith(LESSON_DONE)]
+    if len(active) > 40:
+        print(f"  ⚠ {len(active)} bài học đang hiệu lực — gộp bài na ná, đánh `bỏ` bài hết hiệu lực, rồi `lessons --archive`")
+    for r in active:
+        print(f"  - {r['day']} [{r['kind']}] {r['text'][:100]} ({r['state']})")
+    return 0
 
 # ---------------------------------------------------------------- lệnh: status
 
@@ -1065,6 +1736,17 @@ def cmd_status() -> int:
     print(f"Scope: {scope_status() or '(chưa có)'} · {len(scope_reqs())} REQ trong phạm vi · "
           f"tiêu chí đạt: {'đã có' if crit else ('KHÔNG ĐỌC ĐƯỢC' if bad else 'CHƯA CHỐT')} · REQ chưa có mức: "
           f"{len([r for r in scope_reqs() if r not in scope_levels()])}")
+    vps, _ = load_vps()
+    if vps:
+        vs: dict[str, int] = {}
+        for v in vps.values():
+            vs[vp_state(v) or "?"] = vs.get(vp_state(v) or "?", 0) + 1
+        covered = {r for v in vps.values() if vp_state(v) != "bỏ" for r in v["reqs"]}
+        no_vp = [r for r in (scope_reqs() or analysis_reqs()) if r not in covered]
+        print(f"Quan điểm test: {len(vps)} ({', '.join(f'{k} {n}' for k, n in sorted(vs.items()))})"
+              + (f" · REQ chưa có quan điểm: {len(no_vp)}" if no_vp else ""))
+    else:
+        print("Quan điểm test: chưa có (qa/viewpoints/ — /qa-viewpoint)")
     kinds: dict[str, int] = {}
     for t in tcs.values():
         kinds[t["Kiểu"].lower() or "?"] = kinds.get(t["Kiểu"].lower() or "?", 0) + 1
@@ -1109,6 +1791,16 @@ def main(argv: list[str]) -> int:
         return cmd_release(args)
     if cmd == "trace":
         return cmd_trace(args)
+    if cmd == "vp":
+        return cmd_vp(args)
+    if cmd == "src":
+        return cmd_src(args)
+    if cmd == "export":
+        return cmd_export(args)
+    if cmd == "import":
+        return cmd_import(args)
+    if cmd == "lessons":
+        return cmd_lessons(args)
     print(f"lệnh lạ `{cmd}`\n{__doc__}", file=sys.stderr)
     return 2
 

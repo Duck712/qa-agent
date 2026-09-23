@@ -1,5 +1,5 @@
 ---
-description: Lập kế hoạch / chốt scope test — phạm vi, rủi ro, loại test theo target, môi trường, tiêu chí đạt
+description: Lập kế hoạch / chốt scope test — phạm vi, rủi ro, loại test theo target, môi trường, tiêu chí đạt, vào/ra, lịch, bàn giao
 argument-hint: [tên đợt, vd "sprint 12" | "release 2.3"]
 ---
 
@@ -9,13 +9,17 @@ argument-hint: [tên đợt, vd "sprint 12" | "release 2.3"]
 1. Nạp skill `qa`, `qa-targets` (bảng loại test §2, an toàn §3), `qa-knowledge/analysis-review.md` (§7 rủi ro,
    §8 ảnh hưởng), `qa-knowledge/techniques-judgement.md §4`.
    Đọc `qa/LESSONS.md` — bài học cũ có ảnh hưởng phạm vi/rủi ro thì nêu ra.
-2. Đọc `qa/ANALYSIS.md` (chưa có → hỏi người dùng: phân tích tài liệu trước, hay lập scope từ mô tả của họ).
+2. Đọc `qa/ANALYSIS.md` (chưa có → hỏi người dùng: phân tích tài liệu trước, hay lập scope từ mô tả của họ) và
+   `qa/viewpoints/` nếu đã có — phạm vi REQ khớp bộ quan điểm; REQ trong phạm vi chưa có quan điểm → ghi vào việc cần làm.
 3. Soạn SCOPE (khuôn `qa/SCOPE.md`): §2 REQ trong phạm vi + mức R1/R2/R3 (từ bảng rủi ro ANALYSIS §6 — người dùng
    xác nhận mức — chưa xác nhận thì để trống cột Mức) + loại test (gồm cả phi chức năng từ ANALYSIS §7) · regression (từ phân tích ảnh hưởng ANALYSIS §8) ·
    cấu hình tương thích (bộ pairwise `python3 .claude/qa-scripts/pairwise.py` nếu nhiều trình duyệt/OS/thiết bị/vai) · §3 ngoài phạm vi có
    lý do · §4 loại test theo từng target · §5 môi trường, bản, tài khoản, cách tạo/dọn dữ liệu · §6 tiêu chí đạt
    (để trống cho tới khi người dùng chốt — chỉ **đề xuất** con số trong câu hỏi) · §7 quyền đặc biệt (bảo mật, tải, chạm
-   DB staging — mặc định `không`; test AI: đề xuất N lần chạy và ngưỡng đạt, cả chi phí gọi model, rồi hỏi).
+   DB staging — mặc định `không`; test AI: đề xuất N lần chạy và ngưỡng đạt, cả chi phí gọi model, rồi hỏi) ·
+   §9 tiêu chí vào/ra · §10 lịch & người · §11 sản phẩm bàn giao · §12 giả định/phụ thuộc/rủi ro dự án — chỉ ghi điều
+   người dùng cho biết hoặc đã quan sát; chỗ chưa biết để trống và đưa vào câu hỏi.
+   Tự review bằng `qa-knowledge/scope-review.md` §1 trước khi trình.
 4. **Hỏi người dùng**, gom một lượt: điểm mơ hồ còn mở ở `ANALYSIS §5`, phạm vi đề xuất, mức rủi ro từng REQ, tiêu
    chí đạt, tỉ lệ bốc mẫu soi bằng chứng (SCOPE §6), môi trường/tài khoản/cách tạo-dọn dữ liệu còn thiếu, quyền bảo mật/tải/DB. Mỗi câu kèm đề xuất + rủi ro.
    Ghi trả lời đúng một nơi: yêu cầu → cột `Trả lời` ANALYSIS §5 (gỡ `(chờ trả lời #n)` ở REQ/TC liên quan); quyết định

@@ -373,7 +373,7 @@ def main() -> int:
     bom.unlink(); (proj / "qa/testcases/h3.md").unlink()
     an = proj / "qa/ANALYSIS.md"
     an0 = an.read_text()
-    an.write_text(an0.replace("| | | | | |\n\n## 4.", "| REQ-DK-1 | Đăng ký | từ code: email bắt buộc (chờ trả lời #9) | web | app.js:1 |\n\n## 4.", 1))
+    an.write_text(an0.replace("| | | | | | |\n\n## 4.", "| REQ-DK-1 | Đăng ký | từ code: email bắt buộc (chờ trả lời #9) | web | app.js:1 | |\n\n## 4.", 1))
     r = qa(proj, "new-run", "full", "TC-DK-001")
     check(r.returncode == 1 and "chờ trả lời" in r.stderr, "TC dựa trên REQ còn chờ xác nhận không được đưa vào run", r.stdout + r.stderr)
     an.write_text(an0)
@@ -740,6 +740,175 @@ def main() -> int:
     check("Bash(psql:*)" not in st["permissions"]["ask"] and len(ev_h) == 1 and ev_h[0].get("timeout") == 30 and not ro_h
           and "đã được chỉnh tay" in r.stdout and "đã gỡ hook" in r.stdout,
           "--update không thêm lại quyền/hook người dùng đã xoá, giữ hook đã chỉnh tay", r.stdout + json.dumps(st))
+
+    print("\n[15] quan điểm test · bám nguồn · xuất/nhập CSV · bài học · hook đầu phiên/sửa lưng")
+    vp = tmp / "vp-proj"
+    (vp / "docs").mkdir(parents=True)
+    (vp / "docs/prd.md").write_text("# PRD\n\n## 2. Đăng ký\n\nMật khẩu phải có **ít nhất 8 ký tự**.\nEmail đã dùng thì hệ thống báo \u201cEmail đã tồn tại\u201d.\n")
+    r = run([sys.executable, str(REPO / "install.py"), str(vp)], tmp)
+    check(r.returncode == 0, "cài vào dự án thứ hai", r.stderr + r.stdout)
+    st = json.loads((vp / ".claude/settings.json").read_text())
+    check("hook_session.py" in json.dumps(st["hooks"].get("SessionStart")) and "hook_prompt.py" in json.dumps(st["hooks"].get("UserPromptSubmit")),
+          "settings.json có hook SessionStart + UserPromptSubmit", json.dumps(st["hooks"]))
+    run([sys.executable, str(REPO / "install.py"), str(vp), "--update"], tmp)
+    st = json.loads((vp / ".claude/settings.json").read_text())
+    n = sum(1 for ev in st["hooks"].values() for e in ev for h in e["hooks"] if "qa-scripts/" in json.dumps(h))
+    check(n == 4, "--update không nhân đôi hook (4 hook qa)", str(n))
+    check((vp / "qa/viewpoints/_TEMPLATE.md").exists(), "có khuôn qa/viewpoints/_TEMPLATE.md")
+    q = lambda *a: run([sys.executable, ".claude/qa-scripts/qa_check.py", *a], vp, {"CLAUDE_PROJECT_DIR": str(vp)})
+    an = vp / "qa/ANALYSIS.md"
+    base_an = an.read_text()
+    row_ok = "| REQ-DK-1 | Đăng ký | Mật khẩu ≥ 8 ký tự | web | docs/prd.md §2 | Mật khẩu phải có ít nhất 8 ký tự |"
+    row_bad = "| REQ-DK-2 | Đăng ký | Email trùng bị từ chối | web | docs/prd.md §2 | Email trùng sẽ bị khoá tài khoản |"
+    row_url = "| REQ-DK-3 | Đăng ký | Có captcha | web | https://wiki.example.com/prd | Có captcha |"
+    row_none = "| REQ-DK-4 | Đăng ký | Có OTP | web | | |"
+    an.write_text(base_an.replace("| | | | | | |", "\n".join([row_ok, row_bad, row_url, row_none]), 1))
+    r = q("src", "--list")
+    check(r.returncode == 1 and "REQ-DK-2: không tìm thấy" in r.stdout and "REQ-DK-4: cột Nguồn trống" in r.stdout
+          and "REQ-DK-1" not in r.stdout.split("✗")[1:].__str__(), "src: bắt trích dẫn sai + nguồn trống, trích đúng (bỏ ** markdown) thì qua", r.stdout)
+    check("wiki.example.com" in r.stdout and "qa-source-check" in r.stdout, "src --list: nguồn URL máy không mở được → giao qa-source-check", r.stdout)
+    an.write_text(base_an.replace("| | | | | | |", row_ok + "\n| REQ-DK-2 | Đăng ký | Email trùng | web | docs/prd.md §2 | Email đã dùng thì hệ thống báo \"Email đã tồn tại\" |", 1))
+    check(q("src").returncode == 0, "src: nháy cong trong tài liệu khớp nháy thẳng trong trích dẫn", q("src").stdout)
+    vpf = vp / "qa/viewpoints/dang-ky.md"
+    head = "- Duyệt bởi: \n- Ngày duyệt: \n\n| VP | REQ | Hạng mục | Quan điểm test | Kiểu | Kỹ thuật dự kiến | Mức | Nguồn | Trích nguyên văn | Trạng thái |\n|---|---|---|---|---|---|---|---|---|---|\n"
+    v1 = "| VP-DK-001 | REQ-DK-1 | Mật khẩu | Mật khẩu 8 ký tự được chấp nhận | normal | giá trị biên | R1 | docs/prd.md §2 | Mật khẩu phải có ít nhất 8 ký tự | {st} |\n"
+    v2 = "| VP-DK-002 | REQ-DK-1 | Mật khẩu | Mật khẩu 7 ký tự bị từ chối | abnormal | giá trị biên | R1 | docs/prd.md §2 | Mật khẩu phải có … 8 ký tự | {st} |\n"
+    v3 = "| VP-DK-003 | REQ-DK-2 | Email | Email trùng bị báo lỗi | abnormal | phân vùng | R2 | docs/prd.md §2 | Email trùng thì khoá | nháp |\n"
+    v4 = "| VP-DK-004 | REQ-DK-2 | Email | Email có khoảng trắng đầu/cuối được cắt | normal | checklist | R2 | ngoài đặc tả — form-input 1.4 | | {o} |\n"
+    vpf.write_text("# Quan điểm test — dang-ky\n\n" + head + v1.format(st="nháp") + v2.format(st="nháp") + v3 + v4.format(o="duyệt"))
+    r = q("vp")
+    check(r.returncode == 1 and "VP-DK-003: không tìm thấy" in r.stdout, "vp: trích dẫn không có trong đặc tả → lỗi", r.stdout)
+    check("VP-DK-004: quan điểm ngoài đặc tả đã `duyệt` nhưng không trỏ dòng DECISIONS" in r.stdout, "vp: ngoài đặc tả tự `duyệt` không có DECISIONS → lỗi", r.stdout)
+    check("VP-DK-001" not in r.stdout and "VP-DK-002:" not in r.stdout, "vp: trích có `…` bỏ đoạn giữa vẫn khớp", r.stdout)
+    vpf.write_text("# Quan điểm test — dang-ky\n\n" + head.replace("Duyệt bởi: ", "Duyệt bởi: QC") + v1.format(st="duyệt") + v2.format(st="nháp")
+                   + v3.replace("Email trùng thì khoá", "Email đã dùng thì hệ thống báo") + v4.format(o="duyệt (DECISIONS #2)"))
+    r = q("vp")
+    check(r.returncode == 0, "vp: bộ quan điểm sạch khi trích đúng và ngoài đặc tả có DECISIONS", r.stdout)
+    tcd = vp / "qa/testcases"
+    tc_t = "## TC-DK-00{n} — {t}\n- REQ: REQ-DK-1\n{vp}- Target: web\n- Loại: biên\n- Kiểu: {k}\n- Mức: R1\n- Kỹ thuật: giá trị biên\n- Nguồn: {src}\n- Bước:\n  1. Nhập mật khẩu\n- Kỳ vọng:\n  1. Thấy thông báo \"x\"\n- Bằng chứng cần: ảnh\n\n"
+    (tcd / "dang-ky.md").write_text(tc_t.format(n=1, t="8 ký tự", vp="- VP: VP-DK-001\n", k="normal", src="REQ-DK-1")
+                                    + tc_t.format(n=2, t="7 ký tự", vp="- VP: VP-DK-002\n", k="abnormal", src="REQ-DK-1")
+                                    + tc_t.format(n=3, t="không VP", vp="", k="normal", src="REQ-DK-1")
+                                    + tc_t.format(n=4, t="tái hiện bug", vp="", k="abnormal", src="BUG-001"))
+    r = q("tc")
+    check("TC-DK-002: VP-DK-002 chưa `duyệt`" in r.stdout, "tc: TC trỏ quan điểm chưa duyệt → lỗi", r.stdout)
+    check("TC-DK-003: chưa trỏ quan điểm" in r.stdout and "TC-DK-004: chưa trỏ" not in r.stdout,
+          "tc: TC không có VP bị nhắc, TC tái hiện bug được miễn", r.stdout)
+    check("TC-DK-003: chưa trỏ quan điểm" in q("tc", "--strict").stdout.split("⚠")[0], "tc --strict: thiếu VP là lỗi", q("tc", "--strict").stdout)
+    r = q("select", "all")
+    check("TC-DK-002" not in r.stdout and "TC-DK-001" in r.stdout, "select: bỏ TC trỏ quan điểm chưa duyệt khỏi run", r.stdout + r.stderr)
+    vp_mis = vpf.read_text() + "| VP-DK-005 | REQ-DK-1 | Mật khẩu | Gọi thẳng API bỏ qua kiểm độ dài | abnormal | ngoài đặc tả — bug-patterns #1 | R1 | docs/prd.md §2 | Mật khẩu phải có ít nhất 8 ký tự | nháp |\n"
+    vpf.write_text(vp_mis)
+    r = q("vp")
+    check("VP-DK-005: có chữ `ngoài đặc tả` nhưng không ở cột Nguồn" in r.stdout, "vp: `ngoài đặc tả` ghi nhầm cột vẫn bị bắt (lỗi thấy khi chạy thật)", r.stdout)
+    vpf.write_text(vp_mis.rsplit("| VP-DK-005", 1)[0])
+    r = q("trace")
+    check("Quan điểm (duyệt/tổng)" in r.stdout and "| VP-DK-001 | REQ-DK-1 | normal | duyệt | đặc tả | TC-DK-001 |" in r.stdout,
+          "trace: REQ → quan điểm → TC", r.stdout)
+    r = q("export", "tc", "--out", "qa/export/tc.csv")
+    raw = (vp / "qa/export/tc.csv").read_bytes()
+    check(r.returncode == 0 and raw.startswith(b"\xef\xbb\xbf") and "VP-DK-001" in raw.decode("utf-8-sig"), "export tc: CSV UTF-8 BOM cho Excel", r.stdout)
+    csv_in = vp / "qa/export/nhap.csv"
+    csv_in.write_text("Mã TC;Tên TC;REQ;VP;Target;Kiểu;Steps;Expected result\n"
+                      "TC-DN-001;Đăng nhập đúng;REQ-DK-1;VP-DK-001;web;normal;\"1. Mở trang\n2. Bấm đăng nhập\";\"1. Thấy form\n2. Vào trang chủ\"\n"
+                      "DN1;Mã sai;REQ-DK-1;;web;normal;x;y\n", encoding="utf-8-sig")
+    r = q("import", "tc", str(csv_in), "--feature", "dang-nhap")
+    body = (tcd / "dang-nhap.md").read_text() if (tcd / "dang-nhap.md").exists() else ""
+    check("## TC-DN-001 — Đăng nhập đúng" in body and "  2. Bấm đăng nhập" in body and "  2. Vào trang chủ" in body
+          and "- Loại: \n" in body, "import tc: CSV `;` + tên cột kiểu Excel → khuôn TC, trường trống giữ trống", r.stdout + body)
+    check("DN1" in r.stdout and "không tự đặt mã" in r.stdout and "TC-DN-002" not in body, "import tc: mã sai khuôn bị báo, không tự đặt mã", r.stdout)
+    r = q("export", "vp", "--out", "qa/export/vp.csv")
+    check(r.returncode == 0 and "Trích nguyên văn" in (vp / "qa/export/vp.csv").read_text(encoding="utf-8-sig"), "export vp", r.stdout)
+    les = vp / "qa/LESSONS.md"
+    les.write_text(les.read_text().rstrip("\n") + "\n| 2026-09-01 | sự cố | Staging hết phiên sau 30 phút — đăng nhập lại trước mỗi nhóm | run 1 | mới | web |\n"
+                   "| 2026-09-02 | cách làm | Không tự đặt ngưỡng hiệu năng | lời người dùng | đã áp | |\n"
+                   "| 2026-09-03 | lỗi | Lỗi cũ đã đưa vào kho chung | BUG-001 | đã nâng | api |\n"
+                   "| 2026-09-04 | lỗi | Chỉ đúng cho mobile | BUG-002 | mới | mobile |\n")
+    r = q("lessons", "--for", "web")
+    check("Staging hết phiên" in r.stdout and "Không tự đặt ngưỡng" in r.stdout and "mobile" not in r.stdout and "kho chung" not in r.stdout,
+          "lessons --for: lọc theo phạm vi áp (trống = chung), bỏ dòng đã nâng", r.stdout)
+    hs = run([sys.executable, str(vp / ".claude/qa-scripts/hook_session.py")], vp, {"CLAUDE_PROJECT_DIR": str(vp)}, "{}")
+    check(hs.returncode == 0 and "Staging hết phiên" in hs.stdout and "trích NGUYÊN VĂN" in hs.stdout and "kho chung" not in hs.stdout,
+          "hook_session: nạp luật + bài học đang hiệu lực đầu phiên", hs.stdout + hs.stderr)
+    hp = lambda text: run([sys.executable, str(vp / ".claude/qa-scripts/hook_prompt.py")], vp, {"CLAUDE_PROJECT_DIR": str(vp)},
+                          json.dumps({"prompt": text}))
+    check("LESSONS.md" in hp("Lần sau đừng tự đoán kỳ vọng nhé").stdout, "hook_prompt: câu sửa lưng → nhắc ghi bài học")
+    check(hp("chạy smoke trên staging giúp").stdout.strip() == "", "hook_prompt: tin nhắn thường → im lặng")
+    r = q("lessons", "--archive")
+    check("Đã cất 1" in r.stdout and "kho chung" not in les.read_text() and "kho chung" in (vp / "qa/LESSONS-archive.md").read_text(),
+          "lessons --archive: cất dòng đã nâng sang LESSONS-archive.md", r.stdout)
+    hs2 = run([sys.executable, str(tmp / "inst5/.claude/qa-scripts/hook_session.py")], tmp, {"CLAUDE_PROJECT_DIR": str(tmp / "khong-co")}, "{}")
+    check(hs2.returncode == 0, "hook_session: không có qa/ → không làm hỏng phiên", hs2.stderr)
+    stx = json.loads((vp / ".claude/settings.json").read_text())
+    stx["hooks"]["UserPromptSubmit"] = []
+    (vp / ".claude/settings.json").write_text(json.dumps(stx))
+    r = run([sys.executable, str(REPO / "install.py"), str(vp), "--update"], tmp)
+    stx = json.loads((vp / ".claude/settings.json").read_text())
+    check("hook_prompt" not in json.dumps(stx["hooks"]) and "đã gỡ hook hook_prompt" in r.stdout,
+          "--update không thêm lại hook_prompt người dùng đã gỡ", r.stdout + json.dumps(stx["hooks"]))
+
+    print("\n[16] review lần 9: trích dẫn, lessons --archive, nhập/xuất CSV, hook của người dùng")
+    (vp / "docs/api.md").write_text("Trường `user_id` bắt buộc. Hệ số 2\\*3 = 6.\nXem [chính sách bảo mật](http://x) để biết thêm.\nA là đầu. B là giữa. C là cuối.\n")
+    (vp / "docs/Đặc tả v2.md").write_text("Tên hiển thị tối đa 50 ký tự.\n")
+    vq = lambda src, qt: run([sys.executable, "-c", "import sys; sys.path.insert(0, '.claude/qa-scripts'); import qa_check as q; "
+                              f"print(q.verify_quote({src!r}, {qt!r})[0])"], vp, {"CLAUDE_PROJECT_DIR": str(vp)}).stdout.strip()
+    check(vq("docs/api.md §1", "Trường user_id bắt buộc") == "khớp" and vq("docs/api.md", "Hệ số 2*3 = 6") == "khớp",
+          "trích có `_`/`*` (tên trường snake_case) khớp tài liệu", vq("docs/api.md", "Trường user_id bắt buộc"))
+    check(vq("docs/api.md", "Xem chính sách bảo mật để biết thêm") == "khớp", "link markdown trong tài liệu không làm lệch trích dẫn")
+    check(vq("docs/api.md", "C là cuối … A là đầu") == "lệch" and vq("docs/api.md", "A là đầu … C là cuối") == "khớp",
+          "đoạn quanh `…` phải đúng thứ tự")
+    check(vq("docs/api.md", "A") == "thiếu-trích", "trích quá ngắn (1 chữ) không được tính là khớp")
+    check(vq("`docs/Đặc tả v2.md` §1", "Tên hiển thị tối đa 50 ký tự") == "khớp" and vq("docs/Đặc tả v2.md §1", "Tên hiển thị tối đa 60 ký tự") == "lệch",
+          "đường dẫn nguồn có dấu cách vẫn được mở và đối chiếu")
+    vpt = vpf.read_text()
+    vpf.write_text(vpt.replace("| VP-DK-002 | REQ-DK-1 | Mật khẩu | Mật khẩu 7 ký tự bị từ chối | abnormal | giá trị biên | R1 | docs/prd.md §2 | Mật khẩu phải có … 8 ký tự | nháp |",
+                               "| VP-DK-002 | REQ-DK-1 | Mật khẩu | Mật khẩu 7 ký tự bị từ chối | abnormal | giá trị biên | R1 | docs/prd.md §2 | Mật khẩu phải có … 8 ký tự | duyệt lại |"))
+    check("VP-DK-002 chưa `duyệt`" in q("tc").stdout, "trạng thái `duyệt lại` không bị coi là đã duyệt", q("tc").stdout)
+    vpf.write_text(vpt)
+    tcx = (tcd / "dang-ky.md").read_text()
+    (tcd / "dang-ky.md").write_text(tcx.replace("- Nguồn: BUG-001", "- VP: VP-LOGINX\n- Nguồn: BUG-001"))
+    check("TC-DK-004: trường VP `VP-LOGINX` không đọc được" in q("tc").stdout, "VP gõ sai vẫn bị báo cả ở TC tái hiện bug", q("tc").stdout)
+    (tcd / "dang-ky.md").write_text(tcx)
+    les.write_text(les.read_text().rstrip("\n") + "\n| 2026-09-05 | cách làm | Luôn chụp URL bar | x | bỏ | |\n"
+                   "| 2026-09-20 | cách làm | Luôn chụp URL bar | y | mới | web |\n| 2026-09-06 | lỗi | Ô có \\| gạch | z | bỏ | |\n")
+    r = q("lessons", "--archive")
+    lt, at = les.read_text(), (vp / "qa/LESSONS-archive.md").read_text()
+    check("Đã cất 2" in r.stdout and "| 2026-09-20 | cách làm | Luôn chụp URL bar | y | mới | web |" in lt and at.count("Luôn chụp URL bar") == 1
+          and "Ô có \\| gạch" in at and "Ô có" not in lt, "lessons --archive: cất đúng dòng (không cuốn theo dòng `mới` trùng chữ, xử lý `\\|`)", r.stdout + lt + at)
+    check("Staging hết phiên" in q("lessons", "--for", "Web").stdout, "lessons --for không phân biệt hoa thường")
+    (vp / "qa/testcases/pha.md").write_text("## TC-PHA-001 — Công thức trong dữ liệu\n- REQ: REQ-DK-1\n- VP: VP-DK-001\n- Target: web\n- Loại: phá-đầu-vào\n"
+                                             "- Kiểu: abnormal (payload)\n- Mức: R1\n- Nguồn: REQ-DK-1\n- Dữ liệu: =HYPERLINK(\"http://evil\",\"x\")\n"
+                                             "- Ô ma trận: khách × sửa = ✗\n- Bước:\n  1. Nhập\n- Kỳ vọng:\n  1. Hiện như chữ thường\n- Bằng chứng cần: ảnh\n")
+    q("export", "tc", "--out", "qa/export/tc2.csv")
+    ex = (vp / "qa/export/tc2.csv").read_text(encoding="utf-8-sig")
+    check("'=HYPERLINK" in ex and "abnormal (payload)" in ex and "khách × sửa = ✗" in ex,
+          "export: chống chèn công thức Excel, giữ chú thích và Ô ma trận", ex[-400:])
+    (vp / "qa/testcases/pha.md").unlink()
+    c2 = vp / "qa/export/nhap2.csv"
+    c2.write_text("Mã VP,REQ,Quan điểm,Kiểu,Nguồn,Trích nguyên văn,Trạng thái\nVP-NK-001,REQ-DK-1,Mật khẩu rỗng bị từ chối,abnormal,docs/prd.md,x y z,nháp\n", encoding="utf-8")
+    r = q("import", "vp", str(c2), "--feature", "nhap-khau")
+    check("Đã nhập 1" in r.stdout and "Mật khẩu rỗng bị từ chối" in (vp / "qa/viewpoints/nhap-khau.md").read_text(),
+          "import vp: cột `Quan điểm` không đè cột `Mã VP`", r.stdout)
+    c3 = vp / "qa/export/nhap3.csv"
+    c3.write_text('ID,Tiêu đề,REQ\nTC-DUP-001,"dòng1\ndòng2",REQ-DK-1\nTC-DUP-001,lặp,REQ-DK-1\n', encoding="utf-8")
+    r = q("import", "tc", str(c3), "--feature", "dup")
+    body = (tcd / "dup.md").read_text()
+    check("## TC-DUP-001 — dòng1 dòng2" in body and body.count("## TC-DUP-001") == 1 and "trùng trong chính file CSV" in r.stdout,
+          "import tc: tiêu đề nhiều dòng gộp một dòng, mã trùng trong CSV bị báo", r.stdout + body)
+    r = q("import", "tc", "khong-co.csv", "--feature", "x")
+    check(r.returncode == 2 and "Traceback" not in r.stderr, "import file không có → báo lỗi gọn, không traceback", r.stderr)
+    stx = json.loads((vp / ".claude/settings.json").read_text())
+    stx["hooks"].setdefault("SessionStart", []).append({"hooks": [{"type": "command", "command": "python3 .claude/qa-scripts/qa_check.py status"}]})
+    (vp / ".claude/settings.json").write_text(json.dumps(stx))
+    run([sys.executable, str(REPO / "install.py"), str(vp), "--update"], tmp)
+    run([sys.executable, str(REPO / "install.py"), str(vp), "--update", "--settings-local"], tmp)
+    stl = json.loads((vp / ".claude/settings.json").read_text())
+    check("qa_check.py status" in json.dumps(stl) and "hook_session" not in json.dumps(stl),
+          "--update/chuyển settings không gỡ hook người dùng tự thêm trỏ vào qa-scripts", json.dumps(stl))
+    old_an = vp / "qa/ANALYSIS.md"
+    old_an.write_text(old_an.read_text().replace("Trích nguyên văn", "Trích"))
+    r = run([sys.executable, str(REPO / "install.py"), str(vp), "--update"], tmp)
+    check("chưa có cột `Trích nguyên văn`" in r.stdout, "--update báo khuôn workspace cũ cần gộp tay", r.stdout)
 
     print(f"\n{'=' * 50}\n  {OK} ✓ · {BAD} ✗")
     if keep:

@@ -5,7 +5,7 @@ description: >
   tính năng AI/LLM, thư viện/SDK). Danh mục việc QA dùng độc lập hoặc ghép thành quy trình: phân tích
   tài liệu, làm rõ yêu cầu, lập kế hoạch/chốt scope, thiết kế và review test case, chuẩn bị dữ liệu,
   chạy test theo TC, smoke, regression, test lại bug, test khám phá, viết test tự động, kiểm bảo mật/
-  hiệu năng/a11y, ghi bug, báo cáo phát hành, rút bài học. Nạp skill này khi người dùng nhờ bất kỳ việc
+  hiệu năng/a11y, ghi bug, báo cáo phát hành, rút bài học; tạo và review quan điểm test (test viewpoint). Nạp skill này khi người dùng nhờ bất kỳ việc
   kiểm thử nào, khi cần biết việc đó làm thế nào và để lại gì trong `qa/`, hoặc khi cần nhớ luật bằng chứng / an toàn.
 ---
 
@@ -26,8 +26,14 @@ Bốn thứ **luôn đúng** dù làm việc gì: không bịa · chưa rõ thì
    vào `ANALYSIS §5` và **hỏi** hành vi nào là đúng; không tự coi code là yêu cầu (làm vậy thì bug thành "đúng").
    Nguồn chỉ **đọc** — không sửa trừ khi người dùng nhờ rõ ràng (vd "viết test tự động vào repo"). Đường dẫn ở
    `QA.md §Nguồn chỉ đọc` được hook `guard_readonly` chặn ghi.
-2. **Không bịa.** Kết luận, TC, bug đều trỏ về nguồn: tài liệu (REQ-…), câu trả lời của người dùng, mục
-   checklist `qa-knowledge`, hoặc điều tự quan sát được. Tài liệu không nói → ghi là điểm mơ hồ, hỏi.
+2. **Không bịa — tài liệu test bám đặc tả.** Kết luận, quan điểm test, TC, bug đều trỏ về nguồn: tài liệu (REQ-…),
+   câu trả lời của người dùng, hoặc điều tự quan sát được. Tài liệu không nói → ghi là điểm mơ hồ, hỏi.
+   - Mỗi REQ (`ANALYSIS §3`) và mỗi quan điểm test (`qa/viewpoints/`) ghi **Nguồn** (file + mục) và **Trích nguyên văn**
+     câu gốc; `qa_check.py src` đối chiếu trích dẫn với file cục bộ, nguồn URL/pdf/docx do `qa-source-check` đối chiếu.
+     Viết lại cho dễ đọc thì được, nhưng không nói **nhiều hơn** câu trích — phần thêm là điểm hỏi.
+   - TC đi ra từ quan điểm **đã duyệt** (`VP:`); kỳ vọng không vượt quá câu trích + câu trả lời đã chốt.
+   - Gợi ý từ checklist `qa-knowledge`, bug-patterns, yêu cầu ngầm, kinh nghiệm → chỉ là **đề xuất ngoài đặc tả**: ghi rõ
+     `Nguồn: ngoài đặc tả — …`, trình riêng, người dùng duyệt mới dùng. Không bao giờ trình như thể đặc tả yêu cầu.
 3. **Chưa rõ ở đâu thì hỏi ở đó — không suy diễn, không tự ý làm.** Gặp bất kỳ điều gì sau → dừng việc đang
    làm dở, hỏi người dùng, chờ trả lời:
    - tài liệu mơ hồ / thiếu / mâu thuẫn, yêu cầu hiểu được nhiều cách;
@@ -78,9 +84,10 @@ Bốn thứ **luôn đúng** dù làm việc gì: không bịa · chưa rõ thì
 |---|---|---|---|---|
 | 1 | **Phân tích tài liệu** | "đọc PRD này", "phân tích yêu cầu" | Đọc nguồn → yêu cầu test được (REQ-…), vai, luồng, trạng thái, rủi ro | `ANALYSIS.md` |
 | 2 | **Review tài liệu / làm rõ yêu cầu** | "review PRD này", "tài liệu có chỗ nào chưa rõ" | Kỹ thuật tĩnh `qa-knowledge/analysis-review.md`: tiêu chí chất lượng, từ yếu, đọc theo góc nhìn, yêu cầu ngầm ISO 25010, example mapping, mô hình hoá | `ANALYSIS.md §5–§7` |
+| 2a | **Quan điểm test** | "tạo quan điểm test / test viewpoint", "cần kiểm những gì" | `/qa-viewpoint`: mỗi REQ → các điều cần kiểm, mỗi dòng trích nguyên văn đặc tả (`qa-testcase-design/ky-thuat/quan-diem.md`); ngoài đặc tả tách riêng → người dùng duyệt | `viewpoints/<tính-năng>.md` |
 | 3 | **Kế hoạch / chốt scope** | "lên test plan", "sprint này test gì" | Trong/ngoài phạm vi, mức rủi ro, loại test theo target, môi trường, tiêu chí đạt → người dùng chốt | `SCOPE.md` |
-| 4 | **Thiết kế test case** | "viết TC cho tính năng X" | Chọn kỹ thuật theo `qa-testcase-design` §1 (phân vùng, giá trị biên, bảng quyết định, chuyển trạng thái, use case, pairwise, hộp trắng, metamorphic/property/fuzz, error guessing/checklist/khám phá, phi chức năng — tên chuẩn ở §1) + checklist | `testcases/<tính-năng>.md` |
-| 5 | **Review TC / coverage** | "bộ TC đủ chưa", "review TC này" | Ba lớp `qa-testcase-design/ky-thuat/review-tc.md`: `python3 .claude/qa-scripts/qa_check.py tc [REQ…]` + `trace` + checklist nội dung | `TRACE.md` + báo cáo trong chat (sửa TC khi được đồng ý) |
+| 4 | **Thiết kế test case** | "viết TC cho tính năng X" | Từ quan điểm đã duyệt (`VP:`); chọn kỹ thuật theo `qa-testcase-design` §1 (phân vùng, giá trị biên, bảng quyết định, chuyển trạng thái, use case, pairwise, hộp trắng, metamorphic/property/fuzz, error guessing/checklist/khám phá, phi chức năng — tên chuẩn ở §1) + checklist | `testcases/<tính-năng>.md` |
+| 5 | **Review tài liệu test** (quan điểm test, TC, kế hoạch) | "review TC này", "bộ quan điểm đủ chưa", "review test plan" | `/qa-review`: máy (`qa_check.py vp` · `tc` · `src` · `trace`) + checklist `qa-testcase-design/ky-thuat/quan-diem.md` §3 · `qa-testcase-design/ky-thuat/review-tc.md` · `qa-knowledge/scope-review.md` + `qa-source-check` đối chiếu nguồn. TC từ Excel → `qa_check.py import` | `TRACE.md` + báo cáo trong chat (sửa khi được đồng ý) |
 | 6 | **Dữ liệu & môi trường test** | "chuẩn bị data", "tạo tài khoản test" | §7: hỏi cách tạo/dọn được phép, script seed/dọn có prefix, kiểm môi trường sống | `QA.md §Tài khoản`, `qa/scripts/` |
 | 7 | **Chạy test theo TC** | "chạy bộ TC", "test tính năng X" | Tạo run → chạy (tự làm hoặc `qa-tester`) → bằng chứng → bug | `runs/<run-id>/RUNLOG.md`, `BUGS.md`, `evidence/` |
 | 8 | **Smoke / sanity** | "vừa deploy, check nhanh" | TC có `Tag: smoke`; chưa có → đề xuất TC R1 normal, người dùng xác nhận → run ngắn | run `<ngày>-smoke` |
@@ -113,10 +120,10 @@ ngay ở phần Kết luận (qa_check cảnh báo khi thấy hậu tố này). 
 
 | Quy trình | Chuỗi việc |
 |---|---|
-| Đơn giản | 1 → 3 → 4 → 7 → 17 |
-| Scrum / sprint | đầu sprint: 1, 2, 3 · giữa sprint: 4, 5, 7 theo từng story xong · cuối sprint: 9, 17 |
-| Theo ticket | mỗi ticket: 1 (trên ticket) → 4 → 7 → 18; ticket fix bug: 10 |
-| Release gate | 1 → 2 → 3 (chốt + tiêu chí) → 4 → 5 → 6 → 7 → 13/14/15/16 → 17 (`release`); KHÔNG ĐẠT → 10 → 9 (regression quanh chỗ sửa) → 17 (`release <run gốc> <retest> <reg>`) |
+| Đơn giản | 1 → 2a → 3 → 4 → 5 → 7 → 17 |
+| Scrum / sprint | đầu sprint: 1, 2, 2a, 3 · giữa sprint: 4, 5, 7 theo từng story xong · cuối sprint: 9, 17 |
+| Theo ticket | mỗi ticket: 1 (trên ticket) → 2a → 4 → 7 → 18; ticket fix bug: 10 |
+| Release gate | 1 → 2 → 2a → 3 (chốt + tiêu chí) → 4 → 5 → 6 → 7 → 13/14/15/16 → 17 (`release`); KHÔNG ĐẠT → 10 → 9 (regression quanh chỗ sửa) → 17 (`release <run gốc> <retest> <reg>`) |
 | Hotfix | 10 → 8 → 17 |
 | Không tài liệu | 1 từ code (REQ `(chờ trả lời #n)`) + 11 khám phá có charter → 2 hỏi xác nhận hành vi đúng → 4 → 7 |
 
@@ -128,12 +135,14 @@ Ghi quy trình đã thống nhất vào `QA.md §Quy trình` — phiên sau đ�
 qa/
 ├── QA.md              hồ sơ: quy trình, nguồn tài liệu, target, môi trường, tài khoản
 ├── ANALYSIS.md        yêu cầu REQ-…, vai, luồng, điểm mơ hồ
-├── SCOPE.md           phạm vi + tiêu chí đạt của đợt hiện tại (đợt cũ lưu thành SCOPE-<đợt>.md)
-├── testcases/*.md     TC tích luỹ theo tính năng
+├── SCOPE.md           kế hoạch: phạm vi + tiêu chí đạt + vào/ra + lịch + bàn giao của đợt (đợt cũ → SCOPE-<đợt>.md)
+├── viewpoints/*.md    quan điểm test theo tính năng — trích nguyên văn đặc tả, người dùng duyệt
+├── testcases/*.md     TC tích luỹ theo tính năng, mỗi TC trỏ một quan điểm (VP:)
 ├── testdata/<TC-ID>/  bộ dữ liệu cố định của TC (input/, expected/) — commit, không chứa dữ liệu thật
 ├── runs/<run-id>/     RUNLOG.md + REPORT.md  (run-id: <ngày>-<loại>, vd 2026-09-23-smoke)
 ├── BUGS.md · DECISIONS.md (chỉ điều người dùng đã quyết)
-├── LESSONS.md         bài học của dự án — đọc mỗi khi bắt đầu việc
+├── LESSONS.md         bài học của dự án — hook nạp đầu phiên (LESSONS-archive.md: dòng đã xong)
+├── export/            CSV xuất cho Excel (`qa_check.py export`)
 ├── TRACE.md           ma trận truy vết (sinh bởi `qa_check.py trace --write`, không sửa tay)
 ├── API-SURFACE.md     (tuỳ chọn) bề mặt API quan sát được, để so khi có bản mới
 ├── evidence/<run-id>/<TC-ID>/
@@ -152,6 +161,10 @@ Không đọc cả `qa/` một lượt — chỉ phần liên quan việc đang 
   quả + bằng chứng. Số tester song song theo `QA.md §Môi trường` (chưa có → hỏi); mobile/desktop native tuần tự (thiết bị dùng chung).
 - `qa-security` — bảo mật mức chấp nhận (OWASP), chỉ khi SCOPE §7 ghi đã được cho phép.
 - `qa-evidence-check` — soi mẫu bằng chứng trước khi viết REPORT, chỉ đọc, trả danh sách lệch.
+- `qa-source-check` — soi mẫu REQ / quan điểm test / TC, mở tài liệu gốc đối chiếu trích dẫn và kỳ vọng — bắt chỗ "tự
+  nghĩ ra". Chạy sau khi viết/nhập bộ quan điểm hoặc TC, và khi `qa_check.py src` báo nguồn máy không mở được.
+
+Mọi prompt giao subagent kèm **bài học liên quan**: `python3 .claude/qa-scripts/qa_check.py lessons --for <target> <tính năng> <góc nhìn>`.
 
 Việc nhỏ (vài TC, một target) thì tự làm, không cần subagent.
 
@@ -169,12 +182,24 @@ Hai tầng, để kinh nghiệm không mất khi hết phiên:
 
 - **Khi nào ghi**: ngay lúc gặp — sau mỗi bug có kiểu lỗi mới, mỗi sự cố làm chậm việc, mỗi lần người dùng sửa
   cách làm. Cuối run rà lại một lượt (`/qa-report` bước 4).
-- **Khi nào đọc**: đầu mỗi việc (`/qa`, `/qa-analyze`, `/qa-plan`, `/qa-testcase`, `/qa-run`). Bài học áp dụng được
-  → dùng (vd thêm TC cho kiểu lỗi đó, tránh sự cố đó), và nói ra là đang áp bài học nào.
+- **Khi nào đọc**: hook `hook_session` nạp bài học đang hiệu lực vào **mọi phiên** (kể cả chat không gõ lệnh, sau khi
+  nén ngữ cảnh); các lệnh `/qa…` đọc lại đầu mỗi việc. Bài học áp dụng được → dùng (vd thêm quan điểm/TC cho kiểu lỗi
+  đó, tránh sự cố đó), và nói ra là đang áp bài học nào. Subagent không tự thấy bài học của phiên → phiên chính dán
+  `qa_check.py lessons --for …` vào prompt giao việc.
+- **Nhắc ghi**: hook `hook_prompt` thấy tin nhắn giống sửa lưng ("lần sau", "đừng", "sao lại tự…") → nhắc ghi
+  `LESSONS.md` ngay trong lượt. Hook chỉ nhắc — tự xét có phải sửa lưng không; trùng bài học cũ thì nói bài đó đang bị
+  vi phạm thay vì thêm dòng.
+- **Bug lọt vì thiếu quan điểm**: bug tìm được mà không quan điểm nào phủ → dòng loại `lỗ quan điểm` + đề xuất quan
+  điểm mới cho tính năng đó (người dùng duyệt).
+- **Giữ gọn**: dòng `đã nâng`/`bỏ` → `qa_check.py lessons --archive` cất sang `LESSONS-archive.md`; bài na ná → gộp;
+  `qa_check.py lessons` báo trùng và báo khi đang hiệu lực quá nhiều.
+- **Một nơi ghi**: bài học nghề QA của dự án ghi ở `qa/LESSONS.md` — không ghi vào bộ nhớ riêng của Claude (auto-memory),
+  để mọi người/phiên/tester cùng thấy và không có hai bản lệch nhau.
 - **Nâng lên kho chung**: bài học dùng được cho dự án khác → viết lại cho tổng quát, hỏi người dùng; đồng ý → sửa
   `kit/.claude/skills/qa-knowledge/…` trong repo qa-agent (ghi `(bài học <dự án>)`) và bản trong dự án, đánh dấu dòng
   LESSONS `đã nâng`. Các dự án khác nhận bài học khi chạy `python3 <repo qa-agent>/install.py <dự án> --update`.
-  Repo qa-agent là repo khác — việc commit/push ở đó để người dùng quyết.
+  Repo qa-agent là repo khác — sửa trên nhánh riêng, đề xuất người dùng mở PR/đẩy lên repo chung (commit/push do họ quyết);
+  bài học chỉ nằm trong bản clone của một người thì dự án người khác không nhận được.
 
 ## 7. Dữ liệu test & test tự động
 

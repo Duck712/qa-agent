@@ -1,5 +1,5 @@
 {
-  "$comment": "Phần cấu hình của bộ qa-agent — install.py GỘP vào .claude/settings.json (hoặc settings.local.json với --settings-local). Hai hook: guard_evidence (bằng chứng phải nằm trong qa/evidence/) và guard_readonly (không ghi vào đường dẫn ở qa/QA.md §Nguồn chỉ đọc). Hook chạy qua lệnh bọc: thiếu file script thì cho qua thay vì chặn mọi thao tác. allow cho tool MCP browser/mobile (kể cả server riêng của agent tester) để không bị hỏi quyền hàng trăm lần; ask cho lệnh chạm DB.",
+  "$comment": "Phần cấu hình của bộ qa-agent — install.py GỘP vào .claude/settings.json (hoặc settings.local.json với --settings-local). Hook: guard_evidence (bằng chứng phải nằm trong qa/evidence/), guard_readonly (không ghi vào đường dẫn ở qa/QA.md §Nguồn chỉ đọc), hook_session (đầu phiên nạp luật + bài học đang hiệu lực + câu hỏi chờ), hook_prompt (người dùng sửa lưng → nhắc ghi LESSONS). Hook chạy qua lệnh bọc: thiếu file script thì cho qua thay vì chặn mọi thao tác. allow cho tool MCP browser/mobile (kể cả server riêng của agent tester) để không bị hỏi quyền hàng trăm lần; ask cho lệnh chạm DB.",
   "permissions": {
     "allow": [
       "mcp__browser",
@@ -46,6 +46,36 @@
               "-c",
               "import os,runpy,sys; p=sys.argv[1]; os.path.isfile(p) and runpy.run_path(p, run_name='__main__')",
               "${CLAUDE_PROJECT_DIR}/.claude/qa-scripts/guard_evidence.py"
+            ]
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-c",
+              "import os,runpy,sys; p=sys.argv[1]; os.path.isfile(p) and runpy.run_path(p, run_name='__main__')",
+              "${CLAUDE_PROJECT_DIR}/.claude/qa-scripts/hook_session.py"
+            ]
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "-c",
+              "import os,runpy,sys; p=sys.argv[1]; os.path.isfile(p) and runpy.run_path(p, run_name='__main__')",
+              "${CLAUDE_PROJECT_DIR}/.claude/qa-scripts/hook_prompt.py"
             ]
           }
         ]

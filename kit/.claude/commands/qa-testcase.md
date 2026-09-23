@@ -7,7 +7,10 @@ Việc: $ARGUMENTS
 
 1. Nạp skill `qa-testcase-design` (luôn) — chọn kỹ thuật theo bảng §1, mở file `qa-testcase-design/ky-thuat/…` tương ứng; `qa-knowledge` (bug-patterns + checklist hợp đối tượng/target),
    `qa-targets/<loại>.md` của target liên quan. Đọc `qa/LESSONS.md` — mỗi bài học áp dụng được phải có TC.
-2. Đọc REQ liên quan trong `qa/ANALYSIS.md` và phạm vi trong `qa/SCOPE.md`. SCOPE chưa chốt, hoặc REQ còn
+2. Đọc REQ liên quan trong `qa/ANALYSIS.md`, phạm vi trong `qa/SCOPE.md` và **quan điểm test đã duyệt** ở
+   `qa/viewpoints/<tính-năng>.md` — TC chỉ viết cho quan điểm `duyệt`, trỏ về bằng `VP:`. Chưa có quan điểm → đề xuất
+   `/qa-viewpoint` trước; người dùng muốn bỏ qua lớp này → ghi DECISIONS rồi mới viết. Mở lại tài liệu nguồn của quan
+   điểm khi viết kỳ vọng — kỳ vọng không nói nhiều hơn câu trích + câu trả lời ANALYSIS §5. SCOPE chưa chốt, hoặc REQ còn
    `(chờ trả lời #n)` → hỏi người dùng có viết trước không; không tự đoán kỳ vọng cho phần chưa rõ. `Mức:` của TC =
    mức người dùng đã chốt cho REQ ở SCOPE §2 — chưa có thì hỏi, không tự gán.
    Dedupe với `qa/testcases/` — na ná mà không chắc trùng → hỏi.
@@ -20,7 +23,8 @@ Việc: $ARGUMENTS
    viết TC với `Kỳ vọng: (chờ trả lời #n)`, gom thành câu hỏi. TC còn `(chờ trả lời)` không được đưa vào run.
    Việc là "review" → không viết mới: review ba lớp theo `qa-testcase-design/ky-thuat/review-tc.md`, báo lỗ phủ / TC thừa / kỳ vọng
    mơ hồ, sửa khi người dùng đồng ý.
-4. `python3 .claude/qa-scripts/qa_check.py tc` → sửa tới khi sạch (cảnh báo REQ R1 có kỹ thuật thuộc < 2 họ cũng xử lý) → `python3 .claude/qa-scripts/qa_check.py trace --write` →
-   tự review bằng checklist `qa-testcase-design/ky-thuat/review-tc.md` §2.
+4. `python3 .claude/qa-scripts/qa_check.py tc` (gồm kiểm `VP:` trỏ quan điểm đã duyệt) → sửa tới khi sạch (cảnh báo REQ R1 có kỹ thuật thuộc < 2 họ cũng xử lý) → `python3 .claude/qa-scripts/qa_check.py trace --write` →
+   tự review bằng checklist `qa-testcase-design/ky-thuat/review-tc.md` §2. Bộ lớn (≥ 20 TC) hoặc nguồn máy không mở được →
+   spawn `qa-source-check` bốc mẫu TC đối chiếu kỳ vọng với tài liệu gốc. Đội cần Excel → `python3 .claude/qa-scripts/qa_check.py export tc`.
 5. Trình theo khuôn `qa-testcase-design/ky-thuat/review-tc.md` §3: REQ × TC normal/abnormal × kỹ thuật; lỗ phủ; mục checklist chủ động bỏ và
    lý do; câu hỏi còn mở. Người dùng duyệt bộ TC trước khi chạy (trừ khi họ đã nói chạy luôn).

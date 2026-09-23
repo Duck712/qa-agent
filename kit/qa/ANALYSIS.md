@@ -18,10 +18,13 @@
 | | | | |
 
 ## 3. Yêu cầu (tính năng → yêu cầu test được)
-<!-- REQ rút từ code, hoặc phụ thuộc điểm chưa rõ → thêm `(chờ trả lời #n)` vào cột Mô tả; gỡ khi người dùng trả lời. -->
-| REQ | Tính năng | Mô tả yêu cầu (hành vi quan sát được) | Target | Nguồn (file/mục) |
-|---|---|---|---|---|
-| | | | | |
+<!-- REQ rút từ code, hoặc phụ thuộc điểm chưa rõ → thêm `(chờ trả lời #n)` vào cột Mô tả; gỡ khi người dùng trả lời.
+     Nguồn: file + mục (vd docs/prd.md §3.2, src/api/booking.ts:40) hoặc URL — BẮT BUỘC.
+     Trích nguyên văn: câu gốc chép y nguyên (bỏ đoạn giữa bằng `…`) — `qa_check.py src` đối chiếu với file cục bộ.
+     Mô tả là cách QA diễn đạt lại; nếu Mô tả nói nhiều hơn câu trích → phần thêm là điểm hỏi (§5), không phải REQ. -->
+| REQ | Tính năng | Mô tả yêu cầu (hành vi quan sát được) | Target | Nguồn (file/mục) | Trích nguyên văn |
+|---|---|---|---|---|---|
+| | | | | | |
 
 ## 4. Mô hình: use case · trạng thái · CRUD
 <!-- Use case: luồng chính + thay thế (2a…) + ngoại lệ từng bước. Trạng thái: bảng trạng thái × sự kiện (ô ? = hỏi).
@@ -53,3 +56,9 @@
 
 ## 8. Thay đổi & ảnh hưởng (analysis-review §8)
 <!-- Bản này đổi gì so với bản trước (changelog, git diff) → tính năng bị chạm trực tiếp / dùng chung thành phần -->
+
+## 9. Thuật ngữ
+<!-- Từ chuyên ngành, viết tắt, tên gọi khác nhau cho cùng một thứ — tài liệu định nghĩa ở đâu. Từ chưa có định nghĩa → §5. -->
+| Thuật ngữ | Nghĩa (theo tài liệu) | Nguồn |
+|---|---|---|
+| | | |

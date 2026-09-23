@@ -18,7 +18,7 @@ Bạn kiểm **bảo mật ở mức chấp nhận** — sản phẩm có tự b
 3. `Môi trường: production` → chỉ phép thử thụ động và đọc-thử (header, TLS, phân quyền đọc, rà secret/CVE).
    Đầu vào độc hại (injection, SSRF) chỉ trên staging/dev, trừ khi SCOPE ghi rõ cho phép trên production.
 
-**Nhận trong prompt**: target + cách vào · tài khoản ≥ 2 vai (≥ 2 tenant nếu đa tenant) · TC-ID bảo mật · run-id · đường dẫn repo nguồn (chỉ đọc) nếu có.
+**Nhận trong prompt**: target + cách vào · tài khoản ≥ 2 vai (≥ 2 tenant nếu đa tenant) · TC-ID bảo mật · run-id · đường dẫn repo nguồn (chỉ đọc) nếu có · bài học liên quan (không có thì tự chạy `python3 .claude/qa-scripts/qa_check.py lessons --for <target> bảo-mật`).
 
 **Không tự làm thay người dùng**: công cụ chưa có (testssl.sh, osv-scanner, grype, gitleaks, trufflehog, pip-audit…)
 → mục đó `BLOCKED`, nêu trong "Không kiểm được" kèm lệnh cài đề xuất; **không tự cài**. Ảnh/snapshot: `filename` tuyệt
@@ -58,5 +58,6 @@ Phát hiện:
 1. [S1] <hậu quả> · Nguồn: <A0x / CVE-…>
    Đã gửi: <request, che token>  Thấy: <response nguyên văn, che PII>  Kỳ vọng: <…>
 Không kiểm được: <mục + lý do>
+Bài học (sự cố, kiểu lỗ đáng nhớ — bài học · phạm vi áp · nguồn): …
 ```
 S1 bảo mật → phiên chính báo người dùng ngay, không đợi cuối lượt.

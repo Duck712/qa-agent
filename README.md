@@ -1,7 +1,8 @@
 # qa-agent — trợ lý kiểm thử cho mọi quy trình, mọi loại dự án
 
 Bộ skill + agent + lệnh cho Claude Code, cài vào **bất kỳ dự án nào** (repo sản phẩm, hoặc một thư mục QA riêng),
-hỗ trợ **mọi việc QA**: phân tích tài liệu, làm rõ yêu cầu, lập kế hoạch/chốt scope, thiết kế và review test case,
+hỗ trợ **mọi việc QA**: phân tích tài liệu, làm rõ yêu cầu, quan điểm test (test viewpoint), lập kế hoạch/chốt scope,
+thiết kế và review test case,
 chuẩn bị dữ liệu, chạy test, smoke, regression, test lại bug, test khám phá, viết test tự động, bảo mật, hiệu năng,
 a11y, ghi bug, báo cáo, rút bài học — cho **web, mobile, API, desktop, CLI, job/pipeline dữ liệu, tính năng AI/LLM,
 thư viện/SDK** (loại khác: có hướng dẫn tự lập công thức).
@@ -13,7 +14,7 @@ quy trình của đội và ghi lại ở `qa/QA.md` để phiên sau làm tiế
 
 | | |
 |---|---|
-| **Không bịa** | Mọi TC, kết luận, bug trỏ về nguồn: tài liệu, code, câu trả lời của người dùng, checklist, hoặc điều tự quan sát. Được đọc cả tài liệu lẫn code để phân tích và biết cách test; code lệch tài liệu → hỏi cái nào đúng |
+| **Không bịa — bám đặc tả** | REQ và quan điểm test ghi nguồn + **trích nguyên văn** câu đặc tả (máy đối chiếu với file, agent `qa-source-check` đối chiếu URL/pdf/docx); TC đi ra từ quan điểm đã duyệt. Gợi ý từ checklist/kinh nghiệm chỉ là `ngoài đặc tả` chờ người dùng duyệt. Code lệch tài liệu → hỏi cái nào đúng |
 | **Chưa rõ thì hỏi** | Tài liệu mơ hồ, kết quả không rõ bug hay hiểu sai, bước TC không khớp sản phẩm, thiếu môi trường/tài khoản, muốn làm điều chưa được nhờ → **dừng và hỏi**, kèm điều đã thấy + các cách hiểu + đề xuất. Không tự suy diễn, không tự ý làm |
 | **Bằng chứng thật** | PASS/FAIL phải có `qa/evidence/<run>/<TC>/` đúng loại (ảnh + URL, response nguyên văn, stdout + exit code, transcript AI…). Không có → BLOCKED |
 | **An toàn môi trường** | Chỉ tài khoản/dữ liệu test mang prefix, không bắn thông báo tới người thật, không tiêu tiền thật, không chạm thẳng DB production, không load test trên môi trường dùng chung |
@@ -43,6 +44,8 @@ python3 ~/qa-agent/install.py <thư-mục-dự-án> --update       # nhận bả
 
 ```text
 /qa phân tích docs/prd-dat-lich.md
+/qa tạo quan điểm test cho tính năng đặt lịch
+/qa review bộ TC trong file tc-dat-lich.csv
 /qa sprint 12 test gì, lên plan giúp
 /qa viết TC cho màn đăng ký
 /qa vừa deploy v2.3 lên staging, smoke giúp
@@ -54,7 +57,13 @@ python3 ~/qa-agent/install.py <thư-mục-dự-án> --update       # nhận bả
 /qa release được chưa
 ```
 
-Lệnh tắt cho việc hay dùng: `/qa-analyze` · `/qa-plan` · `/qa-testcase` · `/qa-run` · `/qa-bug` · `/qa-report` · `/qa-status`.
+Lệnh tắt cho việc hay dùng: `/qa-analyze` · `/qa-viewpoint` · `/qa-plan` · `/qa-testcase` · `/qa-review` · `/qa-run` · `/qa-bug` ·
+`/qa-report` · `/qa-status`.
+
+Chuỗi tài liệu test: **phân tích** (`ANALYSIS.md`, REQ + trích nguyên văn) → **quan điểm test** (`viewpoints/`, người dùng
+duyệt) → **chốt scope** (`SCOPE.md`: phạm vi, mức rủi ro, tiêu chí đạt, vào/ra, lịch, bàn giao) → **test case**
+(`testcases/`, mỗi TC trỏ `VP:`) → **review** (`/qa-review`: máy soát + checklist + đối chiếu nguồn). Truy vết
+REQ → quan điểm → TC ở `qa_check.py trace`. Đội dùng Excel: `qa_check.py export tc|vp` / `import tc|vp <file.csv>`.
 
 Lần đầu mở `claude` trong dự án, chấp nhận hộp thoại tin cậy thư mục (trust) — chưa tin cậy thì Claude Code bỏ qua
 các quyền `allow` mà bộ cài thêm vào, và server MCP trong `.mcp.json` chưa được bật.
@@ -84,7 +93,8 @@ trong `qa-targets`, cần một dự án thật để kiểm.
 | Không có đáp án chắc | Chọn oracle · metamorphic testing · property · fuzz có seed | `ky-thuat/oracle.md` |
 | Dựa trên kinh nghiệm | Error guessing có hệ thống · fault attacks · checklist-based · khám phá theo phiên (SBTM, charter, tour, debrief) | `ky-thuat/kinh-nghiem.md` |
 | Phi chức năng | Hiệu năng/tải · 10 heuristic Nielsen · WCAG 2.2 A/AA · tương thích · tin cậy/khôi phục · i18n/l10n · cài đặt/vận hành | `ky-thuat/phi-chuc-nang.md` |
-| Review TC | Ba lớp: hình thức (`qa_check.py tc`) · truy vết (`qa_check.py trace` → `qa/TRACE.md`) · checklist nội dung theo từng kỹ thuật | `ky-thuat/review-tc.md` |
+| Quan điểm test | Rút theo góc (luồng, dữ liệu, luật, trạng thái, quyền, hiển thị, tích hợp, phi chức năng) từ câu đặc tả · normal + abnormal mỗi REQ · tách nhóm ngoài đặc tả · checklist review | `ky-thuat/quan-diem.md` |
+| Review tài liệu test | Quan điểm (`qa_check.py vp`) · TC ba lớp: hình thức (`qa_check.py tc`) · truy vết (`qa_check.py trace` → `qa/TRACE.md`) · checklist nội dung · nguồn (`qa_check.py src` + `qa-source-check`) · kế hoạch (`qa-knowledge/scope-review.md`) | `ky-thuat/review-tc.md` |
 
 Mật độ theo rủi ro: R1 kỹ thuật thuộc ≥ 2 họ + biên 3 giá trị + mọi ô cấm + luồng ngoại lệ · R2 phân vùng + biên + luồng
 chính/thay thế · R3 happy path + 1 ca abnormal — mọi REQ luôn có cả ca đúng lẫn ca sai. Công cụ: `pairwise.py`
@@ -94,8 +104,8 @@ chính/thay thế · R3 happy path + 1 ca abnormal — mọi REQ luôn có cả 
 
 | Tầng | Ở đâu | Ghi khi nào |
 |---|---|---|
-| Dự án | `qa/LESSONS.md` | Ngay khi gặp: kiểu lỗi đáng nhớ, sự cố môi trường/công cụ, điều người dùng sửa lưng ("lần sau đừng…"), câu hỏi đã chốt. Đọc lại đầu mỗi việc |
-| Dùng chung | `kit/.claude/skills/qa-knowledge/` trong repo này | Bài học dùng được cho dự án khác → hỏi người dùng → thêm vào checklist/bug-patterns → các dự án nhận qua `install.py --update` |
+| Dự án | `qa/LESSONS.md` | Ngay khi gặp: kiểu lỗi đáng nhớ, lỗ quan điểm, sự cố môi trường/công cụ, điều người dùng sửa lưng ("lần sau đừng…"), câu hỏi đã chốt. Hook `hook_session` nạp bài học đang hiệu lực vào **mọi phiên**; hook `hook_prompt` thấy câu sửa lưng thì nhắc ghi ngay; subagent nhận bài học liên quan qua `qa_check.py lessons --for …`; dòng xong cất bằng `lessons --archive` |
+| Dùng chung | `kit/.claude/skills/qa-knowledge/` trong repo này | Bài học dùng được cho dự án khác → hỏi người dùng → thêm vào checklist/bug-patterns trên nhánh riêng → PR vào repo chung → các dự án nhận qua `install.py --update` (máy dùng chung: một bản clone chung cho nhóm, hoặc luôn qua PR) |
 
 Kho chung đã có 15 checklist (form, đăng nhập/phân quyền/MFA/SSO, upload, API, ca bất thường, thanh toán, thông báo, realtime,
 tìm kiếm/danh sách, ngày giờ/lịch, dữ liệu cá nhân, a11y WCAG 2.2, CLI, job/dữ liệu, AI/LLM), đánh số từng mục để TC trích nguồn và 24 kiểu lỗi dev hay mắc.
@@ -108,24 +118,28 @@ tests/selftest.py           cài vào dự án nháp, kiểm từng mảnh (ch�
 tests/refcheck.py           kiểm mọi tham chiếu file/skill/lệnh/§ trong bản đã cài
 kit/
 ├── .claude/
-│   ├── commands/           /qa (nhận mọi việc) + 7 lệnh tắt
-│   ├── agents/             qa-tester (1 target × 1 góc nhìn) · qa-security · qa-evidence-check
+│   ├── commands/           /qa (nhận mọi việc) + 9 lệnh tắt
+│   ├── agents/             qa-tester (1 target × 1 góc nhìn) · qa-security · qa-evidence-check · qa-source-check
 │   ├── skills/
 │   │   ├── qa/                  danh mục 19 việc QA, luật chung, ghép theo quy trình, lưu bài học
 │   │   ├── qa-targets/          web · mobile · api · desktop · cli · batch · ai · library · khác + an toàn
 │   │   ├── qa-testcase-design/  chọn kỹ thuật, mật độ theo rủi ro, khuôn TC + ky-thuat/ (9 file kỹ thuật + review-tc)
 │   │   ├── qa-evidence/         bằng chứng theo loại test × loại target, chống test giả
 │   │   └── qa-knowledge/        checklist + bug-patterns + phân tích/review tài liệu + mẹo nghề (kho chung)
-│   ├── qa-scripts/         qa_check.py (status · tc · trace · select · new-run · run · release) · pairwise.py · gen_matrix_tc.py · 2 hook
+│   ├── qa-scripts/         qa_check.py (status · vp · tc · src · trace · select · new-run · run · release · export · import · lessons)
+│   │                       · pairwise.py · gen_matrix_tc.py · 4 hook (guard_evidence · guard_readonly · hook_session · hook_prompt)
 │   └── settings.qa.json    phần gộp vào settings.json của dự án
 ├── .mcp.qa.json            Playwright MCP + mobile-mcp, version khoá cứng
-└── qa/                     workspace mẫu: QA.md · ANALYSIS · SCOPE · testcases/ · runs/ · BUGS · DECISIONS · LESSONS
+└── qa/                     workspace mẫu: QA.md · ANALYSIS · viewpoints/ · SCOPE · testcases/ · runs/ · BUGS · DECISIONS · LESSONS
 ```
 
 `qa_check.py` chỉ **báo** (không chặn): TC thiếu trường, REQ thiếu ca normal/abnormal, kỳ vọng mơ hồ, PASS không có
 bằng chứng, FAIL không có bug, và tính **kết luận ĐẠT / KHÔNG ĐẠT** theo tiêu chí ghi trước (chép từ `SCOPE.md §6` vào RUNLOG lúc tạo run; chưa chốt → CHƯA KẾT LUẬN); `release` trả lời "phát hành được chưa" trên nhiều run.
 Hai hook nhẹ chặn thật: `guard_evidence` (ảnh/video phải nằm trong `qa/evidence/`) và `guard_readonly` (không ghi vào
-đường dẫn khai ở `qa/QA.md §Nguồn chỉ đọc`).
+đường dẫn khai ở `qa/QA.md §Nguồn chỉ đọc`). Hai hook nhắc (không chặn): `hook_session` (đầu phiên nạp luật + bài học +
+câu hỏi chờ) và `hook_prompt` (người dùng sửa lưng → nhắc ghi `LESSONS.md`).
+`qa_check.py` cũng báo: REQ/quan điểm thiếu nguồn hoặc trích dẫn không có trong file nguồn, quan điểm ngoài đặc tả chưa
+được duyệt, TC trỏ quan điểm chưa duyệt (run tự bỏ TC đó).
 
 ## Lấy gì từ SPEC (v2)
 

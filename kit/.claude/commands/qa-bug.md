@@ -22,3 +22,5 @@ Bug: $ARGUMENTS
    Bug tìm từ khám phá (không có TC) → đề xuất TC tái hiện (`Nguồn: BUG-…`), người dùng duyệt thì ghi vào `TC:`.
 4. S1 → báo người dùng ngay trong chat.
 5. Kiểu lỗi đáng nhớ (dễ lặp lại ở tính năng/dự án khác) → thêm một dòng `qa/LESSONS.md` (skill `qa` §6).
+   Bug không thuộc quan điểm test nào (tìm từ khám phá, hoặc TC ngoài lề) → dòng loại `lỗ quan điểm` + đề xuất quan
+   điểm mới cho tính năng đó (`/qa-viewpoint`, người dùng duyệt).

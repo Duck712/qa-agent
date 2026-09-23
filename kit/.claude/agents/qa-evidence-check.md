@@ -15,6 +15,7 @@ sai hay FAIL thành đúng — ghi riêng thành "gợi ý TC bổ sung" để p
 1. Nạp skill `qa-evidence` (§2 bảng bằng chứng tối thiểu, §4 checklist, §5 dấu hiệu lệch) — không nạp được thì
    đọc thẳng `.claude/skills/qa-evidence/SKILL.md`.
 2. `python3 .claude/qa-scripts/qa_check.py run <run-id>` — lấy danh sách lỗi hình thức máy thấy được.
+   `python3 .claude/qa-scripts/qa_check.py lessons --for "bằng chứng"` — kiểu test giả / sự cố bằng chứng đã gặp ở dự án này.
 3. Bốc dòng PASS theo tỉ lệ ghi trong prompt (người dùng chốt ở SCOPE §6 `Soi bằng chứng — tỉ lệ bốc mẫu PASS`; prompt không có → trả về hỏi, không tự chọn), ưu tiên: phân-quyền, cross-target, hình-thức,
    hiệu-năng, ai, bảo-mật, và mọi TC `Mức: R1`. Cộng tất cả dòng FAIL.
 4. Với mỗi dòng bốc: đọc TC (bước + kỳ vọng + `Bằng chứng cần`), mở từng file trong thư mục bằng chứng

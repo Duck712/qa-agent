@@ -33,7 +33,8 @@ Phạm vi: $ARGUMENTS
    (số tester song song theo `QA.md §Môi trường` — chưa có thì hỏi; mobile/desktop native tuần tự; nhóm phá-đầu-vào/phân-quyền/bảo-mật chạy cuối, dọn dữ liệu sau).
    Bảo mật → `qa-security`, chỉ khi SCOPE §7 cho phép (kết quả `INCONCLUSIVE` ghi RUNLOG thành
    `BLOCKED (inconclusive: …)` + câu hỏi). Mỗi prompt tester gửi đủ: target + loại + cách vào, góc nhìn, TC-ID + file,
-   run-id, **đường dẫn tuyệt đối** thư mục bằng chứng `qa/evidence/<run-id>/`, tài khoản, prefix, môi trường.
+   run-id, **đường dẫn tuyệt đối** thư mục bằng chứng `qa/evidence/<run-id>/`, tài khoản, prefix, môi trường, và
+   **bài học liên quan**: dán nguyên đầu ra `python3 .claude/qa-scripts/qa_check.py lessons --for <target> <tính năng> <góc nhìn>`.
 6. **Gặp vấn đề thì hỏi, không tự xử**: kết quả không rõ là bug hay hiểu sai yêu cầu · bước TC không khớp sản phẩm
    hiện tại (đổi tên, đổi luồng) · thiếu dữ liệu/tài khoản/quyền · kết quả "gần đúng" · tester trả về câu hỏi →
    TC để `BLOCKED` tạm, **dừng và hỏi người dùng** (gom các câu cùng lúc nếu chúng không chặn nhau), kèm điều đã

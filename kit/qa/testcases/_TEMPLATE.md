@@ -2,10 +2,14 @@
 
 > Một file một tính năng (`qa/testcases/<tinh-nang>.md`), một khối `## TC-…` một test case.
 > File bắt đầu bằng `_` bị bỏ qua khi đếm. Khuôn chi tiết: skill `qa-testcase-design`.
+> `VP:` = quan điểm test (qa/viewpoints/) đã được người dùng duyệt mà TC này hiện thực hoá — bắt buộc khi dự án có
+> quan điểm test (`qa_check.py tc` nhắc; `tc --strict`, bắt buộc sạch trước run all/reg, báo lỗi); TC tái hiện bug
+> (`Nguồn: BUG-…`) được miễn.
 > `Regression: có` = đưa vào bộ regression · `Tag: smoke` = đưa vào bộ smoke · `Ticket:` = mã Jira/GitHub nếu đội dùng.
 
 ## TC-FEAT-001 — <điều được kiểm, viết theo hành vi người dùng>
 - REQ: REQ-FEAT-1
+- VP: VP-FEAT-001
 - Target: <tên target trong QA.md>
 - Loại: chức năng
 - Kiểu: normal

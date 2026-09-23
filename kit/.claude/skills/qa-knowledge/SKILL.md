@@ -37,6 +37,7 @@ description: >
 | `checklists/batch-data.md` | Target `batch` — job, ETL, pipeline |
 | `checklists/ai-llm.md` | Target `ai` — chatbot, tóm tắt, phân loại, agent |
 | `analysis-review.md` | **Phân tích & review tài liệu**: tiêu chí chất lượng yêu cầu, INVEST, Given–When–Then, từ yếu, đọc theo góc nhìn, yêu cầu ngầm ISO 25010, example mapping, mô hình hoá, rủi ro, phân tích ảnh hưởng |
+| `scope-review.md` | **Review kế hoạch / SCOPE** — phạm vi, chạy được, kết luận được |
 | `techniques-judgement.md` | Khám phá có kỷ luật · viết bug · soi yêu cầu mơ hồ · cắt phạm vi · viết báo cáo |
 
 Bảo mật chuyên sâu (OWASP, CVE, secret) thuộc agent `qa-security`. Ở đây chỉ giữ ca bảo mật cơ bản ai cũng
@@ -44,7 +45,10 @@ phải thử (`auth-login §3`, `form-input §2`, `api-common`).
 
 ## Dùng thế nào
 - **Phân tích tài liệu** — theo `analysis-review.md` (quy trình §1) + `bug-patterns`: điều tài liệu không nói → `ANALYSIS §5` kèm đề xuất.
-- **Viết TC** — mỗi đối tượng trong phạm vi mở checklist tương ứng; mục áp dụng được mà chưa có TC → viết TC, `Nguồn:` ghi `<checklist> <số mục>` (vd `form-input 2.3`, `bug-patterns #11`).
+- **Quan điểm test / TC** — mỗi đối tượng trong phạm vi mở checklist tương ứng. Mục checklist mà **đặc tả có nói tới** → quan
+  điểm bám câu đặc tả đó (checklist chỉ là gợi ý góc nhìn). Mục đặc tả **không nói** → quan điểm `Nguồn: ngoài đặc tả —
+  <checklist> <số mục>` (vd `form-input 2.3`, `bug-patterns #11`), để `nháp`, người dùng duyệt mới viết TC
+  (`qa-testcase-design/ky-thuat/quan-diem.md` §1). Không trình mục checklist như thể đặc tả yêu cầu.
 - **Chạy test** — tester nạp checklist của loại mình để biết chỗ đáng đào, nhưng chỉ chạy TC được giao; thấy chỗ đáng ngờ ngoài danh sách → báo thành phát hiện.
 - **Sau một lượt** — kiểu lỗi mới ghi `REPORT §Bài học`; đề xuất thành một dòng ở đây → người dùng duyệt rõ ràng mới sửa.
 
@@ -53,3 +57,6 @@ phải thử (`auth-login §3`, `form-input §2`, `api-common`).
 - Ghi nguồn cuối dòng: `(bài học <dự án>)`.
 - Không xoá dòng vì "dự án này không dùng" — dự án khác vẫn dùng. Dòng sai thật → đề xuất sửa, người dùng duyệt mới sửa (ghi DECISIONS trích lời duyệt).
 - Kho này dùng chung nhiều dự án: bài học riêng của một sản phẩm (tên màn, tên API) → viết lại cho tổng quát trước khi thêm.
+- Sửa ở **repo qa-agent** (đường dẫn: `source` trong `.claude/qa-agent.json`) trên một nhánh riêng, rồi đề xuất người dùng
+  mở PR/đẩy lên repo chung — bài học nằm trong bản clone riêng của một người thì dự án của người khác không nhận được.
+  Máy dùng chung nhiều người: nên dùng một bản clone chung cho cả nhóm, hoặc luôn đi qua PR.

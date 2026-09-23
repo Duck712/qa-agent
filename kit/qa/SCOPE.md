@@ -58,3 +58,27 @@
      Ghi số tham chiếu để người đọc SCOPE biết phạm vi dựa trên câu trả lời nào. -->
 - ANALYSIS §5: #
 - DECISIONS: #
+
+## 9. Tiêu chí vào / ra
+<!-- Vào: điều kiện để BẮT ĐẦU chạy (bản đã deploy đúng, smoke xanh, dữ liệu seed xong, quan điểm + TC đã duyệt…).
+     Ra: điều kiện để KẾT THÚC đợt — tiêu chí đạt §6 là phần máy tính được; ghi thêm điều kiện khác người dùng muốn. -->
+- Tiêu chí vào: 
+- Tiêu chí ra (ngoài §6): 
+- Điều kiện tạm dừng / tiếp tục: 
+
+## 10. Lịch & nguồn lực
+| Việc | Người | Bắt đầu | Hạn | Ghi chú |
+|---|---|---|---|---|
+| | | | | |
+
+## 11. Sản phẩm bàn giao
+<!-- Mặc định: qa/viewpoints/, qa/testcases/, TRACE.md, runs/<run-id>/RUNLOG.md + REPORT.md, BUGS.md. Đội cần định dạng
+     khác (Excel) → `qa_check.py export tc|vp`. -->
+- 
+
+## 12. Giả định · phụ thuộc · rủi ro dự án
+<!-- Rủi ro của VIỆC TEST (không phải của sản phẩm — cái đó ở ANALYSIS §6): môi trường chập chờn, thiếu tài khoản, bản
+     giao trễ, người trả lời câu hỏi vắng… mỗi dòng một cách giảm. Chỉ ghi điều người dùng xác nhận hoặc đã quan sát. -->
+| Loại | Nội dung | Ảnh hưởng | Cách giảm / ai lo |
+|---|---|---|---|
+| | | | |

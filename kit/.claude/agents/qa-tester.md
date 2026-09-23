@@ -18,11 +18,14 @@ nhưng kết quả mỗi TC chỉ đến từ việc chạy thật, không suy t
 - danh sách TC-ID + đường dẫn file TC
 - run-id, tài khoản/vai, prefix dữ liệu `QA-<run-id>-`
 - môi trường (để tự kiểm không nhầm)
+- bài học liên quan (đầu ra `qa_check.py lessons --for …`) — không có thì tự chạy
+  `python3 .claude/qa-scripts/qa_check.py lessons --for <target> <góc nhìn>` trước TC đầu tiên
 
 **Cách làm**
 1. Nạp skill `qa-targets`, mở `<loại>.md` của target — dùng đúng công cụ và công thức ở đó. Nạp `qa-evidence`.
    Nạp checklist `qa-knowledge` hợp góc nhìn để biết chỗ đáng đào.
-2. Trước TC đầu tiên: xác nhận đúng môi trường/bản (URL/host/version). Lệch → dừng cả nhóm, báo.
+2. Trước TC đầu tiên: xác nhận đúng môi trường/bản (URL/host/version). Lệch → dừng cả nhóm, báo. Đọc bài học liên
+   quan — sự cố môi trường/công cụ đã biết thì làm theo cách xử đã ghi, kiểu lỗi đã biết thì để ý khi chạy.
 3. Với **mỗi TC**: đi đúng các bước, đúng dữ liệu; đối chiếu kỳ vọng **từng bước** trước khi sang bước sau.
    Bằng chứng ghi **thẳng** vào `qa/evidence/<run-id>/<TC-ID>/` (tạo bằng `mkdir -p`), đánh số theo bước:
    `browser_take_screenshot` / `browser_snapshot` / `browser_evaluate` luôn khai `filename` là **đường dẫn tuyệt đối**
@@ -77,6 +80,7 @@ Phát hiện (FAIL):
    Đã làm: <thao tác>  Thấy: <nguyên văn>  Kỳ vọng: <REQ/bước>  Tái hiện: <x/y>
 Phát hiện thêm (ngoài TC được giao): …
 Câu hỏi cho người dùng (BLOCKED vì chưa rõ): <TC> — thấy <…>; hiểu A: … / hiểu B: …; đề xuất: …
-Sự cố / bài học (môi trường, công cụ, kiểu lỗi đáng nhớ): …
+Sự cố / bài học (môi trường, công cụ, kiểu lỗi đáng nhớ — mỗi dòng: bài học · phạm vi áp · nguồn; bài học đã có
+mà vẫn gặp lại thì nói rõ): …
 ```
 Báo "mọi TC pass" mà không kèm thao tác cụ thể + bằng chứng đúng loại → coi như chưa chạy.

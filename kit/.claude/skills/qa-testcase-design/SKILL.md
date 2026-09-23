@@ -1,7 +1,8 @@
 ---
 name: qa-testcase-design
 description: >
-  Thiết kế và review test case có kỷ luật cho mọi loại target. Đủ bộ kỹ thuật: phân vùng tương đương, giá trị
+  Thiết kế và review quan điểm test (test viewpoint, bám đặc tả có trích nguyên văn) và test case có kỷ luật cho
+  mọi loại target. Đủ bộ kỹ thuật: phân vùng tương đương, giá trị
   biên (2/3 giá trị, biên nhiều chiều), syntax testing, bảng quyết định, ma trận phân quyền, ma trận CRUD,
   chuyển trạng thái (bảng trạng thái × sự kiện, 0/1-switch), use case / kịch bản, pairwise & classification
   tree, hộp trắng nhẹ từ code, oracle & metamorphic, fuzz/property, error guessing, checklist, khám phá theo
@@ -18,6 +19,9 @@ description: >
 ## 0. Trước khi viết
 1. Đọc REQ trong `qa/ANALYSIS.md` và phạm vi trong `qa/SCOPE.md` — chỉ viết TC cho thứ trong phạm vi.
    REQ còn `(chờ trả lời)` → không đoán kỳ vọng, hỏi trước.
+   Đọc **quan điểm test đã duyệt** ở `qa/viewpoints/<tính-năng>.md` (`ky-thuat/quan-diem.md`): mỗi TC hiện thực hoá một
+   quan điểm và trỏ về bằng `VP:`. Chưa có quan điểm → làm `/qa-viewpoint` trước (hoặc hỏi người dùng có bỏ qua bước này
+   không — đồng ý thì ghi DECISIONS). Kỳ vọng không nói nhiều hơn câu trích của quan điểm + câu trả lời ANALYSIS §5.
 2. Mở `qa-knowledge`: `qa-knowledge/bug-patterns.md` (luôn) + checklist theo đối tượng/loại target. Đọc `qa/LESSONS.md`.
 3. Mở `qa-targets/<loại>.md` — bước TC phải **thực hiện được** bằng công cụ của target đó.
 4. Có code → đọc để biết bề mặt thật (endpoint, validate, nhánh, mã lỗi) — `ky-thuat/hop-trang.md`.
@@ -82,6 +86,7 @@ File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: 
 ```markdown
 ## TC-DATLICH-003 — Khung giờ đã đủ chỗ không đặt thêm được, kể cả gọi thẳng API
 - REQ: REQ-DATLICH-2
+- VP: VP-DATLICH-004
 - Target: booking-web
 - Loại: biên
 - Kiểu: abnormal
@@ -102,7 +107,7 @@ File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: 
 - Bằng chứng cần: ảnh + URL trang bước 1 · request/response nguyên văn bước 2 · ảnh/response bước 3
 ```
 ID `TC-<TÍNH-NĂNG>-<3 chữ số>`, không tái dùng ID đã xoá. Bắt buộc: REQ, Target, Loại, Kiểu, Mức, Nguồn, Bước,
-Kỳ vọng, Bằng chứng cần. Nên có: Kỹ thuật. Tiêu đề/kỳ vọng viết theo hành vi người dùng; chi tiết kỹ thuật
+Kỳ vọng, Bằng chứng cần; `VP` khi dự án có quan điểm test (TC tái hiện bug được miễn). Nên có: Kỹ thuật. Tiêu đề/kỳ vọng viết theo hành vi người dùng; chi tiết kỹ thuật
 (selector, endpoint, lệnh) chỉ ở Bước/Dữ liệu. Mỗi kỳ vọng ứng với một bước — hành động nào kiểm ở kỳ vọng phải có
 trong Bước.
 
@@ -118,6 +123,8 @@ dòng nào trong bug. Lớp không hợp lệ vẫn mỗi dòng một lớp sai.
 quan sát được không — "hoạt động đúng" không phải kỳ vọng? (4) bằng chứng nào chứng minh PASS?
 
 ## 4. Review bộ TC
+TC của người khác viết bằng Excel/Sheets: lưu CSV UTF-8 rồi `python3 .claude/qa-scripts/qa_check.py import tc <file.csv> --feature <tên>`
+(chỉ chuyển định dạng — trường trống giữ trống, không tự điền, không tự đặt mã). Xuất ra Excel: `qa_check.py export tc`.
 Sau mỗi đợt viết, và khi được nhờ review TC của người khác: `python3 .claude/qa-scripts/qa_check.py tc [REQ-… | <tính năng>]` (hình
 thức) → `python3 .claude/qa-scripts/qa_check.py trace` (ma trận truy vết) → checklist `ky-thuat/review-tc.md` (nội dung). Trình người dùng:
 REQ × số TC normal/abnormal × kỹ thuật; lỗ phủ; TC thừa/trùng; kỳ vọng mơ hồ; mục checklist chủ động bỏ và lý do.
