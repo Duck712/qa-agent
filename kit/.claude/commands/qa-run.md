@@ -20,10 +20,15 @@ Phạm vi: $ARGUMENTS
    với mọi dòng `CHƯA CHẠY`; script chép tiêu chí đạt từ SCOPE §6 vào đầu RUNLOG (đóng băng cho run này — không sửa
    sau khi đã chạy). Điền bản đang kiểm, môi trường. SCOPE §6 còn trống → **không tự điền**: nếu người dùng
    đã nhờ chạy ngay thì chạy để thu bằng chứng (run ra `CHƯA KẾT LUẬN`), đề xuất tiêu chí và hỏi khi báo kết quả; nếu
-   chưa nhờ chạy ngay thì hỏi tiêu chí trước. Cần dữ liệu test → seed theo skill `qa` §7 và ghi Nhật ký.
+   chưa nhờ chạy ngay thì hỏi tiêu chí trước. Tiêu chí chốt sau khi đã chạy → làm theo skill `qa` §2 (hậu tố
+   `(chốt sau khi chạy — DECISIONS #n)`, hoặc tạo run mới chạy lại — người dùng chọn). Trước run `all`/`reg`:
+   `python3 .claude/qa-scripts/qa_check.py tc --strict` phải sạch. Cần dữ liệu test → seed theo skill `qa` §7 và ghi Nhật ký.
 4. **Kiểm môi trường sống** trước (URL trả lời, đăng nhập được, build đúng bản, lệnh chạy được). Chết/lệch → dừng,
    báo người dùng, hỏi chờ hay đánh `BLOCKED`.
-5. **Chạy**: ≤ 5 TC **và** một target → tự làm. Nhiều hơn → chia nhóm theo target × góc nhìn, spawn `qa-tester`
+5. **Chạy**: ≤ 5 TC **và** một target → tự làm. TC `Loại: cross-target` hoặc workflow xuyên target → phiên chính tự
+   chạy, hoặc giao **một** qa-tester đủ các target (mỗi target một cách vào trong prompt) — không tách hai nửa.
+   Bản đang kiểm đổi giữa run (dev deploy lại) → dừng, hỏi người dùng: chạy lại TC đã xong trên bản mới hay mở run mới;
+   TC đã chạy trên bản cũ ghi bản vào cột Lý do và Nhật ký. Nhiều hơn → chia nhóm theo target × góc nhìn, spawn `qa-tester`
    (≤ 3 song song; mobile/desktop native tuần tự; nhóm phá-đầu-vào/phân-quyền/bảo-mật chạy cuối, dọn dữ liệu sau).
    Bảo mật → `qa-security`, chỉ khi SCOPE §7 cho phép (kết quả `INCONCLUSIVE` ghi RUNLOG thành
    `BLOCKED (inconclusive: …)` + câu hỏi). Mỗi prompt tester gửi đủ: target + loại + cách vào, góc nhìn, TC-ID + file,
@@ -32,7 +37,8 @@ Phạm vi: $ARGUMENTS
    hiện tại (đổi tên, đổi luồng) · thiếu dữ liệu/tài khoản/quyền · kết quả "gần đúng" · tester trả về câu hỏi →
    TC để `BLOCKED` tạm, **dừng và hỏi người dùng** (gom các câu cùng lúc nếu chúng không chặn nhau), kèm điều đã
    thấy + các cách hiểu + đề xuất. Không sửa TC, không đổi kỳ vọng, không chọn cách hiểu thay người dùng.
-   Trả lời xong → cập nhật TC/kết quả theo đúng câu trả lời, ghi `DECISIONS.md`.
+   Trả lời xong → câu trả lời về yêu cầu ghi cột `Trả lời` ở ANALYSIS §5 (gỡ `(chờ trả lời #n)`); quyết định cách làm/
+   phạm vi/trạng thái → một dòng DECISIONS trích nguyên văn; rồi chạy lại TC đó theo câu trả lời.
 7. **Ghi kết quả** vào RUNLOG ngay sau mỗi nhóm (kết quả, ngày, đường dẫn bằng chứng, BUG/lý do). FAIL → `/qa-bug`
    (retest: cập nhật trạng thái + `Lịch sử` của bug cũ).
 8. Hết phạm vi: `python3 .claude/qa-scripts/qa_check.py run <run-id>` phải sạch → spawn `qa-evidence-check` → ghi

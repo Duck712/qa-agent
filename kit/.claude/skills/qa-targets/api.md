@@ -24,8 +24,10 @@ endpoint, method, middleware quyền) — endpoint có trong code mà không có
 - **Phân trang / lọc / sắp xếp**: trang rỗng, trang cuối đúng mép (`limit=10` với 10 bản ghi), `page=-1`, `limit=100000`, ký tự `%` `_` `'` trong filter.
 - **Phân quyền**: mỗi ô ✗ ma trận vai × hành động một lời gọi thẳng → bị chặn (mã theo API doc); đổi id sang bản ghi/tenant khác (IDOR); endpoint phụ (export, download, autocomplete) hay bị quên.
 - **Idempotency / đồng thời**: gửi cùng request 2 lần song song (`& wait`), retry với cùng `Idempotency-Key`.
-- **Method / header**: method không hỗ trợ → 405; thiếu `Content-Type`; CORS từ origin lạ; cache header trên dữ liệu riêng tư.
-- **Webhook**: endpoint nhận của QA (server tạm trong `qa/sandbox/`), kiểm chữ ký, retry, thứ tự, trùng lặp.
+- **Method / header**: method không hỗ trợ → bị từ chối (mã theo API doc; không có → hỏi); thiếu `Content-Type`; CORS từ origin lạ; cache header trên dữ liệu riêng tư.
+- **Webhook**: endpoint nhận của QA (server tạm trong `qa/sandbox/`), kiểm chữ ký, retry, thứ tự, trùng lặp. Cổng/sandbox
+  bên ngoài cần gọi tới được URL công khai → **hỏi** người dùng (tunnel, hoặc dùng log webhook của cổng/staging); không
+  tự dựng tunnel hay mở cổng máy dùng chung ra ngoài.
 - **Tương thích**: gọi version cũ (`/v1`) và client cũ; so với bề mặt API ghi lần trước (lưu `qa/API-SURFACE.md` nếu đội cần theo dõi).
 - **Rate limit**: tối đa 20 lời gọi, giãn cách; thấy 429 là xác nhận có chặn, dừng.
 - **Hiệu năng**: `-w '%{time_total}'` lặp n ≤ 20, giãn ≥ 1s, báo median + max kèm n (không gọi là p95 khi n < 20); ngưỡng do tài liệu/người dùng cho.

@@ -55,3 +55,13 @@ kèm n (n < 20 thì không gọi là p95). Ngưỡng do tài liệu/người dù
 | Không thấy tool `browser_*` | Chưa duyệt MCP server của dự án — duyệt khi Claude Code hỏi, hoặc `/mcp` |
 | Lần đầu rất lâu | Đang tải Chromium (`npx playwright install chromium`) |
 | Ảnh không thấy trong `qa/evidence/_inbox` | `.mcp.json` còn đường dẫn tương đối — chạy lại `python3 <source>/install.py . --update` (`source` ghi trong `.claude/qa-agent.json`) |
+
+## Nhiều vai cùng lúc
+Mỗi trình duyệt `--isolated` là **một** browser context — các tab dùng chung cookie. Hai vai cùng lúc **không** dùng
+`browser_tabs`. Dùng `browser_run_code_unsafe`:
+```js
+const ctxB = await page.context().browser().newContext();   // phiên riêng cho vai B
+const pB = await ctxB.newPage(); await pB.goto(URL); /* đăng nhập vai B trong pB */
+```
+hoặc gọi `curl` với cookie/token của vai B (lấy từ `qa/.env`). Site dùng cookie session thì `fetch` trong trang luôn
+mang phiên hiện tại — không dùng nó để thử vai khác (PASS giả).

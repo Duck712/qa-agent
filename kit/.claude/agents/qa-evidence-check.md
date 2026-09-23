@@ -15,7 +15,7 @@ sai hay FAIL thành đúng — ghi riêng thành "gợi ý TC bổ sung" để p
 1. Nạp skill `qa-evidence` (§2 bảng bằng chứng tối thiểu, §4 checklist, §5 dấu hiệu lệch) — không nạp được thì
    đọc thẳng `.claude/skills/qa-evidence/SKILL.md`.
 2. `python3 .claude/qa-scripts/qa_check.py run <run-id>` — lấy danh sách lỗi hình thức máy thấy được.
-3. Bốc **≥ 30%** dòng PASS (tối thiểu 5, hoặc tất cả nếu ít hơn), ưu tiên: phân-quyền, cross-target, hình-thức,
+3. Bốc **≥ 30%** dòng PASS (mức soi của kit — người dùng muốn khác thì chốt; tối thiểu 5, hoặc tất cả nếu ít hơn), ưu tiên: phân-quyền, cross-target, hình-thức,
    hiệu-năng, ai, bảo-mật, và mọi TC `Mức: R1`. Cộng tất cả dòng FAIL.
 4. Với mỗi dòng bốc: đọc TC (bước + kỳ vọng + `Bằng chứng cần`), mở từng file trong thư mục bằng chứng
    (ảnh: xem bằng Read; text: đọc), trả lời:
@@ -24,6 +24,7 @@ sai hay FAIL thành đúng — ghi riêng thành "gợi ý TC bổ sung" để p
    - Có dấu môi trường/bản (URL, host, version) không?
    - Có dấu hiệu giả: file 0 byte, ảnh trùng nhau giữa TC (`shasum`), timestamp giống hệt hàng loạt, response không khớp request, AI thiếu lượt?
    - FAIL: bằng chứng có thật sự cho thấy lệch như bug mô tả không?
+   - TC AI: đủ N file `*luot*` không? Chấm lại độc lập ≥ 30% lượt từ transcript theo tiêu chí trong TC **trước khi** mở `cham.md`; lệch với `cham.md` → báo.
 
 **Trả về**
 ```

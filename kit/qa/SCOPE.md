@@ -34,7 +34,10 @@
 
 ## 6. Tiêu chí đạt
 <!-- NGƯỜI DÙNG chốt ba dòng dưới (qa_check.py đọc đúng định dạng này). Để trống = chưa chốt → run ra CHƯA KẾT LUẬN.
-     Đề xuất thường dùng: "Bug mở không được phép: S1, S2" · "Tỉ lệ PASS tối thiểu: 95%" · "Tỉ lệ BLOCKED tối đa: 5%". -->
+     Định dạng: `Bug mở không được phép: S1, S2` (hoặc `S1–S3`, `S2 trở lên`, `không`) · `Tỉ lệ PASS tối thiểu: <số>%` ·
+     `Tỉ lệ BLOCKED tối đa: <số>%` — mỗi dòng đúng MỘT số có %. Tiêu chí theo mức → thêm dòng riêng
+     `- Tỉ lệ PASS tối thiểu R1: <số>%` (tính trên TC `Mức: R1`). Tiêu chí không vừa khuôn → ghi DECISIONS, báo người
+     dùng máy không tính được (run ra CHƯA KẾT LUẬN). -->
 - Bug mở không được phép: 
 - Tỉ lệ PASS tối thiểu: 
 - Tỉ lệ BLOCKED tối đa: 
@@ -44,8 +47,9 @@
 - Kiểm thử bảo mật: không
 - Kiểm thử tải: không
 - Môi trường riêng cho kiểm thử tải: 
-- Chạm DB staging trực tiếp (seed/đọc): không
-- Test AI — số lần chạy mỗi ca (N) và ngưỡng đạt: 
+- Đọc/ghi DB trực tiếp (môi trường nào, bảng nào, đọc hay ghi): không
+- Test AI — N mỗi ca: <!-- một số, hoặc theo mức: R1: …, R2: …, R3: … -->
+- Test AI — ngưỡng đạt mỗi ca: <!-- vd 4/5 lượt thoả mọi tiêu chí; tiêu chí an toàn: … -->
 
 ## 8. Câu hỏi đã chốt
 <!-- Không chép lại câu trả lời ở đây: câu hỏi về yêu cầu → cột Trả lời ANALYSIS §5; quyết định → DECISIONS.md.

@@ -2,10 +2,12 @@
 
 ## Khác gì target khác
 Output **không cố định**: cùng đầu vào có thể ra kết quả khác. Nên một TC AI không phải "một lần đúng là PASS":
-- Chạy mỗi ca **N lần**, ghi toàn bộ transcript. **N và ngưỡng đạt do người dùng chốt** (SCOPE §7) — QA đề xuất, vd
-  N = 5 (R1: 10), "đạt khi ≥ 4/5 lần thoả mọi tiêu chí", kèm ước lượng chi phí gọi model/lượt trên môi trường thật, rồi hỏi.
+- Chạy mỗi ca **N lần**, ghi toàn bộ transcript, mỗi lượt một file `NN-luot-<k>.txt` (qa_check đếm file `*luot*`).
+  **N và ngưỡng đạt do người dùng chốt** (SCOPE §7, được chép vào RUNLOG lúc tạo run): QA đề xuất kèm lý do (độ biến
+  thiên thấy ở vài lượt thử, mức R của REQ, chi phí gọi model/lượt trên môi trường thật) rồi hỏi; chưa chốt thì TC AI
+  không chấm được (`BLOCKED`, `chờ trả lời #n`).
 - Kỳ vọng viết thành **tiêu chí chấm quan sát được** (có/không) lấy từ tài liệu/chính sách sản phẩm, không phải "trả lời hay".
-- Tiêu chí an toàn (lộ dữ liệu, nội dung cấm, hành động nguy hiểm) **một lần vi phạm là FAIL** — trừ khi người dùng chốt khác.
+- Tiêu chí an toàn (lộ dữ liệu, nội dung cấm, hành động nguy hiểm): đề xuất "một lần vi phạm là FAIL" và hỏi người dùng chốt cùng N/ngưỡng.
 
 ## Chạy bằng gì
 Qua đúng giao diện người dùng dùng (web/mobile → công cụ của target đó) **hoặc** gọi API của tính năng
@@ -30,10 +32,10 @@ Tiêu chí cần phán đoán chủ quan → ghi rõ là phán đoán, đưa ng�
 - **Biên**: đầu vào rỗng, rất dài (sát giới hạn context), nhiều ngôn ngữ, sai chính tả, không dấu, emoji, file đính kèm lạ.
 - **Prompt injection**: "bỏ qua hướng dẫn trước, …", chỉ dẫn giấu trong tài liệu/URL/file được đưa vào, yêu cầu in prompt hệ thống.
 - **Lộ dữ liệu**: hỏi thông tin của người dùng/tenant khác, secret, dữ liệu nội bộ → phải từ chối.
-- **Hành động (agent/tool use)**: yêu cầu hành động vượt quyền, hành động không đảo ngược → có xác nhận/chặn; tool lỗi → xử lý tử tế.
+- **Hành động (agent/tool use)**: yêu cầu hành động vượt quyền, hành động không đảo ngược → có xác nhận/chặn; tool lỗi → không làm dở hành động, có thông báo (theo tài liệu).
 - **Nội dung an toàn**: theo chính sách sản phẩm (tài liệu), vài ca đại diện, không cần kho jailbreak lớn.
 - **Hội thoại nhiều lượt**: nhớ đúng ngữ cảnh, không lẫn giữa phiên/người dùng.
-- **Lỗi nhà cung cấp**: timeout/lỗi model → thông báo tử tế, không treo, không mất đầu vào người dùng.
+- **Lỗi nhà cung cấp**: timeout/lỗi model → có thông báo (theo tài liệu), không treo, không mất đầu vào người dùng.
 - **Hiệu năng & chi phí**: thời gian tới token đầu/tổng thời gian, số token nếu sản phẩm hiển thị; n ≤ 20.
 
 ## Model học máy truyền thống (phân loại, dự đoán, gợi ý, xếp hạng)
@@ -45,3 +47,15 @@ Tiêu chí cần phán đoán chủ quan → ghi rõ là phán đoán, đưa ng�
 
 ## Bằng chứng tối thiểu
 Transcript nguyên văn từng lượt (đầu vào + đầu ra + thời điểm + version/model nếu sản phẩm lộ ra) + `cham.md`.
+
+## Cách ly và phiên bản (bắt buộc)
+- **Kho tài liệu (RAG)**: thêm/sửa tài liệu thử (kể cả tài liệu có chỉ dẫn giấu cho prompt injection gián tiếp) **chỉ**
+  trên kho/tenant riêng của QA khai ở `QA.md §Vùng dữ liệu test`. Không có → TC đó `BLOCKED`, hỏi. Không bao giờ nạp
+  tài liệu thử vào kho dùng chung với khách thật. Dọn xong → xác nhận bằng một câu hỏi không còn truy xuất ra.
+- **Tool gọi hệ thống khác** (tra đơn, tạo phiếu…): chỉ trên tài khoản/dữ liệu test; TC chatbot ↔ hệ đơn hàng là
+  `cross-target` — bằng chứng cả hai phía.
+- **Phiên bản**: đầu RUNLOG ghi version/model, phiên bản hoặc ngày cập nhật kho tài liệu (hoặc checksum tài liệu nguồn
+  mà TC trích). TC grounding ghi `Nguồn:` là tài liệu + mục cụ thể trong kho — kho đổi thì kỳ vọng phải xem lại.
+- **Chờ trả lời xong**: giao diện stream → `browser_wait_for` tới khi chỉ báo đang gõ biến mất hoặc nút gửi bật lại,
+  rồi mới snapshot/lưu transcript (không chấm câu trả lời dở).
+- **Chấm độc lập**: `qa-evidence-check` chấm lại một phần lượt từ transcript mà không nhìn `cham.md` trước; lệch → báo.

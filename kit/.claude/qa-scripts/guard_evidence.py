@@ -1,58 +1,49 @@
 #!/usr/bin/env python3
-"""guard_evidence.py — hook PreToolUse: bằng chứng chụp/ghi bằng tool MCP PHẢI rơi vào qa/evidence/, và bằng chứng
-đã có không bị chép ra ngoài dự án.
+"""guard_evidence.py — hook PreToolUse: thứ tool MCP ghi ra (ảnh, video, snapshot, log mạng/console, PDF, cookie)
+PHẢI rơi vào qa/evidence/, và bằng chứng đã có không bị chép ra ngoài dự án.
 
-Vì sao: `--output-dir` của MCP chỉ là mặc định — từng lời gọi vẫn khai được `filename`/`saveTo`/`output` trỏ ra
-/tmp hay Desktop; Playwright MCP tính đường dẫn TƯƠNG ĐỐI theo gốc dự án (không theo --output-dir); mobile-mcp
-quay màn hình không khai `output` thì ghi vào thư mục tạm của hệ điều hành. Bằng chứng ngoài qa/evidence/ thì
-RUNLOG không trỏ được tới, và ảnh môi trường thật mang dữ liệu thật nằm rải rác không ai dọn.
+Vì sao: `--output-dir` của MCP chỉ là mặc định — từng lời gọi vẫn khai được đường dẫn riêng trỏ ra /tmp hay Desktop;
+Playwright MCP tính đường dẫn TƯƠNG ĐỐI theo gốc dự án (không theo --output-dir); mobile-mcp quay màn hình không khai
+`output` thì ghi vào thư mục tạm của hệ điều hành. Bằng chứng ngoài qa/evidence/ thì RUNLOG không trỏ được tới, và
+dữ liệu môi trường thật (ảnh, token trong log mạng, cookie) nằm rải rác không ai dọn.
 
 Luật:
-  · tool MCP ghi file (browser_take_screenshot / browser_snapshot / browser_evaluate `filename`,
-    browser_run_code_unsafe `path:` trong code, mobile_save_screenshot `saveTo`, mobile_start_screen_recording
-    `output`): đường dẫn (tương đối tính từ gốc dự án) phải nằm dưới qa/evidence/. Không khai → cho qua (dùng
-    --output-dir), trừ quay màn hình mobile (bắt buộc khai).
-  · Bash: chỉ chặn khi chép/chuyển thứ ĐANG nằm trong qa/evidence/ ra ngoài qa/, hoặc lệnh chụp màn hình
-    (screencapture, simctl io screenshot, adb screencap/screenrecord) ghi ra ngoài qa/. Việc bình thường của dev
-    (cp ảnh vào src/assets…) không bị đụng.
-Tên server khớp theo tiền tố (mcp__browser…, mcp__mobile…) để phủ cả server riêng của agent tester.
-Fail-open khi JSON hỏng. Exit 0 cho qua · 2 chặn.
+  · mọi tool mcp__browser…/mcp__mobile… có tham số đường dẫn (filename, path, saveTo, output, outputPath, file):
+    đường dẫn (tương đối tính từ gốc dự án) phải nằm dưới qa/evidence/. Không khai → cho qua (dùng --output-dir),
+    trừ quay màn hình mobile (bắt buộc khai). browser_run_code_unsafe: soi `path:` trong code (cả template string).
+  · Bash: chặn khi chép/nén/đọc-ra thứ ĐANG nằm trong qa/evidence/ tới ngoài qa/ (cp, mv, rsync, scp, tar, zip,
+    cat > …), hoặc lệnh chụp/quay màn hình của máy (screencapture, simctl io screenshot/recordVideo, adb exec-out)
+    ghi ra ngoài qa/. `adb shell screencap /sdcard/…` (ghi trên thiết bị) đi qua. Việc bình thường của dev đi qua.
+Tách lệnh theo ; && || | xuống dòng nằm ngoài nháy. Fail-open khi JSON hỏng. Exit 0 cho qua · 2 chặn.
 """
 from __future__ import annotations
 
 import json
 import re
-import shlex
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _root import project_root  # noqa: E402
+from _root import expand, is_redir, project_root, split_commands, tokens  # noqa: E402
 
 ROOT = project_root()
 QA_DIR = ROOT / "qa"
 EVIDENCE = QA_DIR / "evidence"
-PATH_ARG = {  # hậu tố tên tool → tham số đường dẫn
-    "__browser_take_screenshot": "filename",
-    "__browser_snapshot": "filename",
-    "__browser_evaluate": "filename",
-    "__mobile_save_screenshot": "saveTo",
-    "__mobile_start_screen_recording": "output",
-}
+PATH_KEYS = ("filename", "path", "saveTo", "output", "outputPath", "file")
 HOW = ("Bằng chứng phải nằm trong qa/evidence/:\n"
        "  · khai đường dẫn TUYỆT ĐỐI dưới qa/evidence/<run-id>/<TC-ID>/ (cách nên dùng — không lẫn với tester khác)\n"
        "  · hoặc bỏ tham số đường dẫn để MCP dùng --output-dir (qa/evidence/_inbox/<vai>/)\n"
        "Đường dẫn tương đối được tính từ GỐC DỰ ÁN, không phải từ --output-dir. Xem skill qa-evidence §1.\n")
 
 
-def resolve(raw: str, base: Path) -> Path:
-    p = Path(raw).expanduser()
+def resolve(raw: str, base: Path, env: dict | None = None) -> Path:
+    p = Path(expand(raw.strip("\"'"), env or {}))
     return (p if p.is_absolute() else base / p).resolve()
 
 
 def inside(p: Path, d: Path) -> bool:
     a, b = str(p).casefold(), str(d.resolve()).casefold()   # APFS/NTFS mặc định không phân biệt hoa thường
-    return a == b or a.startswith(b.rstrip("/\\") + ("\\" if "\\" in b and "/" not in b else "/"))
+    return a == b or a.startswith(b.rstrip("/\\") + "/") or a.startswith(b.rstrip("/\\") + "\\")
 
 
 def verdict(raw: str) -> tuple[bool, str]:
@@ -73,47 +64,65 @@ def block(tool: str, why: str, extra: str = "") -> int:
     return 2
 
 
+def out_of_qa(raw: str, cwd: Path, env: dict) -> bool:
+    if re.match(r"^[\w.-]+@?[\w.-]*:", raw) and not raw.startswith("/"):      # host:path (scp/rsync từ xa)
+        return True
+    try:
+        return not inside(resolve(raw, cwd, env), QA_DIR)
+    except (OSError, ValueError):
+        return False
+
+
 def check_bash(command: str) -> tuple[bool, str]:
-    cwd = Path.cwd()
-    for seg in re.split(r"&&|\|\||;|\|", command):
-        seg = seg.strip().lstrip("(").rstrip(")").strip()
-        try:
-            toks = shlex.split(seg)
-        except ValueError:
-            toks = seg.split()
-        while toks and ("=" in toks[0] or toks[0] in ("env", "command", "sudo")):
+    cwd, env = Path.cwd(), {}
+    for seg in split_commands(command):
+        toks = tokens(seg)
+        redirs = [toks[i + 1] for i, t in enumerate(toks) if is_redir(t) and i + 1 < len(toks)]
+        toks = [t for j, t in enumerate(toks) if not is_redir(t) and not (j > 0 and is_redir(toks[j - 1]))]
+        while toks and re.match(r"^\w+=", toks[0]):
+            k, v = toks[0].split("=", 1)
+            env[k] = expand(v, env)
+            toks = toks[1:]
+        while toks and toks[0] in ("env", "command", "sudo", "time", "nohup"):
             toks = toks[1:]
         if not toks:
             continue
-        head, args = toks[0], toks[1:]
-        if head == "cd" and args:
-            cwd = resolve(args[0], cwd)
+        head, args = Path(toks[0]).name, toks[1:]
+        if head in ("cd", "pushd") and args:
+            cwd = resolve(args[0], cwd, env)
             continue
         plain = [a for a in args if not a.startswith("-")]
+        ev_args = [a for a in plain if inside(resolve(a, cwd, env), EVIDENCE)]
+        dests: list[str] = list(redirs) if ev_args else []
         if head in ("cp", "mv", "rsync", "ditto", "install", "scp") and len(plain) >= 2:
-            if "-t" in args and args.index("-t") + 1 < len(args):
-                dest = args[args.index("-t") + 1]
-                srcs = [a for a in plain if a != dest]
-            else:
-                dest, srcs = plain[-1], plain[:-1]
-            src_ev = [s for s in srcs if inside(resolve(s, cwd), EVIDENCE)]
-            remote = ":" in dest and not dest.startswith("/")
-            if src_ev and (remote or not inside(resolve(dest, cwd), QA_DIR)):
-                return False, f"chép bằng chứng {src_ev[0]} ra ngoài qa/ ({dest})"
-        shot = head == "screencapture" or (head == "xcrun" and "screenshot" in args) or \
-            (head == "adb" and any("screencap" in a or "screenrecord" in a for a in args))
+            tdir = [args[k + 1] for k, a in enumerate(args) if a == "-t" and k + 1 < len(args)]
+            dest = tdir[0] if tdir else plain[-1]
+            srcs = [a for a in plain if a != dest]
+            if any(inside(resolve(s, cwd, env), EVIDENCE) for s in srcs):
+                dests.append(dest)
+        elif head == "tar" and ev_args:
+            dests += [args[k + 1] for k, a in enumerate(args) if (a == "-f" or re.fullmatch(r"-?[a-z]*f", a)) and k + 1 < len(args)]
+        elif head == "zip" and ev_args and plain:
+            dests.append(plain[0])
+        for d in dests:
+            if out_of_qa(d, cwd, env):
+                return False, f"chép/nén bằng chứng ({ev_args[0] if ev_args else ''}) ra ngoài qa/ ({d})"
+        shot = head == "screencapture" or (head == "xcrun" and ("screenshot" in args or "recordVideo" in args)) \
+            or (head == "adb" and "shell" not in args and any("screencap" in a or "screenrecord" in a for a in args))
         if shot:
-            outs = [a for a in plain if re.search(r"\.(png|jpe?g|mp4|mov)$", a, re.I)]
-            outs += [m.group(1) for m in re.finditer(r">\s*(\S+)", seg)]
+            outs = [a for a in plain if re.search(r"\.(png|jpe?g|mp4|mov|gif|webm)$", a, re.I)] + redirs
             for o in outs:
-                if not inside(resolve(o.strip("\"'"), cwd), QA_DIR):
-                    return False, f"lệnh chụp màn hình ghi ra {o} (ngoài qa/)"
+                if out_of_qa(o, cwd, env):
+                    return False, f"lệnh chụp/quay màn hình ghi ra {o} (ngoài qa/)"
     return True, ""
 
 
 def check_code(code: str) -> tuple[bool, str]:
-    for m in re.finditer(r"""\bpath\s*:\s*['"`]([^'"`$]+)['"`]""", code or ""):
-        ok, why = verdict(m.group(1))
+    for m in re.finditer(r"""\b(?:path|filename)\s*:\s*(['"`])([^'"`]+)\1""", code or ""):
+        raw = m.group(2).split("${", 1)[0]          # template string: xét phần cố định phía trước
+        if not raw:
+            continue
+        ok, why = verdict(raw if not raw.endswith("/") else raw + "x")
         if not ok:
             return False, why
     return True, ""
@@ -129,19 +138,17 @@ def main() -> int:
     if not isinstance(ti, dict):
         return 0
     if tool.startswith(("mcp__browser", "mcp__mobile")):
-        for suffix, arg in PATH_ARG.items():
-            if tool.endswith(suffix):
-                raw = ti.get(arg)
-                if raw is None:
-                    if suffix == "__mobile_start_screen_recording":
-                        return block(tool, "thiếu `output` — mobile-mcp sẽ ghi vào thư mục tạm ngoài dự án",
-                                     "Khai `output` tuyệt đối dưới qa/evidence/<run-id>/<TC-ID>/ (video không commit).\n")
-                    return 0
-                ok, why = verdict(str(raw))
-                return 0 if ok else block(tool, why)
         if tool.endswith("__browser_run_code_unsafe"):
-            ok, why = check_code(str(ti.get("code") or ""))
+            ok, why = check_code(str(ti.get("code") or ti.get("function") or ""))
             return 0 if ok else block(tool, why)
+        for k in PATH_KEYS:
+            if isinstance(ti.get(k), str):
+                ok, why = verdict(ti[k])
+                if not ok:
+                    return block(tool, why)
+        if tool.endswith("__mobile_start_screen_recording") and not ti.get("output"):
+            return block(tool, "thiếu `output` — mobile-mcp sẽ ghi vào thư mục tạm ngoài dự án",
+                         "Khai `output` tuyệt đối dưới qa/evidence/<run-id>/<TC-ID>/ (video không commit).\n")
         return 0
     if tool == "Bash":
         ok, why = check_bash(str(ti.get("command") or ""))

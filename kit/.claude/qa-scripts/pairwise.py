@@ -54,6 +54,8 @@ def parse_constraints(specs: list[str], params: list[tuple[str, list[str]]]) -> 
             items.add((idx[0], v))
         if len(items) < 2:
             raise SystemExit(f"✗ ràng buộc `{s}` cần ít nhất 2 giá trị")
+        if len({i for i, _ in items}) < len(items):
+            raise SystemExit(f"✗ ràng buộc `{s}` có hai giá trị của CÙNG một tham số — không bao giờ khớp, xem lại")
         cons.append(items)
     return cons
 
@@ -148,11 +150,12 @@ def main() -> int:
         rows, total_pairs, left = [r for r in full if not violates(r, cons)], None, 0
     else:
         rows, total_pairs, left = allpairs(params, cons)
-    names = [n for n, _ in params]
+    esc = lambda x: x.replace("|", "\\|")
+    names = [esc(n) for n, _ in params]
     print("| # | " + " | ".join(names) + " |")
     print("|---|" + "---|" * len(names))
     for k, r in enumerate(rows, 1):
-        print(f"| {k} | " + " | ".join(r[i] for i in range(len(params))) + " |")
+        print(f"| {k} | " + " | ".join(esc(r[i]) for i in range(len(params))) + " |")
     print()
     if a.tat_ca:
         print(f"Tích đầy đủ: {len(rows)} dòng (đã bỏ {n_full - len(rows)} tổ hợp cấm).")
@@ -161,6 +164,13 @@ def main() -> int:
               + (f" · {len(cons)} ràng buộc" if cons else ""))
         if left:
             print(f"⚠ {left} cặp không dựng được dòng hợp lệ (xem lại ràng buộc)", file=sys.stderr)
+    unused = [f"{n}={v}" for i, (n, vs) in enumerate(params) for v in vs if not any(r.get(i) == v for r in rows)]
+    if unused:
+        print(f"⚠ giá trị không xuất hiện ở dòng nào (ràng buộc loại hết): {', '.join(unused)} — hỏi người dùng có đúng ý không",
+              file=sys.stderr)
+    if not rows:
+        print("✗ không dựng được dòng nào — ràng buộc loại hết mọi tổ hợp", file=sys.stderr)
+        return 1
     return 0
 
 

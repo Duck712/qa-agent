@@ -19,4 +19,4 @@ Cách làm:
    ≥ 3 ngoại lệ đã biết (mạng mất ở bước k, hết phiên ở bước k+1, dữ liệu bị người khác sửa ở bước k+2), kiểm hệ thống
    về trạng thái sạch sau mỗi ngoại lệ.
 
-Ghi `Kỹ thuật: use case` + mã luồng (`UC-DATLICH 3a`).
+Ghi `Kỹ thuật: use case` (chỉ tên chuẩn); mã luồng (`UC-DATLICH 3a`) ghi ở `Nguồn:` hoặc tiêu đề TC.

@@ -27,4 +27,4 @@ Mỗi ô: trạng thái mới, hoặc **✗ (phải bị chặn)**:
 - **Vòng đời đầy đủ** từ đầu đến trạng thái cuối — một TC workflow mỗi đường chính.
 - Chuyển do **thời gian/hệ thống** (hết hạn, job tự động) và chuyển **đồng thời** (hai người cùng duyệt/huỷ).
 
-Ghi `Kỹ thuật: chuyển trạng thái` và chuyển được kiểm (`chờ duyệt --huỷ--> ?`).
+Ghi `Kỹ thuật: chuyển trạng thái` (chỉ tên chuẩn); chuyển được kiểm (`chờ duyệt --huỷ--> ?`) ghi ở `Nguồn:` hoặc tiêu đề TC.

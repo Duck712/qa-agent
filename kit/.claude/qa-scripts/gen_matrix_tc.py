@@ -2,7 +2,7 @@
 """gen_matrix_tc.py — sinh khung TC phân quyền: MỘT TC cho MỖI ô ✗ của ma trận vai × hành động.
 
     python3 .claude/qa-scripts/gen_matrix_tc.py <file-có-ma-trận> --feature QUYEN --target <target> \
-        [--req REQ-QUYEN-1] [--out qa/testcases/phan-quyen.md] [--start 1]
+        --req REQ-QUYEN-1 --muc <R1|R2|R3 người dùng chốt> [--out qa/testcases/phan-quyen.md] [--start 1]
 
 Ma trận là bảng markdown đầu tiên có cột đầu "Hành động" và các cột vai; ô ✗ (hoặc x, ✘, không, no) là bị cấm:
 
@@ -21,22 +21,24 @@ import sys
 from pathlib import Path
 
 DENY = {"✗", "x", "✘", "✖", "✖️", "không", "no", "❌", "cấm"}
-ALLOW = {"✓", "✔", "✔️", "v", "có", "yes", "✅", "cho", ""}
+ALLOW = {"✓", "✔", "✔️", "v", "có", "yes", "✅", "cho"}
 
 
 def matrix(text: str) -> tuple[list[str], list[tuple[str, list[str]]]]:
     lines = [l.strip() for l in text.splitlines()]
+    cells_of = lambda l: [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", l.strip().strip("|"))]
     for i, l in enumerate(lines):
-        if l.startswith("|") and re.match(r"\|\s*hành động\s*\|", l, re.I):
-            roles = [c.strip() for c in l.strip("|").split("|")][1:]
+        if l.startswith("|") and re.match(r"\|\s*\**\s*hành động\b[^|]*\|", l, re.I):
+            roles = [re.sub(r"[*`]", "", c).strip() for c in cells_of(l)][1:]
             rows = []
             for r in lines[i + 2:]:
                 if not r.startswith("|"):
                     break
-                cells = [c.strip() for c in r.strip("|").split("|")]
+                cells = cells_of(r)
                 if cells and cells[0]:
                     rows.append((cells[0], cells[1:]))
-            return roles, rows
+            if any(any(c for c in cells) for _, cells in rows) and not any("<" in r for r in roles):
+                return roles, rows          # bỏ qua bảng mẫu trống / còn tên vai dạng <…>
     return [], []
 
 
@@ -45,7 +47,8 @@ def main() -> int:
     ap.add_argument("src")
     ap.add_argument("--feature", required=True)
     ap.add_argument("--target", required=True)
-    ap.add_argument("--req", default="")
+    ap.add_argument("--req", required=True, help="REQ các TC này phủ")
+    ap.add_argument("--muc", required=True, choices=["R1", "R2", "R3"], help="mức rủi ro NGƯỜI DÙNG đã chốt cho REQ — chưa có thì hỏi")
     ap.add_argument("--out")
     ap.add_argument("--start", type=int, default=0)
     a = ap.parse_args()
@@ -64,18 +67,19 @@ def main() -> int:
             first = re.split(r"[\s(]", cell.strip(), maxsplit=1)[0].lower()   # "✗ (403)" → "✗"
             if first not in DENY:
                 if first not in ALLOW:
-                    unknown.append(f"{action} × {role} = `{cell}`")
+                    unknown.append(f"{action} × {role} = `{cell or '(trống)'}`")
                 continue
             key = f"Ô ma trận: {action} × {role} = ✗"
             if key in existing:
                 skipped += 1
                 continue
             blocks.append(f"""## TC-{feat}-{n:03d} — {role} không {action.lower()} được
-- REQ: {a.req or '<REQ-…>'}
+- REQ: {a.req}
 - Target: {a.target}
 - Loại: phân-quyền
 - Kiểu: abnormal
-- Mức: R1
+- Mức: {a.muc}
+- Kỹ thuật: phân quyền
 - Nguồn: ma trận quyền ({Path(a.src).name})
 - {key}
 - Regression: có

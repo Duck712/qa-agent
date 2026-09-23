@@ -40,4 +40,11 @@
 
 - Prefix dữ liệu test: QA-
 - Cách tạo/dọn dữ liệu được phép: <!-- UI / API / lệnh sản phẩm / script qa/scripts — hỏi người dùng nếu chưa rõ -->
-- Hộp thư/số điện thoại nhận thông báo test: 
+- Hộp thư/số điện thoại nhận thông báo test:
+
+## Vùng dữ liệu test
+<!-- Cho job/pipeline, kho tài liệu AI, bucket/schema… — thứ không gắn prefix QA- được. Trống → TC đụng tới `BLOCKED`, hỏi. -->
+- Nguồn vào test (bucket/thư mục/queue):
+- Đích ra test (schema/bảng/thư mục):
+- Cách trỏ job/sản phẩm vào vùng test (cờ, biến môi trường, config):
+- Kho tài liệu / tenant AI riêng của QA:

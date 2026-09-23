@@ -31,7 +31,7 @@ lại trước mỗi lần chạm) · `mobile_click_on_screen_at_coordinates` ·
 - **Double-submit**: `mobile_double_tap_on_screen` nút gửi. **Deep link** nhảy giữa luồng / vào màn vai bị cấm.
 - **Phân quyền**: tuần tự trên một máy — A tạo, đăng xuất, B mở bản ghi của A qua deep link/API.
 - **Màn nhỏ / xoay / bàn phím**: thiết bị nhỏ nhất trong dải hỗ trợ, landscape giữa form, ô nhập cuối màn bị bàn phím che?
-- **Hình thức**: frame từ `list_elements` (vùng chạm < 44×44 là số đo được) + screenshot đối chiếu token.
+- **Hình thức**: frame từ `list_elements` (vùng chạm đo được từ frame, so ngưỡng người dùng/tài liệu chốt — tham khảo WCAG 2.2 AA 24×24 CSS px, Apple HIG 44pt, Material 48dp) + screenshot đối chiếu token.
 - **Hiệu năng**: bấm giờ launch → màn đầu tương tác được, n ≤ 10.
 - **Gián đoạn**: cuộc gọi/thông báo đến (Android emulator `adb emu gsm call 0123456789`, kết thúc `adb emu gsm cancel 0123456789`), quyền bị từ chối, pin yếu, chế độ tối, cỡ chữ lớn.
 

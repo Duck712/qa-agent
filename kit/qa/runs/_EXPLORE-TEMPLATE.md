@@ -1,12 +1,12 @@
 # Phiên khám phá — <run-id> · EXPLORE-<n>
 
-> Khuôn cho test khám phá theo phiên (SBTM). Lưu ở `qa/runs/<run-id>/EXPLORE-<n>.md`; mỗi phát hiện có bằng chứng
+> Khuôn cho test khám phá theo phiên (SBTM). Lưu ở `qa/evidence/<run-id>/EXPLORE-<n>/ghi-chep.md` (bản chính — dòng RUNLOG trỏ vào thư mục này); mỗi phát hiện có bằng chứng
 > ở `qa/evidence/<run-id>/EXPLORE-<n>/`, dòng tương ứng trong RUNLOG. Kỹ thuật: `qa-testcase-design/ky-thuat/kinh-nghiem.md` §3.
 
 - Charter: Khám phá <vùng> với <tài nguyên/kỹ thuật/tour> để tìm <loại rủi ro>
 - Người thực hiện: 
 - Bắt đầu – kết thúc: 
-- Thời lượng dự kiến: 30 | 60 | 90 phút
+- Thời lượng (người dùng chốt): <phút>
 - Target / môi trường / bản: 
 - Tỉ lệ thời gian: dựng môi trường __% · test __% · điều tra bug __%
 

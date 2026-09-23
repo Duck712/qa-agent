@@ -34,7 +34,7 @@ quét ồ ạt, dừng đọc ngay khi đã chứng minh được lỗ (một b�
 3. **A03 Chèn mã** — vài đầu vào tiêu biểu vào tìm kiếm/lọc/form/tham số CLI, chỉ quan sát server coi là dữ liệu thường. Không dùng câu lệnh ghi/xoá.
 4. **A05 Cấu hình** — CSP, X-Frame-Options/frame-ancestors, X-Content-Type-Options, Referrer-Policy; lộ stack trace; `/.env`, `/.git`, trang debug (chỉ `HEAD`/`GET`, không dò hàng loạt).
 5. **A06 Thư viện có CVE** — `npm audit --json` / `pip-audit` / `osv-scanner` / `grype` trên lockfile repo nguồn hoặc consumer (library).
-6. **A07 Xác thực & phiên** — đăng nhập sai tối đa 10 lần (tài khoản test) xem có khoá/429; token sau đăng xuất; token hết hạn; link đặt lại mật khẩu dùng lại.
+6. **A07 Xác thực & phiên** — đăng nhập sai số lần vừa đủ vượt ngưỡng khoá tài liệu nêu (không nêu → hỏi), trên tài khoản test, xem có khoá/429; token sau đăng xuất; token hết hạn; link đặt lại mật khẩu dùng lại.
 7. **A09 Dữ liệu nhạy cảm** — response/log/output CLI trả thừa trường nhạy cảm (hash mật khẩu, token, PII người khác).
 8. **A10 SSRF** — tính năng nhận URL (webhook, import, xem trước link): `127.0.0.1`, `localhost`, `0.0.0.0`, `[::1]`, IP thập phân, metadata đám mây — **trên staging**.
 9. **Secret** — `gitleaks detect` hoặc `trufflehog git file://<repo> --no-verification` trên repo nguồn, cả lịch sử.

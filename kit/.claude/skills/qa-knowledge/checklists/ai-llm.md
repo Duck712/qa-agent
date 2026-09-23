@@ -1,6 +1,6 @@
 # Checklist — Tính năng AI / LLM
 
-> Mỗi ca chạy N lần, chấm theo tiêu chí quan sát được — **N và ngưỡng đạt do người dùng chốt** (đề xuất N = 5, R1: 10) — xem `qa-targets/ai.md`.
+> Mỗi ca chạy N lần, chấm theo tiêu chí quan sát được — **N và ngưỡng đạt do người dùng chốt** (SCOPE §7) — xem `qa-targets/ai.md`.
 
 > **Mục checklist là câu hỏi để thử, không phải kỳ vọng.** Kỳ vọng lấy từ tài liệu; tài liệu không nói → điểm hỏi.
 > Không chép từ như "tử tế / rõ ràng / OK" vào Kỳ vọng. Trích nguồn trong TC: `Nguồn: <checklist> <số mục>`, vd `form-input 2.3`.

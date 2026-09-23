@@ -15,10 +15,10 @@
 - [ ] 2.3 Tổng số item (total) có khớp thực tế không, item có trùng/lọt giữa các trang không?
 
 ## 3. Method & idempotency
-- [ ] 3.1 Gọi method sai (GET endpoint của POST) → 405?
+- [ ] 3.1 Gọi method sai (GET endpoint của POST) → bị từ chối, không 500 (mã theo API doc)
 - [ ] 3.2 Gọi lại request tạo (POST) 2 lần → 2 bản ghi trùng?
 - [ ] 3.3 DELETE bản ghi đã xóa → 404 hay 500?
-- [ ] 3.4 Update bản ghi không tồn tại / của tenant khác → 404/403?
+- [ ] 3.4 Update bản ghi không tồn tại / của tenant khác → bị chặn; mã theo API doc (403 và 404 khác nhau về lộ sự tồn tại — bug-patterns #18)
 - [ ] 3.5 PUT gọi 2 lần cùng payload → cùng trạng thái cuối (PUT idempotent theo RFC 9110); PATCH idempotent **chỉ khi** API doc cam kết (PATCH kiểu "tăng thêm 1" thì không)
 - [ ] 3.6 POST có hỗ trợ `Idempotency-Key` header không? Gửi cùng key 2 lần trả cùng response?
 

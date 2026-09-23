@@ -6,8 +6,14 @@
 ## 1. Tổng quan sản phẩm
 <!-- 3–5 dòng: sản phẩm làm gì, ai dùng, target nào (web/mobile/api/desktop/cli/batch/ai/library) -->
 
-## 2. Vai người dùng
-| Vai | Mô tả | Được làm | Không được làm |
+## 2. Vai người dùng & ma trận quyền
+| Vai | Mô tả |
+|---|---|
+| | |
+
+<!-- Ma trận quyền (khuôn gen_matrix_tc.py đọc): vai là cột, mỗi hành động một dòng; ✓ = được, ✗ = bị cấm, ô chưa rõ
+     để `?` và hỏi. Hành động trên bản ghi của người khác / tenant khác là dòng riêng. -->
+| Hành động | <vai 1> | <vai 2> | chưa đăng nhập |
 |---|---|---|---|
 | | | | |
 

@@ -19,10 +19,10 @@ from pathlib import Path
 
 # tên xuất hiện như VÍ DỤ đầu ra lúc chạy — không phải file của bộ công cụ
 RUNTIME = {"qa/TRACE.md", "TRACE.md", "qa/.env", "qa/API-SURFACE.md", "cham.md", "ghi-chu.md", "out.json", "RUNLOG.md",
-           "REPORT.md", "SKILL.md", "qa/testcases/phan-quyen.md", "qa/evidence/_inbox/tester/"}
+           "REPORT.md", "SKILL.md", "ghi-chep.md", "qa/testcases/phan-quyen.md", "qa/evidence/_inbox/tester/"}
 WORKSPACE = {"QA.md", "ANALYSIS.md", "SCOPE.md", "BUGS.md", "DECISIONS.md", "LESSONS.md", "TRACE.md"}
 SCRIPTS = {"qa_check.py", "pairwise.py", "gen_matrix_tc.py", "guard_evidence.py", "guard_readonly.py"}
-QA_CHECK_CMDS = {"status", "tc", "select", "new-run", "run", "trace"}
+QA_CHECK_CMDS = {"status", "tc", "select", "new-run", "run", "trace", "release"}
 
 
 def sections(path: Path) -> set[str]:

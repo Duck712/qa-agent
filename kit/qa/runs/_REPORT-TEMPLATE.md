@@ -1,14 +1,14 @@
 # REPORT — <run-id>
 
 ## Kết luận
-<!-- Dòng đầu: ĐẠT / KHÔNG ĐẠT / CHƯA KẾT LUẬN — đúng kết luận `python3 .claude/qa-scripts/qa_check.py run <run-id>` tính ra — + một câu lý do. -->
+<!-- Dòng đầu: ĐẠT / KHÔNG ĐẠT / CHƯA KẾT LUẬN / KHÔNG ÁP DỤNG (chỉ khám phá) — đúng kết luận `python3 .claude/qa-scripts/qa_check.py run <run-id>` tính ra — + một câu lý do. -->
 
 ## Số liệu
 | Tổng TC | PASS | FAIL | BLOCKED | SKIP | Tỉ lệ PASS |
 |---|---|---|---|---|---|
 | | | | | | |
 
-So với tiêu chí đạt (SCOPE §6): <từng tiêu chí: đạt/không>
+So với tiêu chí đạt trong khối Tiêu chí của RUNLOG (chép từ SCOPE §6 lúc tạo run; chốt sau khi chạy thì nêu rõ): <từng tiêu chí: đạt/không>
 
 ## Bug
 | BUG | Severity | Trạng thái | Tóm tắt |

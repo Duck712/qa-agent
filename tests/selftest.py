@@ -158,7 +158,7 @@ def main() -> int:
              .replace('Hiện "Kiểm tra hộp thư", tài khoản ở trạng thái chờ kích hoạt', "Hệ thống hoạt động đúng")
     tcf.write_text(tcf.read_text() + "\n" + tc2)
     r = qa(proj, "tc")
-    check(r.returncode == 1 and "kỳ vọng mơ hồ" in r.stdout, "bắt kỳ vọng mơ hồ", r.stdout)
+    check(r.returncode == 1 and "kỳ vọng có từ mơ hồ" in r.stdout, "bắt kỳ vọng mơ hồ", r.stdout)
     tcf.write_text(tcf.read_text().replace("Hệ thống hoạt động đúng", 'Hiện lỗi "Email không hợp lệ", không tạo tài khoản'))
     r = qa(proj, "tc")
     check(r.returncode == 0 and "bộ TC sạch" in r.stdout, "bộ TC sạch khi đủ normal + abnormal", r.stdout)
@@ -216,7 +216,7 @@ def main() -> int:
     m.write_text(m.read_text() + "\n| Hành động | owner | member | khách |\n|---|---|---|---|\n| Sửa đơn | ✓ | ✗ | ✗ |\n| Xem đơn | ✓ | ✓ | ✗ |\n")
     out = proj / "qa/testcases/phan-quyen.md"
     g = [sys.executable, ".claude/qa-scripts/gen_matrix_tc.py", "qa/ANALYSIS.md", "--feature", "QUYEN",
-         "--target", "web", "--req", "REQ-DK-1", "--out", str(out)]
+         "--target", "web", "--req", "REQ-DK-1", "--muc", "R1", "--out", str(out)]
     r = run(g, proj)
     check(r.returncode == 0 and out.read_text().count("## TC-QUYEN-") == 3, "sinh 1 TC mỗi ô ✗ (3 ô)", r.stdout + r.stderr)
     r = run(g, proj)
@@ -298,7 +298,10 @@ def main() -> int:
     t = tcf.read_text().replace("- Mức: R1\n- Nguồn: REQ-DK-1", "- Mức: R1\n- Kỹ thuật: phân vùng, giá trị biên\n- Nguồn: REQ-DK-1", 1)
     tcf.write_text(t)
     r = qa(proj, "tc")
+    pq = proj / "qa/testcases/phan-quyen.md"; pq_txt = pq.read_text(); pq.unlink()   # TC phân quyền (họ logic) tạm tách ra
+    r = qa(proj, "tc")
     check("REQ-DK-1: mức R1 nhưng TC mới thuộc 1 họ" in r.stdout, "phân vùng + giá trị biên cùng một họ → R1 vẫn chưa đủ", r.stdout)
+    pq.write_text(pq_txt)
     tcf.write_text(t.replace("- Kỹ thuật: phân vùng, giá trị biên", "- Kỹ thuật: giá trị biên, chuyển trạng thái", 1))
     r = qa(proj, "tc")
     check("REQ-DK-1: mức R1 nhưng" not in r.stdout, "hết cảnh báo khi R1 có kỹ thuật thuộc ≥ 2 họ", r.stdout)
@@ -308,7 +311,7 @@ def main() -> int:
     tcf.write_text(tcf.read_text().replace("- Kỹ thuật: gia tri bien", "- Kỹ thuật: giá trị biên, chuyển trạng thái", 1))
     scope.write_text(sc.replace("| REQ-DK-1 | Đăng ký | web | R1 | chức năng |", "| REQ-DK-1 | Đăng ký | web | | chức năng |"))
     r = qa(proj, "tc")
-    check("REQ-DK-1: SCOPE §2 chưa có mức R người dùng xác nhận" in r.stdout,
+    check("REQ-DK-1: chưa có mức R người dùng xác nhận" in r.stdout,
           "SCOPE không ghi mức → nhắc hỏi người dùng, không tự suy mức từ TC", r.stdout)
     scope.write_text(sc)
     for f in ["ky-thuat/use-case.md", "ky-thuat/to-hop.md", "ky-thuat/oracle.md", "ky-thuat/review-tc.md", "ky-thuat/hop-trang.md"]:
@@ -375,7 +378,8 @@ def main() -> int:
     an.write_text(an0)
     mx = proj / "qa/mx.md"
     mx.write_text("| Hành động | admin | khách |\n|---|---|---|\n| Xoá | ✓ | ✗ (403) |\n| Sửa | ✓ | ✖️ |\n| Xem | ✓ | ? |\n")
-    g2 = run([sys.executable, ".claude/qa-scripts/gen_matrix_tc.py", "qa/mx.md", "--feature", "ĐƠN", "--target", "web"], proj)
+    g2 = run([sys.executable, ".claude/qa-scripts/gen_matrix_tc.py", "qa/mx.md", "--feature", "ĐƠN", "--target", "web",
+              "--req", "REQ-DK-1", "--muc", "R2"], proj)
     check(g2.stdout.count("## TC-ĐƠN-") == 2 and "ô không nhận ra" in g2.stderr,
           "gen_matrix: ô `✗ (403)`/`✖️` sinh TC, tên tính năng tiếng Việt giữ nguyên, ô lạ bị báo", g2.stdout[:300] + g2.stderr)
     import time
@@ -412,6 +416,96 @@ def main() -> int:
     if py39.exists():
         rc = run([str(py39), str(REPO / "tests/refcheck.py"), str(fresh)], tmp)
         check(rc.returncode == 0, "refcheck chạy được trên Python hệ thống (3.9)", rc.stdout + rc.stderr)
+
+
+    print("\n[12] review lần 3: kết luận sai, parse, hook đa dòng, release")
+    def mkrun(rows, crit, listed=None, name="2099-01-01-t", bug_md=None, extra=""):
+        d = proj / "qa/runs" / name
+        shutil.rmtree(d, ignore_errors=True); d.mkdir(parents=True)
+        ids = listed if listed is not None else [r[0] for r in rows]
+        body = (f"- Bắt đầu: 2099-01-01 00:00\n- Danh sách TC lúc tạo run: {', '.join(ids)}\n- Tiêu chí (test):\n{crit}{extra}\n"
+                "| TC | Kết quả | Ngày | Bằng chứng | Bug / Lý do |\n|---|---|---|---|---|\n")
+        for tid, res, note in rows:
+            e = proj / "qa/evidence" / name / tid
+            e.mkdir(parents=True, exist_ok=True); (e / "a.txt").write_text("x")
+            body += f"| {tid} | {res} | 2099-01-01 | qa/evidence/{name}/{tid}/ | {note} |\n"
+        (d / "RUNLOG.md").write_text(body)
+        return name
+    good = "  - Bug mở không được phép: S1, S2\n  - Tỉ lệ PASS tối thiểu: 95%\n  - Tỉ lệ BLOCKED tối đa: 5%\n"
+    rid = mkrun([("TC-DK-001", "PASS", "")], good.replace("95%", "R1: 100%, R2: 95%"))
+    r = qa(proj, "run", rid)
+    check("CHƯA KẾT LUẬN" in r.stdout and "không đọc được" not in r.stdout.lower() or "cần đúng một số" in r.stdout,
+          "`Tỉ lệ PASS tối thiểu: R1: 100%…` không bị đọc thành 1%", r.stdout)
+    rid = mkrun([("TC-DK-001", "PASS", ""), ("TC-DK-002", "PASS", "")], good.replace("S1, S2", "S1–S3"))
+    bugs0 = bugs.read_text()
+    bugs.write_text(bugs0 + "\n## BUG-077 — lỗi S2 chỉ ghi ở RUNLOG\n- Severity: S2\n- Trạng thái: mở\n")
+    rid = mkrun([("TC-DK-001", "PASS", ""), ("TC-DK-002", "FAIL", "BUG-077")], good.replace("S1, S2", "S1–S3"))
+    r = qa(proj, "run", rid)
+    check("KHÔNG ĐẠT" in r.stdout and "BUG-077" in r.stdout, "khoảng S1–S3 gồm S2; bug chỉ nhắc trong RUNLOG vẫn được xét", r.stdout)
+    bugs.write_text(bugs0)
+    rid = mkrun([("**TC-DK-001**", "PASS", "")], good, listed=["TC-DK-001", "TC-DK-002"])
+    r = qa(proj, "run", rid)
+    check("TC-DK-002: có trong danh sách lúc tạo run nhưng không còn dòng" in r.stdout and "CHƯA KẾT LUẬN" in r.stdout,
+          "xoá dòng TC khỏi RUNLOG bị phát hiện; ID in đậm vẫn được đọc", r.stdout)
+    rid = mkrun([("TC-DK-001", "PASS", ""), ("TC-DK-002", "SKIP", "không kịp")], good)
+    r = qa(proj, "run", rid)
+    check("SKIP phải trỏ dòng DECISIONS" in r.stdout, "SKIP không trỏ DECISIONS bị báo", r.stdout)
+    shutil.rmtree(proj / "qa/runs" / "2099-01-01-t", ignore_errors=True)
+    st_tc = proj / "qa/testcases/trang-thai.md"
+    st_tc.write_text(tc1.replace("TC-DK-001", "TC-TT-001").replace('Hiện "Kiểm tra hộp thư"', 'Đơn hiện trạng thái "Chờ xác nhận"'))
+    r = qa(proj, "select", "TC-TT-001")
+    check("TC-TT-001" in r.stdout and "bỏ" not in r.stderr, "trạng thái nghiệp vụ \"Chờ xác nhận\" không bị coi là nhãn chờ", r.stdout + r.stderr)
+    st_tc.write_text(tc1.replace("TC-DK-001", "TC-TT-001").replace("- REQ: REQ-DK-1", "- REQ: REQ-DK-1.2")
+                     .replace("Ô email nhận giá trị", "Nhập <email của người dùng thật>"))
+    r = qa(proj, "tc", "REQ-DK-1.2")
+    check("chỗ trống `<email" in r.stdout, "TC còn chỗ trống <…> bị chặn", r.stdout)
+    r2 = qa(proj, "trace")
+    check("REQ-DK-1.2" in r2.stdout, "mã REQ có dấu chấm (REQ-DK-1.2) không bị cắt", r2.stdout)
+    st_tc.unlink()
+    r = qa(proj, "tc", "REQ-DK-1")
+    check("REQ đang xét" in r.stdout and "(phạm vi: REQ-DK-1)" in r.stdout, "tc soát được theo phạm vi REQ", r.stdout)
+    ids_all = qa(proj, "select", "all").stdout.split("\n")[1:]
+    rid = mkrun([(t, "PASS", "") for t in ids_all if t.startswith("TC-")], good, name="2099-01-01-full")
+    bugs.write_text(bugs0.replace("- Trạng thái: mở", "- Trạng thái: đóng") + "\n## BUG-088 — S1 ở chỗ khác\n- Severity: S1\n- Trạng thái: mở\n- TC: TC-KHAC-001\n")
+    rr = mkrun([("TC-DK-001", "PASS", "")], good, name="2099-01-02-retest")
+    r = qa(proj, "run", rr)
+    check("NGOÀI phạm vi run này: BUG-088" in r.stdout and "chỉ trong phạm vi run này" in r.stdout,
+          "run retest ĐẠT nhưng cảnh báo bug S1 ở ngoài phạm vi", r.stdout)
+    sc_now = scope.read_text()
+    scope.write_text(sc_now.replace("- Trạng thái: NHÁP", "- Trạng thái: CHỐT"))
+    r = qa(proj, "release", rid, rr)
+    check("KẾT LUẬN PHÁT HÀNH: KHÔNG ĐẠT" in r.stdout and "BUG-088" in r.stdout, "release gộp nhiều run và xét mọi bug mở mức cấm", r.stdout)
+    scope.write_text(sc_now); bugs.write_text(bugs0)
+    for n in (rid, rr):
+        shutil.rmtree(proj / "qa/runs" / n, ignore_errors=True)
+    check(hook(proj, "guard_readonly.py", "Bash", {"command": "echo ok\nrm src/app.js"}) == 2, "hook chặn lệnh ghi ở dòng thứ hai")
+    check(hook(proj, "guard_readonly.py", "Bash", {"command": "git -c user.name=a -C src commit -am x"}) == 2, "chặn git -c … -C src commit")
+    check(hook(proj, "guard_readonly.py", "Bash", {"command": "git -C src branch --show-current"}) == 0, "git branch --show-current không bị chặn")
+    check(hook(proj, "guard_readonly.py", "Bash", {"command": "python3 -c \"open('src/x','w').write('1')\""}) == 2, "chặn python -c ghi file")
+    check(hook(proj, "guard_readonly.py", "Bash", {"command": "grep -rl a src | xargs sed -i s/a/b/"}) == 2, "chặn xargs sed -i")
+    check(hook(proj, "guard_readonly.py", "Bash", {"command": 'git commit -m "sửa; rm src/x"'}) == 0, "dấu ; trong nháy không bị tách nhầm")
+    check(hook(proj, "guard_evidence.py", "Bash", {"command": "echo x\ncp qa/evidence/r1/TC-A-001/01.png /tmp/"}) == 2, "hook bằng chứng tách lệnh nhiều dòng")
+    check(hook(proj, "guard_evidence.py", "Bash", {"command": "adb shell screencap -p /sdcard/s.png"}) == 0, "adb shell screencap (trên thiết bị) đi qua")
+    check(hook(proj, "guard_evidence.py", "mcp__browser__browser_network_requests", {"filename": "/tmp/net.txt"}) == 2, "chặn log mạng ghi ra /tmp")
+    pwu = run([sys.executable, ".claude/qa-scripts/pairwise.py", "X=1,2", "Y=a,b", "Z=p,q", "--khong", "X=1&Y=a", "--khong", "X=1&Y=b"], proj)
+    check("X=1" in pwu.stderr, "pairwise báo giá trị bị ràng buộc loại hết", pwu.stderr)
+    mx2 = proj / "qa/mx2.md"
+    mx2.write_text("| Hành động | admin | khách |\n|---|---|---|\n| Sửa | ✓ | |\n")
+    g3 = run([sys.executable, ".claude/qa-scripts/gen_matrix_tc.py", str(mx2), "--feature", "Q", "--target", "web", "--req", "REQ-DK-1"], proj)
+    check(g3.returncode != 0, "gen_matrix bắt buộc --muc (mức người dùng chốt)", g3.stderr)
+    g4 = run([sys.executable, ".claude/qa-scripts/gen_matrix_tc.py", str(mx2), "--feature", "Q", "--target", "web", "--req", "REQ-DK-1", "--muc", "R1"], proj)
+    check("(trống)" in g4.stderr, "ô trống trong ma trận bị báo, không coi là cho phép", g4.stderr)
+    stl = proj / ".claude/settings.json"
+    r = run([sys.executable, str(REPO / "install.py"), str(proj), "--update", "--settings-local"], tmp)
+    shared_guards = json.dumps(json.loads(stl.read_text())).count("guard_")
+    local_guards = json.dumps(json.loads((proj / ".claude/settings.local.json").read_text())).count("guard_")
+    check(shared_guards == 0 and local_guards == 2, "--settings-local chuyển hook sang settings.local.json, không nhân đôi", f"{shared_guards} {local_guards} {r.stdout}")
+    run([sys.executable, str(REPO / "install.py"), str(proj), "--update", "--settings-shared"], tmp)
+    check(json.dumps(json.loads(stl.read_text())).count("guard_") == 2, "--settings-shared chuyển về lại")
+    bad = tmp / "bad-shape"; (bad / ".claude").mkdir(parents=True)
+    (bad / ".claude/settings.json").write_text(json.dumps({"hooks": {"PreToolUse": {"x": 1}}}))
+    r = run([sys.executable, str(REPO / "install.py"), str(bad)], tmp)
+    check(r.returncode == 0 and "cấu trúc lạ" in r.stdout, "settings.json sai hình dạng → báo, không crash giữa chừng", r.stdout + r.stderr)
 
     print(f"\n{'=' * 50}\n  {OK} ✓ · {BAD} ✗")
     if keep:

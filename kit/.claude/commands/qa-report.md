@@ -6,7 +6,9 @@ argument-hint: <run-id>
 Run: $ARGUMENTS (trống → run mới nhất trong `qa/runs/`).
 
 1. `python3 .claude/qa-scripts/qa_check.py run <run-id>` — phải không còn lỗi hình thức; lấy **kết luận máy tính**
-   (ĐẠT / KHÔNG ĐẠT / CHƯA KẾT LUẬN) và số liệu. Còn lỗi → chỉ tự sửa lỗi **định dạng** (ngày, đường dẫn gõ sai);
+   (ĐẠT / KHÔNG ĐẠT / CHƯA KẾT LUẬN / KHÔNG ÁP DỤNG (chỉ khám phá)) và số liệu. Câu hỏi "phát hành được chưa" → dùng
+   `python3 .claude/qa-scripts/qa_check.py release <run gốc> <retest…> <reg…>` (gộp kết quả mới nhất của mọi TC trong
+   SCOPE, xét mọi bug mở mức cấm), không dùng kết luận của riêng một run retest. Còn lỗi → chỉ tự sửa lỗi **định dạng** (ngày, đường dẫn gõ sai);
    thiếu/sai bằng chứng hoặc chưa có tiêu chí → báo người dùng, họ quyết chạy lại / hạ BLOCKED / chốt tiêu chí.
    **Không** sửa bằng chứng hay đổi kết quả để hết lỗi.
 2. Nhật ký RUNLOG chưa có dòng `Đã soi bằng chứng …` → spawn `qa-evidence-check` trước, trình lệch cho người dùng.

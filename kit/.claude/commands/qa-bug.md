@@ -12,7 +12,11 @@ Bug: $ARGUMENTS
    `Bằng chứng` là thư mục evidence đã tồn tại; `Ticket:` nếu đội dùng hệ thống ngoài.
    Triệu chứng, không kết luận hộ nguyên nhân. Một bug một vấn đề. Severity ở ranh giới (S1 hay S2?) → hỏi.
 3. Cập nhật trạng thái → thêm dòng `Lịch sử` (`<ngày> <trạng thái> (<run-id>)`), không xoá dòng cũ. QA tự đổi được
-   **chỉ** `mở → đóng` khi test lại PASS có bằng chứng (và `đóng → mở` khi tái phát). Sang `không sửa`/`hoãn`/`trùng`,
+   `mở → đã sửa` khi dev/người dùng/ticket báo đã sửa (ghi nguồn vào Lịch sử); `mở`/`đã sửa → đóng` khi test lại PASS có
+   bằng chứng; `đã sửa → mở` khi test lại FAIL; `đóng → mở` khi tái phát. Bug tái hiện không ổn định (vd `3/10`: AI,
+   đồng thời, chập chờn) → test lại **đủ số lần bằng mẫu số ban đầu** (vd 10), 0 lần tái hiện mới được `đóng`, ghi `0/10`
+   vào Lịch sử (người dùng muốn số lần khác thì chốt). Cập nhật trạng thái bug TRƯỚC khi chạy `qa_check run`. Sang
+   `không sửa`/`hoãn`/`trùng`,
    hoặc đổi severity → hỏi người dùng, ghi DECISIONS trích nguyên văn, `Lịch sử` trỏ số dòng DECISIONS.
    Bug tìm từ khám phá (không có TC) → đề xuất TC tái hiện (`Nguồn: BUG-…`), người dùng duyệt thì ghi vào `TC:`.
 4. S1 → báo người dùng ngay trong chat.

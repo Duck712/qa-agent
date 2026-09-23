@@ -3,7 +3,7 @@ name: qa-knowledge
 description: >
   Kinh nghiệm kiểm thử tích luỹ qua nhiều dự án — kỹ thuật phân tích & review tài liệu (tiêu chí chất lượng yêu
   cầu, INVEST, Given–When–Then, từ yếu, đọc theo góc nhìn, yêu cầu ngầm ISO 25010, example mapping, rủi ro, phân
-  tích ảnh hưởng), checklist theo đối tượng (form, đăng nhập/phân quyền,
+  tích ảnh hưởng), checklist theo đối tượng (form, đăng nhập/phân quyền/MFA/SSO, dữ liệu cá nhân, a11y WCAG 2.2,
   upload, API, ca bất thường, thanh toán, thông báo, realtime/chat/gọi, tìm kiếm/danh sách/export, ngày giờ/
   lịch), checklist theo loại target (CLI, job/pipeline dữ liệu, AI/LLM), danh sách lỗi dev hay mắc
   (bug-patterns) và mẹo nghề (khám phá có kỷ luật, viết bug, soi yêu cầu mơ hồ, cắt phạm vi, viết báo cáo).
@@ -51,5 +51,5 @@ phải thử (`auth-login §3`, `form-input §2`, `api-common`).
 ## Luật sửa skill này
 - Mỗi dòng thêm vào là **một phép thử cụ thể** (thao tác + điều quan sát), không phải lời khuyên chung.
 - Ghi nguồn cuối dòng: `(bài học <dự án>)`.
-- Không xoá dòng vì "dự án này không dùng" — dự án khác vẫn dùng. Dòng sai thật → sửa, ghi DECISIONS.
+- Không xoá dòng vì "dự án này không dùng" — dự án khác vẫn dùng. Dòng sai thật → đề xuất sửa, người dùng duyệt mới sửa (ghi DECISIONS trích lời duyệt).
 - Kho này dùng chung nhiều dự án: bài học riêng của một sản phẩm (tên màn, tên API) → viết lại cho tổng quát trước khi thêm.

@@ -50,11 +50,12 @@ thuật đã dùng vào trường `Kỹ thuật:` của TC bằng **tên chuẩn
 |---|---|
 | dữ liệu | `phân vùng` · `giá trị biên` · `biên nhiều chiều` · `syntax` |
 | logic | `bảng quyết định` · `phân quyền` · `CRUD` · `chuyển trạng thái` · `use case` · `pairwise` · `classification tree` · `hộp trắng` |
-| oracle | `metamorphic` · `property` · `fuzz` · `đồng thời` |
+| oracle | `metamorphic` · `property` · `fuzz` · `đồng thời` · `rubric` (chấm AI theo tiêu chí) · `mốc hành vi` |
 | kinh nghiệm | `error guessing` · `checklist` · `khám phá` |
 | phi chức năng | `phi chức năng` · `a11y` · `khả dụng` · `hiệu năng` · `tương thích` · `i18n` |
 
-R1 cần kỹ thuật thuộc **≥ 2 họ** khác nhau (phân vùng + giá trị biên cùng họ "dữ liệu" — chưa đủ, vì BVA là phần mở
+Mã quy tắc/luồng/chuyển (Q3, `UC-DATLICH 3a`, `chờ duyệt --huỷ--> ?`) ghi ở `Nguồn:` hoặc tiêu đề, **không** ghi trong
+`Kỹ thuật:`. R1 cần kỹ thuật thuộc **≥ 2 họ** khác nhau (phân vùng + giá trị biên cùng họ "dữ liệu" — chưa đủ, vì BVA là phần mở
 rộng của EP, không thêm góc nhìn).
 
 ## 2. Mật độ theo mức rủi ro
@@ -74,7 +75,7 @@ Mức R của REQ do **người dùng xác nhận** ở SCOPE §2 (đề xuất 
 | Tổ hợp | pairwise + tích đầy đủ cho cặp R1 | pairwise | 1 cấu hình chính |
 
 **Mọi mức: mỗi REQ ≥ 1 TC `Kiểu: normal` và ≥ 1 TC `Kiểu: abnormal`** (đầu vào sai, thiếu quyền, trạng thái
-không hợp lệ, phụ thuộc lỗi…). `python3 .claude/qa-scripts/qa_check.py tc` đếm luật này; REQ R1 dùng < 2 kỹ thuật bị cảnh báo.
+không hợp lệ, phụ thuộc lỗi…). `python3 .claude/qa-scripts/qa_check.py tc` đếm luật này; REQ R1 có kỹ thuật thuộc < 2 họ bị cảnh báo.
 
 ## 3. Khuôn TC
 File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: `qa/testcases/_TEMPLATE.md`):
@@ -96,7 +97,7 @@ File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: 
   3. Mở lại danh sách lịch khung 09:00
 - Kỳ vọng:
   1. Khung 09:00 hiện trạng thái đã đủ chỗ và không bấm chọn được (chữ hiển thị theo REQ-DATLICH-2)
-  2. Bị từ chối, không tạo lịch (mã/thông điệp theo API doc — tài liệu chưa nêu → hỏi, ANALYSIS §5 #4)
+  2. Bị từ chối, không tạo lịch — mã/thông điệp theo câu trả lời ANALYSIS §5 #4 (chưa trả lời thì kỳ vọng này ghi `(chờ trả lời #4)` và TC chưa vào run)
   3. Vẫn đúng 3 lịch, không có lịch của QA-<run>-k1
 - Bằng chứng cần: ảnh + snapshot bước 1 · request/response nguyên văn bước 2 · ảnh/response bước 3
 ```
@@ -117,12 +118,13 @@ dòng nào trong bug. Lớp không hợp lệ vẫn mỗi dòng một lớp sai.
 quan sát được không — "hoạt động đúng" không phải kỳ vọng? (4) bằng chứng nào chứng minh PASS?
 
 ## 4. Review bộ TC
-Sau mỗi đợt viết, và khi được nhờ review TC của người khác: `python3 .claude/qa-scripts/qa_check.py tc` (hình
+Sau mỗi đợt viết, và khi được nhờ review TC của người khác: `python3 .claude/qa-scripts/qa_check.py tc [REQ-… | <tính năng>]` (hình
 thức) → `python3 .claude/qa-scripts/qa_check.py trace` (ma trận truy vết) → checklist `ky-thuat/review-tc.md` (nội dung). Trình người dùng:
 REQ × số TC normal/abnormal × kỹ thuật; lỗ phủ; TC thừa/trùng; kỳ vọng mơ hồ; mục checklist chủ động bỏ và lý do.
 
 ## 5. Ranh giới
-- Không viết TC ngoài phạm vi đã chốt — phát hiện ngoài phạm vi ghi đề xuất/`hoãn`.
+- Không viết TC ngoài phạm vi đã chốt — phát hiện ngoài phạm vi nêu thành đề xuất cho người dùng; nếu là bug thì ghi
+  `mở` như thường, chuyển `hoãn` chỉ khi người dùng quyết (DECISIONS).
 - Không sửa phạm vi/tiêu chí để hợp với TC đã viết.
 - Bug S1/S2 đã đóng → luôn có TC tái hiện với `Regression: có`.
 - Kỹ thuật là công cụ, không phải chỉ tiêu: không đẻ TC cho đủ số — TC không trả lời được câu (1) thì bỏ.

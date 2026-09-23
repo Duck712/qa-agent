@@ -27,3 +27,15 @@ dòng hỏng (sai kiểu, thiếu cột, trùng khoá, encoding lạ) · bộ l�
 ## Bằng chứng tối thiểu
 Checksum/mẫu dữ liệu vào · lệnh/cách kích + thời điểm · log job (trích đoạn có run id) · output hoặc truy vấn
 đọc output + kết quả · diff so `expected/`.
+
+## Cách ly, dữ liệu cố định, ngày chạy (bắt buộc)
+- **Job tổng hợp** (output là dòng tổng theo ngày/cửa hàng, không mang prefix được): chỉ chạy khi **cả** nguồn vào và
+  đích ra là vùng riêng của QA (`QA.md §Vùng dữ liệu test`). Không trỏ được → mọi TC `BLOCKED`, hỏi. Không bao giờ thả
+  file test vào nguồn dùng chung của job thật; `cleanup` theo prefix không dọn được dòng tổng hợp.
+- **Bộ dữ liệu cố định** của TC ở `qa/testdata/<TC-ID>/input/` + `expected/` (commit, không chứa dữ liệu thật) — dùng
+  lại được cho regression. Khi chạy: chép vào `qa/sandbox/<run>/<TC>/`. Bằng chứng ở `qa/evidence/<run>/<TC>/`:
+  `sha256sum` input/expected, lệnh kích + thời điểm, log có run id, output, diff.
+- **Ngày chạy**: tìm trong code tham số ngày (`--date`, biến môi trường, tham số DAG) để chạy cho ngày biên (29/2,
+  31/12, quanh 0h, đổi giờ mùa hè). Không có → hỏi. Không tự đổi giờ máy/container, không sửa lịch cron dùng chung.
+- **Đọc output trong DB**: là oracle bắt buộc → hỏi quyền đọc đúng bảng đích test ở bước chốt scope (SCOPE §7).
+- **Không tài liệu, không ai biết luật đúng** → đề xuất chốt hành vi hiện tại làm mốc (`qa-testcase-design/ky-thuat/oracle.md` §6).

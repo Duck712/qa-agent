@@ -21,7 +21,7 @@
 - [ ] Use case: luồng chính + mọi luồng thay thế/ngoại lệ đã biết; ngoại lệ kiểm trạng thái sạch.
 - [ ] Tổ hợp: bộ pairwise đã sinh, ràng buộc đúng, cặp R1 dùng tích đầy đủ.
 - [ ] Có code: mọi nhánh/validate/mã lỗi/điểm kiểm quyền quan trọng có TC chạm tới.
-- [ ] Không có oracle: đã chọn oracle (metamorphic/property/rubric) và ghi rõ trong TC.
+- [ ] Không có oracle: đã chọn oracle và ghi `Kỹ thuật: metamorphic` / `property` / `rubric` / `mốc hành vi` (tên chuẩn).
 
 **Chất lượng từng TC**
 - [ ] Bắt được một kiểu hỏng nêu được thành lời; không trùng TC khác (cùng lớp, cùng bước, cùng kỳ vọng → gộp).
@@ -31,7 +31,7 @@
 - [ ] Mọi giá trị cụ thể trong Kỳ vọng (con số, thông điệp, mã trạng thái) có nguồn; không nguồn → điểm hỏi, không phải kỳ vọng; không có kỳ vọng hai đáp án "A hoặc B".
 - [ ] Mỗi kỳ vọng ứng với một bước có thật; TC nhiều dòng dữ liệu ghi rõ kỳ vọng từng dòng.
 - [ ] `Mức:` khớp mức người dùng chốt ở SCOPE §2; `Kỹ thuật:` dùng tên chuẩn; REQ R1 có ≥ 2 họ kỹ thuật.
-- [ ] Mức rủi ro hợp lý; `Regression`/`Tag` đặt có chủ đích.
+- [ ] `Mức:` lệch rõ với bảng rủi ro ANALYSIS §6 → nêu thành câu hỏi cho người dùng, không tự đổi; `Regression`/`Tag` đặt có chủ đích.
 - [ ] TC tái hiện cho mọi bug S1/S2 đã đóng.
 
 ## 3. Kết quả review — trình người dùng

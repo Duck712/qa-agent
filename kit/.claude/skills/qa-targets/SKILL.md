@@ -40,7 +40,7 @@ Một sản phẩm thường có nhiều target (web + api + mobile) — mỗi t
 | tích-hợp | Dịch vụ ngoài và phụ thuộc | email/thanh toán sandbox | nguồn dữ liệu chết giữa job · model provider lỗi/timeout |
 | tương-thích | Bản cũ, dữ liệu cũ, môi trường khác | trình duyệt, API version cũ | OS/shell khác · file định dạng cũ · version thư viện cũ |
 | hình-thức | Giao diện đúng design, a11y | computed style so token | output dễ đọc, `--help` rõ, màu terminal tắt được |
-| hiệu-năng | Đủ nhanh ở mức dùng thường | p95 thời gian tải | thời gian chạy job theo kích thước dữ liệu · độ trễ/chi phí mỗi lượt gọi model |
+| hiệu-năng | Đủ nhanh ở mức dùng thường | thời gian tải (median/max) | thời gian chạy job theo kích thước dữ liệu · độ trễ/chi phí mỗi lượt gọi model |
 | bảo-mật | Lớp bảo vệ cơ bản (chỉ khi được phép) | header, phiên, IDOR | secret trong log/output · path traversal · dữ liệu nhạy cảm trong prompt/response |
 | khôi-phục | Hỏng giữa chừng rồi ra sao | đóng tab giữa form | Ctrl-C giữa lệnh · job chết giữa chừng chạy lại · retry trùng |
 
@@ -53,13 +53,18 @@ Một sản phẩm thường có nhiều target (web + api + mobile) — mỗi t
    Staging chỉ khi SCOPE ghi cho phép.
 3. **Hướng ra ngoài**: email/SMS/push chỉ tới địa chỉ test; thanh toán chỉ sandbox; webhook trỏ endpoint
    của QA. Không có đường test → TC `BLOCKED`, không "thử đại" vào địa chỉ thật.
-4. **Nhịp độ**: đo lặp n ≤ 20, giãn cách ≥ 1s; thấy 429 thì dừng. Load/stress **chỉ** khi SCOPE §7 khai
+4. **Nhịp độ** (giới hạn chung cho mọi file): đo lặp n ≤ 20, giãn cách ≥ 1s; thấy 429 thì dừng. Load/stress **chỉ** khi SCOPE §7 khai
    môi trường riêng — không bao giờ trên production hay máy dùng chung.
-5. **Bảo mật**: chỉ chứng minh lỗ, không khai thác phá; active scan chỉ khi người dùng cho phép rõ.
+5. **Bảo mật**: chỉ chứng minh lỗ, không khai thác phá; active scan chỉ khi người dùng cho phép rõ. **Ranh giới**: chuỗi
+   phá-đầu-vào tiêu biểu (một chuỗi mỗi ô, chỉ quan sát hiển thị/mã lỗi) và ca AI đại diện (checklist ai-llm 1.5–1.7, 1.9)
+   là test thường; payload có mục đích khai thác (UNION, time-based, SSRF, nhiều biến thể, jailbreak nhiều lượt có chủ
+   đích, rò secret/hạ tầng) hoặc **bất kỳ** chuỗi injection nào trên `Môi trường: production` → bảo mật, cần SCOPE §7.
 6. **Không nhầm môi trường**: trước khi chạy, so URL/host/bundle/lệnh thật với `QA.md §Môi trường`. Lệch → dừng, báo.
-7. **Lệnh phá hoại** (`rm -rf`, `DROP`, `kubectl delete`, `terraform destroy`, xoá bucket) chỉ trong
+7. **Hàng rào kỹ thuật có giới hạn**: quyền `ask` cho psql/mysql… và hook không phủ lệnh chạy qua `ssh <máy> "…"` hay
+   `docker … exec` — luật ở đây vẫn áp nguyên vẹn cho các lệnh đó; chạm DB qua đường nào cũng cần SCOPE §7 cho phép.
+8. **Lệnh phá hoại** (`rm -rf`, `DROP`, `kubectl delete`, `terraform destroy`, xoá bucket) chỉ trong
    `qa/sandbox/` hoặc tài nguyên có prefix QA — ngoài đó phải hỏi.
-8. **Thiếu công cụ** (grpcurl, websocat, xdotool, testssl.sh, simulator…) → TC dùng nó `BLOCKED`, ghi lệnh cài đề
+9. **Thiếu công cụ** (grpcurl, websocat, xdotool, testssl.sh, simulator…) → TC dùng nó `BLOCKED`, ghi lệnh cài đề
    xuất và báo người dùng; **không tự cài** (brew/pip/npm toàn máy), không tự đổi cấu hình máy/MCP.
-9. **Máy dùng chung**: giới hạn worker (Playwright ≤ 4), đóng trình duyệt/simulator/tiến trình nền khi
+10. **Máy dùng chung**: giới hạn worker (Playwright ≤ 4), đóng trình duyệt/simulator/tiến trình nền khi
    xong; việc cần container hay chạy lâu → theo quy ước máy của người dùng (CLAUDE.md toàn cục).

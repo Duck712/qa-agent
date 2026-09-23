@@ -48,7 +48,15 @@ Oracle: **không crash, không 500, không treo, lỗi có thông điệp**, và
 
 ## 5. Đồng thời (race) — dựng được, chạy được
 Bắn 2–5 request/thao tác giống nhau **cùng lúc**: script song song có barrier (luồng chờ nhau rồi cùng gửi) hoặc hai
-phiên trình duyệt bấm cùng mốc (`Promise.all`). Race không tất định → lặp ≥ 5 lần. Oracle là **trạng thái cuối** (số
+phiên trình duyệt bấm cùng mốc (`Promise.all`). Race không tất định → lặp nhiều lần; số lần đề xuất và hỏi người dùng (cân chi phí và nhịp `qa-targets` §3). Oracle là **trạng thái cuối** (số
 bản ghi, số tiền, số lượt còn lại, trạng thái đơn), không phải response từng request. Chỉ trên dữ liệu test, n nhỏ.
 `Kỹ thuật: đồng thời`. Luật an toàn: n nhỏ, giãn
 cách, chỉ trên môi trường được phép; ghi seed để tái hiện. Đầu vào gây lỗi → rút gọn tối thiểu rồi ghi bug.
+
+## 6. Chốt hành vi hiện tại (characterization / golden master)
+Dùng khi **không ai biết luật đúng** (job cũ không tài liệu, hệ di sản) nên REQ rút từ code cứ mãi `(chờ trả lời #n)`:
+1. Đề xuất với người dùng lấy hành vi hiện tại làm **mốc**; nói rõ hệ quả: test sẽ bắt thay đổi, không bắt lỗi nghiệp vụ sẵn có.
+2. Người dùng đồng ý (DECISIONS trích nguyên văn) → REQ ghi `(mốc hành vi hiện tại — DECISIONS #n)`, gỡ nhãn chờ.
+3. Chạy bản hiện tại trên bộ dữ liệu cố định `qa/testdata/<TC-ID>/input/` để sinh `expected/`; người dùng duyệt mẫu
+   `expected/` rồi mới dùng. `Kỹ thuật: mốc hành vi`.
+4. Kết quả về sau là "khớp mốc / lệch mốc" — lệch mốc → hỏi người dùng đó là sửa có chủ đích hay lỗi.

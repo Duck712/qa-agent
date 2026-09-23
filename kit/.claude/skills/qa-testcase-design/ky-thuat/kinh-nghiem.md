@@ -17,7 +17,7 @@ mục áp dụng được mà chưa có TC → viết TC; mục không áp dụn
 Mỗi phiên là một đơn vị có kiểm soát — khuôn `qa/runs/_EXPLORE-TEMPLATE.md`:
 - **Charter**: *Khám phá* <vùng> *với* <tài nguyên/kỹ thuật> *để tìm* <loại rủi ro>.
   Vd: "Khám phá luồng thanh toán với mã giảm giá và đổi số lượng giữa chừng để tìm sai tiền".
-- **Thời lượng**: 30–120 phút (chuẩn SBTM: ngắn ~60, thường ~90, dài ~120). Hết giờ thì dừng.
+- **Thời lượng**: do người dùng chốt (tham khảo SBTM: ngắn ~60, thường ~90, dài ~120 phút). Hết giờ thì dừng.
 - **Ghi chép liên tục**: đã đi đâu, dữ liệu gì, thấy gì; lỗi → bug có bằng chứng; câu hỏi → danh sách hỏi.
 - **Tỉ lệ thời gian**: dựng môi trường / test / điều tra bug — để biết phiên bị nghẽn ở đâu.
 - **Tỉ lệ đúng charter**: bao nhiêu thời gian đi đúng charter / đi lệch (cơ hội) — lệch nhiều thì charter chưa hợp.

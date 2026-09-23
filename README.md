@@ -86,7 +86,7 @@ trong `qa-targets`, cần một dự án thật để kiểm.
 | Phi chức năng | Hiệu năng/tải · 10 heuristic Nielsen · WCAG 2.2 A/AA · tương thích · tin cậy/khôi phục · i18n/l10n · cài đặt/vận hành | `ky-thuat/phi-chuc-nang.md` |
 | Review TC | Ba lớp: hình thức (`qa_check.py tc`) · truy vết (`qa_check.py trace` → `qa/TRACE.md`) · checklist nội dung theo từng kỹ thuật | `ky-thuat/review-tc.md` |
 
-Mật độ theo rủi ro: R1 ≥ 2 kỹ thuật + biên 3 giá trị + mọi ô cấm + luồng ngoại lệ · R2 phân vùng + biên + luồng
+Mật độ theo rủi ro: R1 kỹ thuật thuộc ≥ 2 họ + biên 3 giá trị + mọi ô cấm + luồng ngoại lệ · R2 phân vùng + biên + luồng
 chính/thay thế · R3 happy path + 1 ca abnormal — mọi REQ luôn có cả ca đúng lẫn ca sai. Công cụ: `pairwise.py`
 (sinh bộ tổ hợp có ràng buộc), `gen_matrix_tc.py` (TC phân quyền từ ma trận), `qa_check.py trace` (ma trận truy vết).
 
@@ -111,19 +111,19 @@ kit/
 │   ├── commands/           /qa (nhận mọi việc) + 7 lệnh tắt
 │   ├── agents/             qa-tester (1 target × 1 góc nhìn) · qa-security · qa-evidence-check
 │   ├── skills/
-│   │   ├── qa/                  danh mục 18 việc QA, luật chung, ghép theo quy trình, lưu bài học
+│   │   ├── qa/                  danh mục 19 việc QA, luật chung, ghép theo quy trình, lưu bài học
 │   │   ├── qa-targets/          web · mobile · api · desktop · cli · batch · ai · library · khác + an toàn
-│   │   ├── qa-testcase-design/  chọn kỹ thuật, mật độ theo rủi ro, khuôn TC + ky-thuat/ (10 file kỹ thuật, review TC)
+│   │   ├── qa-testcase-design/  chọn kỹ thuật, mật độ theo rủi ro, khuôn TC + ky-thuat/ (9 file kỹ thuật + review-tc)
 │   │   ├── qa-evidence/         bằng chứng theo loại test × loại target, chống test giả
 │   │   └── qa-knowledge/        checklist + bug-patterns + phân tích/review tài liệu + mẹo nghề (kho chung)
-│   ├── qa-scripts/         qa_check.py (status · tc · trace · select · new-run · run) · pairwise.py · gen_matrix_tc.py · 2 hook
+│   ├── qa-scripts/         qa_check.py (status · tc · trace · select · new-run · run · release) · pairwise.py · gen_matrix_tc.py · 2 hook
 │   └── settings.qa.json    phần gộp vào settings.json của dự án
 ├── .mcp.qa.json            Playwright MCP + mobile-mcp, version khoá cứng
 └── qa/                     workspace mẫu: QA.md · ANALYSIS · SCOPE · testcases/ · runs/ · BUGS · DECISIONS · LESSONS
 ```
 
 `qa_check.py` chỉ **báo** (không chặn): TC thiếu trường, REQ thiếu ca normal/abnormal, kỳ vọng mơ hồ, PASS không có
-bằng chứng, FAIL không có bug, và tính **kết luận ĐẠT / KHÔNG ĐẠT** theo tiêu chí ghi trước trong `SCOPE.md §6`.
+bằng chứng, FAIL không có bug, và tính **kết luận ĐẠT / KHÔNG ĐẠT** theo tiêu chí ghi trước (chép từ `SCOPE.md §6` vào RUNLOG lúc tạo run; chưa chốt → CHƯA KẾT LUẬN); `release` trả lời "phát hành được chưa" trên nhiều run.
 Hai hook nhẹ chặn thật: `guard_evidence` (ảnh/video phải nằm trong `qa/evidence/`) và `guard_readonly` (không ghi vào
 đường dẫn khai ở `qa/QA.md §Nguồn chỉ đọc`).
 

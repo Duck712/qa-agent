@@ -37,7 +37,7 @@
         ]
       },
       {
-        "matcher": "Bash|mcp__browser.*__browser_(take_screenshot|snapshot|evaluate|run_code_unsafe)|mcp__mobile.*__mobile_(save_screenshot|start_screen_recording)",
+        "matcher": "Bash|mcp__browser.*|mcp__mobile.*",
         "hooks": [
           {
             "type": "command",

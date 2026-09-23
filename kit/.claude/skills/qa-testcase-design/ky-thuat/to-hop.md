@@ -21,4 +21,4 @@ Khi tham số có cấu trúc (loại khách → cá nhân/doanh nghiệp → do
 (mỗi nhánh là một lớp phân vùng), rồi chọn tổ hợp lá: tối thiểu mỗi lá xuất hiện một lần, R1 thì pairwise giữa các nhánh.
 Cây vẽ bằng thụt dòng trong TC hoặc ANALYSIS là đủ.
 
-Ghi `Kỹ thuật: pairwise` (hoặc `classification tree`) + bảng cấu hình vào TC.
+Ghi `Kỹ thuật: pairwise` (hoặc `classification tree`); bảng cấu hình để ở phần Dữ liệu của TC.

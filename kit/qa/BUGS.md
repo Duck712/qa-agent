@@ -5,7 +5,9 @@
 > **S3** hỏng phụ, có đường vòng · **S4** lặt vặt (chữ, căn lề).
 > Trạng thái: `mở` · `đã sửa` (dev báo sửa, chờ test lại) · `đóng` (test lại đạt) · `không sửa` · `hoãn` · `trùng`.
 > Mọi trạng thái trừ `đóng`/`không sửa`/`hoãn`/`trùng` (kể cả "đã sửa (chờ test lại)") tính là **còn mở** khi xét tiêu chí.
-> **Ai đổi**: QA tự đổi `mở → đóng` chỉ khi test lại PASS (có bằng chứng). Đổi sang `không sửa`/`hoãn`/`trùng`, hoặc
+> **Ai đổi**: QA tự đổi được `mở → đã sửa` (dev/ticket báo, ghi nguồn), `mở`/`đã sửa → đóng` (test lại PASS có bằng chứng;
+> bug không ổn định phải test lại đủ số lần bằng mẫu số ban đầu), `đã sửa → mở` (test lại FAIL), `đóng → mở` (tái phát).
+> Đổi sang `không sửa`/`hoãn`/`trùng`, hoặc
 > đổi severity → **người dùng quyết**, ghi DECISIONS (trích nguyên văn) và `Lịch sử` trỏ tới dòng đó.
 > Severity chỉ theo thang trên — lộ dữ liệu/quyền của người khác luôn là S1.
 

@@ -39,10 +39,26 @@ def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()[:16]
 
 
-def render(text: str, ctx: dict) -> str:
+def render(text: str, ctx: dict, as_json: bool = False) -> str:
+    """Thay {{KHOÁ}}. as_json: escape giá trị để chèn an toàn vào chuỗi JSON/YAML (đường dẫn có \\ hoặc ")."""
     for k, v in ctx.items():
-        text = text.replace("{{" + k + "}}", v)
+        text = text.replace("{{" + k + "}}", json.dumps(v)[1:-1] if as_json else v)
     return text
+
+
+def strip_qa(cur: dict) -> None:
+    """Gỡ quyền + hook của qa-agent khỏi một settings đã đọc (dùng khi chuyển giữa settings.json và settings.local.json)."""
+    src = json.loads((KIT / ".claude" / "settings.qa.json").read_text(encoding="utf-8"))
+    perms = cur.get("permissions") if isinstance(cur.get("permissions"), dict) else {}
+    for k in ("allow", "ask", "deny"):
+        if isinstance(perms.get(k), list):
+            perms[k] = [x for x in perms[k] if x not in src["permissions"][k]]
+    hooks = cur.get("hooks", {}).get("PreToolUse") if isinstance(cur.get("hooks"), dict) else None
+    if isinstance(hooks, list):
+        for e in hooks:
+            if isinstance(e, dict) and isinstance(e.get("hooks"), list):
+                e["hooks"] = [h for h in e["hooks"] if ".claude/qa-scripts/guard_" not in json.dumps(h)]
+        hooks[:] = [e for e in hooks if not isinstance(e, dict) or e.get("hooks")]
 
 
 def kit_files() -> list[Path]:
@@ -62,7 +78,7 @@ def merge_list(dst: list, src: list) -> list:
 
 
 def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list) -> None:
-    src = json.loads(render((KIT / ".claude" / "settings.qa.json").read_text(encoding="utf-8"), ctx))
+    src = json.loads(render((KIT / ".claude" / "settings.qa.json").read_text(encoding="utf-8"), ctx, as_json=True))
     cur = {}
     if path.exists():
         try:
@@ -70,6 +86,12 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list) -> None
         except json.JSONDecodeError:
             log.append(f"  ⚠ {path} không phải JSON hợp lệ — KHÔNG gộp, thêm tay theo kit/.claude/settings.qa.json")
             return
+    shape_ok = isinstance(cur, dict) and isinstance(cur.get("permissions", {}), dict) \
+        and all(isinstance(cur.get("permissions", {}).get(k, []), list) for k in ("allow", "ask", "deny")) \
+        and isinstance(cur.get("hooks", {}), dict) and isinstance(cur.get("hooks", {}).get("PreToolUse", []), list)
+    if not shape_ok:
+        log.append(f"  ⚠ {path} có cấu trúc lạ (permissions/hooks không đúng kiểu) — KHÔNG gộp, thêm tay theo kit/.claude/settings.qa.json")
+        return
     perms = cur.setdefault("permissions", {})
     for k in ("allow", "ask", "deny"):
         merge_list(perms.setdefault(k, []), src["permissions"][k])
@@ -92,7 +114,7 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list) -> None
 def merge_mcp(path: Path, ctx: dict, dry: bool, log: list, old_mcp: dict) -> dict:
     """Thêm server browser/mobile. Server đã có mà KHÔNG phải bản qa-agent đã cài y nguyên (so băm lưu trong
     manifest) → giữ nguyên + báo, không ghi đè tinh chỉnh của người dùng. Trả về băm các server đã ghi."""
-    src = json.loads(render((KIT / ".mcp.qa.json").read_text(encoding="utf-8"), ctx))
+    src = json.loads(render((KIT / ".mcp.qa.json").read_text(encoding="utf-8"), ctx, as_json=True))
     cur = {}
     if path.exists():
         try:
@@ -100,6 +122,9 @@ def merge_mcp(path: Path, ctx: dict, dry: bool, log: list, old_mcp: dict) -> dic
         except json.JSONDecodeError:
             log.append(f"  ⚠ {path} không phải JSON hợp lệ — KHÔNG gộp, thêm tay theo kit/.mcp.qa.json")
             return old_mcp
+    if not isinstance(cur, dict) or not isinstance(cur.get("mcpServers", {}), dict):
+        log.append(f"  ⚠ {path} có cấu trúc lạ (mcpServers không phải object) — KHÔNG gộp, thêm tay theo kit/.mcp.qa.json")
+        return old_mcp
     servers = cur.setdefault("mcpServers", {})
     written: dict = {}
     for name, conf in src["mcpServers"].items():
@@ -125,6 +150,8 @@ def main() -> int:
     ap.add_argument("--name", help="tên sản phẩm (mặc định: tên thư mục)")
     ap.add_argument("--update", action="store_true", help="cập nhật phần bộ công cụ, giữ nguyên dữ liệu qa/")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--settings-shared", action="store_true",
+                    help="chuyển quyền + hook về .claude/settings.json dùng chung (gỡ khỏi settings.local.json)")
     ap.add_argument("--settings-local", action="store_true",
                     help="ghi quyền + hook vào .claude/settings.local.json (không commit) thay cho settings.json dùng chung "
                          "— nên dùng khi cài vào repo sản phẩm mà dev khác cũng dùng Claude Code")
@@ -159,8 +186,8 @@ def main() -> int:
     for src in kit_files():
         rel = src.relative_to(KIT)
         dst = proj / rel
-        data = render(src.read_text(encoding="utf-8"), ctx).encode("utf-8") if src.suffix in (".md", ".py", ".json") \
-            else src.read_bytes()
+        data = render(src.read_text(encoding="utf-8"), ctx, as_json=src.parent.name == "agents").encode("utf-8") \
+            if src.suffix in (".md", ".py", ".json") else src.read_bytes()
         if os.name == "nt" and src.suffix == ".md":
             data = data.replace(b"python3 ", b"python ")
         h = sha(data)
@@ -205,8 +232,21 @@ def main() -> int:
     log.append(f"  ✓ workspace qa/: tạo {made} file mới (file đã có giữ nguyên)")
 
     # 3–4. cấu hình
-    local = a.settings_local or old.get("settings_local", False)
-    merge_settings(proj / ".claude" / ("settings.local.json" if local else "settings.json"), ctx, py, a.dry_run, log)
+    local = False if a.settings_shared else (a.settings_local or old.get("settings_local", False))
+    target_file = proj / ".claude" / ("settings.local.json" if local else "settings.json")
+    other = proj / ".claude" / ("settings.json" if local else "settings.local.json")
+    if other.exists():                      # chuyển đích → gỡ bản qa-agent ở file kia, không để hook chạy hai lần
+        try:
+            o = json.loads(other.read_text(encoding="utf-8"))
+            before = json.dumps(o, sort_keys=True)
+            strip_qa(o)
+            if json.dumps(o, sort_keys=True) != before:
+                if not a.dry_run:
+                    other.write_text(json.dumps(o, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                log.append(f"  ✓ gỡ quyền + hook qa-agent khỏi {other.name} (chuyển sang {target_file.name})")
+        except (json.JSONDecodeError, ValueError, AttributeError):
+            log.append(f"  ⚠ {other} không đọc được — tự kiểm xem còn hook qa-agent ở đó không")
+    merge_settings(target_file, ctx, py, a.dry_run, log)
     mcp_hashes = merge_mcp(proj / ".mcp.json", ctx, a.dry_run, log, old.get("mcp", {}))
 
     # 5. manifest

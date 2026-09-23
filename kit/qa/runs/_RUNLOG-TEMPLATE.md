@@ -4,7 +4,8 @@
 > Kết quả: `PASS` · `FAIL` (cột cuối ghi BUG-…) · `BLOCKED` (cột cuối ghi lý do / `chờ trả lời #n`) · `SKIP` (cột cuối trỏ
 > dòng DECISIONS người dùng quyết) · `CHƯA CHẠY`.
 > Dòng khám phá `EXPLORE-<n>`: phát hiện bug → `FAIL` + BUG-… · câu hỏi → `BLOCKED` + `chờ trả lời #n` · phiên không thấy
-> gì → `PASS` + trỏ ghi chép phiên. Không tính vào tỉ lệ PASS.
+> gì → `PASS`, cột Bằng chứng trỏ `qa/evidence/<run-id>/EXPLORE-<n>/` (chứa `ghi-chep.md` của phiên). Không tính
+> vào tỉ lệ PASS. Run chỉ khám phá vẫn cần khối Tiêu chí (dòng "Bug mở không được phép") để kết luận.
 > Bằng chứng: thư mục `qa/evidence/<run-id>/<TC-ID>/` — phải tồn tại và không rỗng với PASS/FAIL.
 
 - Bản đang kiểm: 

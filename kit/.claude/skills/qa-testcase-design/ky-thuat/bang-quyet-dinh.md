@@ -19,19 +19,21 @@ dưới; mỗi quy tắc (cột) một TC. Ví dụ (con số minh hoạ — dù
 - Cause-effect (nguyên nhân → hệ quả, có ràng buộc "loại trừ nhau", "cần") dùng khi điều kiện phụ thuộc lẫn nhau — cùng tinh thần, vẽ quan hệ trước rồi lập bảng.
 
 ## 2. Ghép vào TC
-Mỗi cột một TC (hoặc một TC nhiều dòng dữ liệu nếu cùng bước). Ghi `Kỹ thuật: bảng quyết định` + mã quy tắc (`Q3`).
+Mỗi cột một TC (hoặc một TC nhiều dòng dữ liệu nếu cùng bước). Ghi `Kỹ thuật: bảng quyết định` (chỉ tên chuẩn); mã quy tắc (`Q3`) ghi ở `Nguồn:` hoặc tiêu đề TC.
 
 ## 3. Ma trận phân quyền
 Bảng vai × hành động (ANALYSIS §2) là bảng quyết định có hai điều kiện (vai, quan hệ với bản ghi). **Mỗi ô ✗ là
 một TC bắt buộc**, chặn phải ở **server** (gọi thẳng API/URL/lệnh), không phải UI giấu nút.
-| Hành động | Vai | Chủ bản ghi | Kỳ vọng |
+Viết ma trận đúng khuôn `gen_matrix_tc.py` đọc (ANALYSIS §2) — vai là cột, mỗi hành động một dòng, hành động trên bản
+ghi của người khác / tenant khác là **dòng riêng** (chiều IDOR):
+| Hành động | owner | viewer | chưa đăng nhập |
 |---|---|---|---|
-| Sửa đơn | owner | của mình | cho |
-| Sửa đơn | owner | tenant khác | bị chặn ở server (mã theo API doc) |
-| Sửa đơn | viewer | bất kỳ | bị chặn ở server |
-| Sửa đơn | chưa đăng nhập | — | bị chặn, yêu cầu đăng nhập |
+| Sửa đơn của mình | ✓ | ✗ | ✗ |
+| Sửa đơn của người khác cùng tenant | ✗ | ✗ | ✗ |
+| Sửa đơn của tenant khác | ✗ | ✗ | ✗ |
+Mỗi ô ✗: bị chặn ở server, không đổi dữ liệu.
 Mã cụ thể (401/403/404) lấy từ API doc; tài liệu không nói → hỏi. Lưu ý 403 và 404 khác nhau có thể lộ việc bản ghi tồn tại (bug-patterns #18).
-Ma trận lớn → `python3 .claude/qa-scripts/gen_matrix_tc.py <file> --feature QUYEN --target <t> --out qa/testcases/phan-quyen.md`.
+Ma trận lớn → `python3 .claude/qa-scripts/gen_matrix_tc.py <file> --feature QUYEN --target <t> --req <REQ> --muc <mức người dùng chốt> --out qa/testcases/phan-quyen.md` (sinh khung; chỗ `<…>` phải điền trước khi chạy — qa_check chặn TC còn chỗ trống).
 Nhớ các hành động phụ: export, download, autocomplete, đếm, thông báo, lịch sử — quyền hay chỉ gắn ở API chính.
 
 ## 4. Ma trận CRUD — vòng đời thực thể
