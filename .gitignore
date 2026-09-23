@@ -1,19 +1,4 @@
-# --- env: không bao giờ commit giá trị thật ---
-.env
-.env.*
-!environment/.env.example
-
-# --- vết chạy cục bộ ---
-.spec/
-.playwright-mcp/
 __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
-
-# --- evidence: inbox thô không commit (bản đã phân loại evidence/r<N>/ thì commit) ---
-evidence/_inbox/
-
-# --- video quá nặng cho git — ghi đường dẫn ngoài vào RUNLOG ---
-evidence/**/*.mp4
-evidence/**/*.mov

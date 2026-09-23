@@ -1,0 +1,36 @@
+{
+  "$comment": "Phần cấu hình của bộ qa-agent — install.py GỘP vào .claude/settings.json của dự án (không ghi đè phần có sẵn). Hai hook nhẹ: guard_evidence (ảnh/video phải nằm trong qa/evidence/) và guard_readonly (không ghi vào đường dẫn ở qa/QA.md §Nguồn chỉ đọc). allow cho tool MCP browser/mobile để tester không bị hỏi quyền hàng trăm lần; ask cho lệnh chạm DB và hướng ra ngoài.",
+  "permissions": {
+    "allow": [
+      "mcp__browser",
+      "mcp__mobile",
+      "Bash(python3 .claude/qa-scripts/qa_check.py:*)",
+      "Bash(python3 .claude/qa-scripts/gen_matrix_tc.py:*)"
+    ],
+    "ask": [
+      "Bash(psql:*)",
+      "Bash(mysql:*)",
+      "Bash(mongosh:*)",
+      "Bash(redis-cli:*)"
+    ],
+    "deny": [
+      "Read(qa/.env)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {"type": "command", "command": "python3", "args": ["${CLAUDE_PROJECT_DIR}/.claude/qa-scripts/guard_readonly.py"]}
+        ]
+      },
+      {
+        "matcher": "Bash|mcp__browser__browser_take_screenshot|mcp__browser__browser_run_code_unsafe|mcp__mobile__mobile_save_screenshot|mcp__mobile__mobile_start_screen_recording",
+        "hooks": [
+          {"type": "command", "command": "python3", "args": ["${CLAUDE_PROJECT_DIR}/.claude/qa-scripts/guard_evidence.py"]}
+        ]
+      }
+    ]
+  }
+}

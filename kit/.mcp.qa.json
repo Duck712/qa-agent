@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "browser": {
+      "command": "npm",
+      "args": ["exec", "-y", "--", "@playwright/mcp@{{PLAYWRIGHT_MCP_VERSION}}", "--headless", "--browser", "chromium",
+               "--isolated", "--viewport-size", "1280,800", "--output-dir", "{{EVIDENCE_INBOX}}/main"]
+    },
+    "mobile": {
+      "command": "npm",
+      "args": ["exec", "-y", "--", "@mobilenext/mobile-mcp@{{MOBILE_MCP_VERSION}}"]
+    }
+  }
+}

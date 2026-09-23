@@ -1,0 +1,9 @@
+# bí mật — không bao giờ commit
+.env
+# ảnh thô MCP đổ vào, chỗ chạy thử
+evidence/_inbox/
+sandbox/
+# video quá nặng cho git — ghi đường dẫn vào ghi-chu.md
+evidence/**/*.mp4
+evidence/**/*.mov
+evidence/**/*.webm
