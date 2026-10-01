@@ -176,6 +176,8 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list, rec: di
     new_hooks: dict = {}
     present: set = set()
     kept: set = set()
+    kit_sha = {hook_key(h): hook_sha(entry.get("matcher"), {**h, "command": py})   # hook đã giống bản kit mới → không phải sửa tay
+               for ev in events for entry in src["hooks"][ev] for h in entry["hooks"]}
     for ev in events:
         hooks = all_hooks.setdefault(ev, [])
         for e in hooks:                                       # hook qa-agent đang có: giữ bản đã sửa tay, gỡ bản nguyên gốc
@@ -186,7 +188,9 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list, rec: di
                     keep.append(h)
                     continue
                 present.add(key)
-                if tracked and key in old_hooks and hook_sha(e.get("matcher"), h) != old_hooks[key] and key not in kept:
+                cur_sha = hook_sha(e.get("matcher"), h)
+                if tracked and key in old_hooks and cur_sha != old_hooks[key] and cur_sha != kit_sha.get(key) \
+                        and key not in kept:
                     keep.append(h)
                     kept.add(key)
                     new_hooks[key] = old_hooks[key]
