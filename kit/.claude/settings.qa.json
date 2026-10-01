@@ -8,7 +8,10 @@
       "mcp__mobile",
       "Bash(python3 .claude/qa-scripts/qa_check.py:*)",
       "Bash(python3 .claude/qa-scripts/gen_matrix_tc.py:*)",
-      "Bash(python3 .claude/qa-scripts/pairwise.py:*)"
+      "Bash(python3 .claude/qa-scripts/pairwise.py:*)",
+      "PowerShell(python .claude/qa-scripts/qa_check.py:*)",
+      "PowerShell(python .claude/qa-scripts/gen_matrix_tc.py:*)",
+      "PowerShell(python .claude/qa-scripts/pairwise.py:*)"
     ],
     "ask": [
       "Bash(psql:*)",
@@ -23,7 +26,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
+        "matcher": "Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit",
         "hooks": [
           {
             "type": "command",
@@ -37,7 +40,7 @@
         ]
       },
       {
-        "matcher": "Bash|mcp__browser.*|mcp__mobile.*",
+        "matcher": "Bash|PowerShell|mcp__browser.*|mcp__mobile.*",
         "hooks": [
           {
             "type": "command",
