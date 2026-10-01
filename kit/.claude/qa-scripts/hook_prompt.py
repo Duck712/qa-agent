@@ -17,9 +17,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 PATTERNS = [
     r"lần sau", r"từ (?:giờ|nay|sau)(?: trở đi)?", r"\bđừng\b", r"không được tự", r"sai rồi", r"không phải (?:như )?(?:vậy|thế)",
     r"sao (?:lại|không|cứ)", r"tại sao (?:lại )?tự", r"tự (?:ý|suy diễn|suy ra|nghĩ ra|bịa|đoán|đặt)", r"đã (?:bảo|nói) (?:là|rồi)",
-    r"bao nhiêu lần", r"lại quên", r"nhớ (?:là|giùm|giúp|nhé|kỹ)", r"ghi nhớ", r"rút kinh nghiệm", r"\bluôn luôn\b",
-    r"không bao giờ", r"phải hỏi",
-]
+    r"bao nhiêu lần", r"lại quên", r"nhớ (?:là|giùm|giúp|nhé|kỹ)", r"ghi nhớ", r"rút kinh nghiệm", r"phải hỏi",
+]   # không dùng "luôn luôn" / "không bao giờ": hay gặp trong yêu cầu bình thường ("không bao giờ được trống") → nhắc nhầm
 
 
 def main() -> int:
@@ -27,7 +26,7 @@ def main() -> int:
     if not (q.QA / "LESSONS.md").is_file():
         return 0
     try:
-        payload = json.loads(sys.stdin.buffer.read().decode("utf-8", errors="replace"))
+        payload = json.loads(sys.stdin.buffer.read().decode("utf-8-sig", errors="replace"))
     except ValueError:
         return 0
     text = unicodedata.normalize("NFC", str(payload.get("prompt") or "")).casefold()

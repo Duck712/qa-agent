@@ -36,9 +36,10 @@ def run(args: list[str], cwd: Path, env: dict | None = None, stdin: str | None =
     return subprocess.run(args, cwd=cwd, env=e, input=stdin, text=True, capture_output=True)
 
 
-def hook(proj: Path, script: str, tool: str, ti: dict, cwd: Path | None = None) -> int:
+def hook(proj: Path, script: str, tool: str, ti: dict, cwd: Path | None = None, agent: str = "") -> int:
+    payload = {"tool_name": tool, "tool_input": ti, **({"agent_id": "a1", "agent_type": agent} if agent else {})}
     r = run([sys.executable, str(proj / ".claude/qa-scripts" / script)], cwd or proj,
-            {"CLAUDE_PROJECT_DIR": str(proj)}, json.dumps({"tool_name": tool, "tool_input": ti}))
+            {"CLAUDE_PROJECT_DIR": str(proj)}, json.dumps(payload))
     return r.returncode
 
 
@@ -69,6 +70,10 @@ def main() -> int:
     check("Sản phẩm thử" in (proj / "qa/QA.md").read_text(), "thay tên sản phẩm vào QA.md")
     leftovers = [str(p) for p in (proj / ".claude").rglob("*.md") if "{{" in p.read_text()]
     check(not leftovers, "không còn placeholder {{…}} trong .claude/", ", ".join(leftovers))
+    if os.name == "nt":
+        qc = (proj / ".claude/qa-scripts/qa_check.py").read_text(encoding="utf-8")
+        check("python3 " not in qc and qc.startswith("#!/usr/bin/env python3\n"),
+              "Windows: hướng dẫn trong script dùng `python` (python3 là lối tắt Store), shebang giữ nguyên")
     st = json.loads((proj / ".claude/settings.json").read_text())
     check("Bash(npm test:*)" in st["permissions"]["allow"] and "mcp__browser" in st["permissions"]["allow"],
           "settings.json: giữ quyền cũ + thêm quyền qa")
@@ -128,6 +133,19 @@ def main() -> int:
     check(hook(proj, "guard_readonly.py", "Bash", {"command": "cp src/app.js qa/sandbox/"}) == 0, "cho cp LẤY từ src/")
     check(hook(proj, "guard_readonly.py", "Bash", {"command": "cat src/app.js | grep log"}) == 0, "cho đọc thuần")
     check(hook(proj, "guard_readonly.py", "Bash", {"command": "cd src && rm app.js"}) == 2, "chặn cd src && rm")
+    ro = lambda tool, cmd, agent="qa-evidence-check": hook(proj, "guard_readonly.py", tool, {"command": cmd}, agent=agent)
+    check(ro("Bash", "echo PASS >> qa/runs/r1/RUNLOG.md") == 2 and
+          ro("PowerShell", "Set-Content -LiteralPath qa/runs/r1/RUNLOG.md -Value x", "qa-source-check") == 2,
+          "agent soi chỉ đọc: chặn ghi vào qa/ (Bash và PowerShell)")
+    check(ro("PowerShell", "Get-FileHash qa/evidence/r1/a.png 2>$null") == 0 and ro("Bash", "ls qa 2>nul") == 0
+          and ro("Bash", "python .claude/qa-scripts/qa_check.py run r1") == 0, "agent soi chỉ đọc: đọc/băm/chạy qa_check vẫn được")
+    bom = run([sys.executable, str(proj / ".claude/qa-scripts/guard_readonly.py")], proj, {"CLAUDE_PROJECT_DIR": str(proj)},
+              "﻿" + json.dumps({"tool_name": "Bash", "tool_input": {"command": "echo x >> src/app.js"}}))
+    check(bom.returncode == 2, "payload có BOM (PowerShell 5.1 pipe) vẫn đọc được, không lọt qua", bom.stderr)
+    scratch = (Path(tempfile.gettempdir()) / "qa-soi-nhap.txt").as_posix()
+    check(ro("Bash", f"echo x > {scratch}") == 0, "agent soi chỉ đọc: ghi ra thư mục tạm ngoài dự án vẫn được")
+    check(ro("Bash", "echo x > qa/evidence/r1/TC-A-001/note.txt", "qa-tester") == 0 and
+          ro("Bash", "echo x > qa/evidence/r1/TC-A-001/note.txt", "") == 0, "tester và phiên chính vẫn ghi qa/ bình thường")
 
     print("\n[5] qa_check tc")
     scope = proj / "qa/SCOPE.md"
@@ -871,6 +889,8 @@ def main() -> int:
                           json.dumps({"prompt": text}))
     check("LESSONS.md" in hp("Lần sau đừng tự đoán kỳ vọng nhé").stdout, "hook_prompt: câu sửa lưng → nhắc ghi bài học")
     check(hp("chạy smoke trên staging giúp").stdout.strip() == "", "hook_prompt: tin nhắn thường → im lặng")
+    check(hp("viết TC: tên hiển thị không bao giờ được trống, luôn luôn cắt khoảng trắng").stdout.strip() == "",
+          "hook_prompt: mô tả yêu cầu có 'không bao giờ'/'luôn luôn' → không nhắc nhầm")
     r = q("lessons", "--archive")
     check("Đã cất 1" in r.stdout and "kho chung" not in les.read_text() and "kho chung" in (vp / "qa/LESSONS-archive.md").read_text(),
           "lessons --archive: cất dòng đã nâng sang LESSONS-archive.md", r.stdout)
@@ -946,6 +966,33 @@ def main() -> int:
     old_an.write_text(old_an.read_text().replace("Trích nguyên văn", "Trích"))
     r = run([sys.executable, str(REPO / "install.py"), str(vp), "--update"], tmp)
     check("chưa có cột `Trích nguyên văn`" in r.stdout, "--update báo khuôn workspace cũ cần gộp tay", r.stdout)
+
+    print("\n[16b] bảng có thêm cột vẫn đọc đúng · lệnh DB qua PowerShell phải hỏi")
+    saved = {p: p.read_text() for p in (vp / "qa/ANALYSIS.md", vp / "qa/SCOPE.md", les)}
+    (vp / "qa/ANALYSIS.md").write_text(
+        "# ANALYSIS\n\n## 5. Điểm mơ hồ\n| # | Ưu tiên | Điểm chưa rõ | Đề xuất | Rủi ro nếu sai | Trả lời |\n|---|---|---|---|---|---|\n"
+        "| 1 | Cao | Câu đã trả lời | x | y | Người dùng: \"có\" |\n| 2 | Cao | Câu còn chờ | x | y | |\n\n## 6. Rủi ro\n")
+    r = q("status")
+    check("câu hỏi chờ trả lời: 1" in r.stdout and "#2 Câu còn chờ" in r.stdout and "Câu đã trả lời" not in r.stdout,
+          "ANALYSIS §5 thêm cột `Ưu tiên`: vẫn nhận đúng câu chưa trả lời", r.stdout)
+    r = run([sys.executable, str(vp / ".claude/qa-scripts/hook_session.py")], vp, {"CLAUDE_PROJECT_DIR": str(vp)})
+    check("Câu còn chờ" in r.stdout and "Câu đã trả lời" not in r.stdout, "hook đầu phiên nhắc câu hỏi còn chờ khi bảng có thêm cột", r.stdout)
+    def levels(head: str, row: str) -> str:
+        (vp / "qa/SCOPE.md").write_text(f"# SCOPE\n\n## 2. Phạm vi\n{head}\n|{'---|' * head.count('|', 1)}\n{row}\n\n## 3. Ngoài phạm vi\n")
+        return run([sys.executable, "-c", "import sys; sys.path.insert(0, '.claude/qa-scripts'); import qa_check as q; "
+                    "print(q.scope_levels(False))"], vp, {"CLAUDE_PROJECT_DIR": str(vp)}).stdout.strip()
+    sl0 = levels("| REQ | Mô tả ngắn | Target | Mức | Loại test |", "| REQ-DK-1 | Đăng ký | web | R1 | chức năng |")
+    sl = levels("| REQ | Mô tả ngắn | Target | Ghi chú | Mức | Loại test |", "| REQ-DK-1 | Đăng ký | web | R3 cũ đã bỏ | R1 | chức năng |")
+    check(sl0 == sl == "{'REQ-DK-1': 'R1'}", "SCOPE §2 thêm cột trước `Mức`: mức R vẫn đọc theo tên cột", sl0 + " | " + sl)
+    les.write_text("# LESSONS\n\n| Ngày | Loại | Ghi chú | Bài học | Nguồn | Trạng thái | Phạm vi áp |\n|---|---|---|---|---|---|---|\n"
+                   "| 2026-10-01 | cách làm | x | Hỏi trước khi chạy | lời người dùng | mới | |\n")
+    check("Bài học mới chưa áp: 1" in q("status").stdout, "LESSONS thêm cột: status vẫn đếm đúng bài `mới`", q("status").stdout)
+    for p, t in saved.items():
+        p.write_text(t)
+    ask = [x for f in ("settings.json", "settings.local.json") if (vp / ".claude" / f).is_file()
+           for x in json.loads((vp / ".claude" / f).read_text()).get("permissions", {}).get("ask", [])]
+    check(all(f"PowerShell({c}:*)" in ask for c in ("psql", "mysql", "mongosh", "redis-cli", "sqlcmd", "sqlplus")),
+          "lệnh DB qua PowerShell (Windows) cũng phải hỏi trước", json.dumps(ask))
 
     print("\n[17] cài vào thư mục chưa có")
     nd = tmp / "moi" / "du-an-dat-lich"

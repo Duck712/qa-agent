@@ -338,8 +338,8 @@ def main() -> int:
         dst = proj / rel
         data = win_npm(render(src.read_text(encoding="utf-8"), ctx, as_json=src.parent.name == "agents")).encode("utf-8") \
             if src.suffix in (".md", ".py", ".json") else src.read_bytes()
-        if os.name == "nt" and src.suffix == ".md":
-            data = data.replace(b"python3 ", b"python ")
+        if os.name == "nt" and src.suffix in (".md", ".py"):   # Windows: `python3` thường là lối tắt Microsoft Store (9009)
+            data = data.replace(b"python3 ", b"python ")         # — dòng shebang `python3\n` không bị đụng
         h = sha(data)
         key = rel.as_posix()
         if dst.exists():

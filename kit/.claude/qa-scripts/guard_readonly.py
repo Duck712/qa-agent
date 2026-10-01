@@ -10,6 +10,10 @@ file để ghi, `$(…)`/`…`, biến gán/export trước, glob. Tiền tố e
 `&`, thân heredoc (bỏ qua — là dữ liệu). Đọc thuần, cp LẤY từ đó, git chỉ liệt kê đi qua. Thư mục qa/ LUÔN ghi được.
 Lệnh PowerShell (Windows) được đổi về dạng bash tương đương trước khi soi — xem `_root.ps_commands`.
 
+Agent soi chỉ đọc (`qa-evidence-check`, `qa-source-check` — nhận ra qua trường `agent_type` của payload hook): chặn
+ghi vào MỌI chỗ trong thư mục dự án, kể cả qa/ (không được sửa RUNLOG/evidence mình đang soi); ngoài dự án (thư mục
+tạm) vẫn ghi được.
+
 Giới hạn đã biết (hàng rào phụ — luật trong skill qa vẫn áp): eval, script ngoài tự ghi, thân `python - <<EOF`,
 vòng lặp dùng biến chạy lúc thực thi, đường dẫn tính lúc chạy (`$(pwd)`). Người dùng nhờ ghi thật → gỡ đường dẫn
 khỏi dòng `Chỉ đọc:`. Fail-open khi thiếu dữ liệu. Exit 0 cho qua · 2 chặn.
@@ -30,6 +34,8 @@ from _root import (SUB_CLOSE, SUB_OPEN, drop_inputs, expand, is_redir, opt_value
 ROOT = project_root().resolve()
 QA_DIR = ROOT / "qa"
 PARTIAL = "\x01partial"                              # tên giả cho phần đường dẫn tính lúc chạy
+READONLY_AGENTS = {"qa-evidence-check", "qa-source-check"}
+STRICT = False                                       # đang chạy trong agent soi chỉ đọc → qa/ cũng không được ghi
 
 
 def fold(p: Path) -> str:
@@ -83,10 +89,10 @@ def hit(path: str, roots: list[Path], cwd: Path, env: dict, ancestor: bool = Fal
     for p in resolve(path, cwd, env):
         if p.name == PARTIAL:                              # chỉ biết thư mục: xét "nằm trong", không xét "chứa vùng chỉ đọc"
             p = p.parent
-            if not under(p, QA_DIR) and any(under(p, r) for r in roots):
+            if (STRICT or not under(p, QA_DIR)) and any(under(p, r) for r in roots):
                 return next(r for r in roots if under(p, r))
             continue
-        if under(p, QA_DIR) and not ancestor:
+        if under(p, QA_DIR) and not ancestor and not STRICT:
             continue
         for r in roots:
             if under(p, r) or (ancestor and under(r, p) and not under(p, QA_DIR)):
@@ -182,7 +188,7 @@ def check_bash(cmd: str, roots: list[Path], depth: int = 0, ps: bool = False) ->
             continue
         toks = drop_inputs(tokens(seg))
         for i, t in enumerate(toks):
-            if is_redir(t) and i + 1 < len(toks) and toks[i + 1] != "/dev/null":
+            if is_redir(t) and i + 1 < len(toks) and toks[i + 1].lower() not in ("/dev/null", "nul"):
                 r = hit(toks[i + 1], roots, cwd, env)
                 if r:
                     return r
@@ -285,11 +291,14 @@ def check_bash(cmd: str, roots: list[Path], depth: int = 0, ps: bool = False) ->
 
 
 def main() -> int:
+    global STRICT
     try:
-        payload = json.loads(sys.stdin.buffer.read().decode("utf-8", errors="replace"))
+        payload = json.loads(sys.stdin.buffer.read().decode("utf-8-sig", errors="replace"))
     except (json.JSONDecodeError, ValueError):
         return 0
-    roots = protected()
+    agent = str(payload.get("agent_type") or "").rsplit(":", 1)[-1]     # plugin:tên-agent → tên-agent
+    STRICT = agent in READONLY_AGENTS
+    roots = [ROOT] if STRICT else protected()
     if not roots:
         return 0
     tool = str(payload.get("tool_name") or "")
@@ -299,6 +308,11 @@ def main() -> int:
         r = hit(str(ti.get("file_path") or ti.get("notebook_path") or ""), roots, ROOT, {})
     elif tool in ("Bash", "PowerShell"):
         r = check_bash(str(ti.get("command") or ""), roots, ps=tool == "PowerShell")
+    if r and STRICT:
+        sys.stderr.write(
+            f"CHẶN {tool} — agent `{agent}` chỉ đọc: không ghi vào thư mục dự án (kể cả qa/).\n"
+            "Việc của bạn là soi và trả danh sách lệch; phiên chính mới sửa RUNLOG/tài liệu. Cần file nháp → ghi ra thư mục tạm.\n")
+        return 2
     if r:
         sys.stderr.write(
             f"CHẶN {tool} — `{r}` là nguồn CHỈ ĐỌC (qa/QA.md §Nguồn chỉ đọc).\n"

@@ -244,15 +244,15 @@ def scope_reqs() -> list[str]:
 
 
 def scope_levels(include_old: bool = True) -> dict[str, str]:
-    """REQ → mức R người dùng đã xác nhận ở SCOPE §2 (cột 4). REQ không có trong SCOPE hiện tại → tìm ở SCOPE-<đợt>.md
-    cũ (REQ đã phát hành, còn regression). Không suy từ TC."""
+    """REQ → mức R người dùng đã xác nhận ở SCOPE §2 (cột `Mức`, đọc theo tên). REQ không có trong SCOPE hiện tại → tìm ở
+    SCOPE-<đợt>.md cũ (REQ đã phát hành, còn regression). Không suy từ TC."""
     out: dict[str, str] = {}
     files = [scope_file()] + (sorted(QA.glob("SCOPE-*.md"), key=lambda p: p.stat().st_mtime, reverse=True) if include_old else [])
     for f in files:
-        for r in scope_rows(read(f)):
-            m = re.search(r"\bR[1-3]\b", r[3].upper()) if len(r) >= 4 else None
+        for r in table_dicts(section(read(f), "2."), "REQ"):
+            m = re.search(r"\bR[1-3]\b", col(r, "mức").upper())
             if m:
-                for req in req_ids(r[0]):
+                for req in req_ids(r.get("req", "")):
                     out.setdefault(req, m.group())
     return out
 
@@ -279,9 +279,14 @@ def waiting_reqs() -> set[str]:
 
 
 def open_questions() -> list[str]:
-    rows = table_rows(section(read(QA / "ANALYSIS.md"), "5."))
-    return [f"#{r[0]} {r[1]}" for r in rows
-            if len(r) >= 2 and r[1] and not r[1].startswith("<") and (len(r) < 5 or not r[4])]
+    """Câu hỏi ANALYSIS §5 chưa có Trả lời — đọc cột theo tên (bảng thêm cột, vd `Ưu tiên`, vẫn đúng)."""
+    rows = table_dicts(re.sub(r"<!--.*?-->", "", section(read(QA / "ANALYSIS.md"), "5."), flags=re.S), "#")
+    out = []
+    for r in rows:
+        q = col(r, "điểm chưa rõ", "câu hỏi")
+        if q and not q.startswith("<") and not plain(col(r, "trả lời")):
+            out.append(f"#{r.get('#', '')} {q}")
+    return out
 
 
 def target_types() -> dict[str, str]:
@@ -1723,7 +1728,7 @@ def cmd_status() -> int:
         return 1
     tcs, _ = load_tcs()
     bugs = load_bugs()
-    lessons = [r for r in table_rows(read(QA / "LESSONS.md")) if len(r) >= 5 and plain(r[4]).lower() == "mới"]
+    lessons = [r for r in lesson_rows() if r["state"] == "mới"]
     qa_md = read(QA / "QA.md")
     print(f"Workspace: {QA}")
     print(f"Quy trình: {field(qa_md, 'Quy trình') or '(chưa ghi)'} · Việc tiếp theo: {field(qa_md, 'Việc tiếp theo') or '(chưa ghi)'}")

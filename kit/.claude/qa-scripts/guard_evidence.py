@@ -198,7 +198,7 @@ def check_mcp(tool: str, name: str, ti: dict, depth: int = 0) -> int:
 
 def main() -> int:
     try:
-        payload = json.loads(sys.stdin.buffer.read().decode("utf-8", errors="replace"))
+        payload = json.loads(sys.stdin.buffer.read().decode("utf-8-sig", errors="replace"))
     except (json.JSONDecodeError, ValueError):
         return 0
     tool = str(payload.get("tool_name") or "")
