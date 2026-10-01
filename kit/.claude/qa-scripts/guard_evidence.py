@@ -15,6 +15,7 @@ Luật:
   · Bash: chặn khi chép/nén/đọc-ra thứ ĐANG nằm trong qa/evidence/ tới ngoài qa/ (cp, mv, rsync, scp, tar, zip,
     cat > …), hoặc lệnh chụp/quay màn hình của máy (screencapture, simctl io screenshot/recordVideo, adb exec-out)
     ghi ra ngoài qa/. `adb shell screencap /sdcard/…` (ghi trên thiết bị) đi qua. Việc bình thường của dev đi qua.
+  · PowerShell: như Bash, sau khi đổi cmdlet/alias (Copy-Item, Compress-Archive, Get-Content > …) về dạng bash.
 Tách lệnh theo ; && || | xuống dòng nằm ngoài nháy. Fail-open khi JSON hỏng. Exit 0 cho qua · 2 chặn.
 """
 from __future__ import annotations
@@ -25,7 +26,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _root import PSUB_TOKEN, SUB_CLOSE, SUB_OPEN, drop_inputs, expand, is_redir, opt_value, project_root, split_commands, tokens  # noqa: E402
+from _root import (PSUB_TOKEN, SUB_CLOSE, SUB_OPEN, drop_inputs, expand, is_redir, opt_value,  # noqa: E402
+                   project_root, ps_commands, split_commands, tokens)
 
 ROOT = project_root()
 QA_DIR = ROOT / "qa"
@@ -69,7 +71,8 @@ def block(tool: str, why: str, extra: str = "") -> int:
 
 
 def out_of_qa(raw: str, cwd: Path, env: dict) -> bool:
-    if re.match(r"^[\w.-]+@?[\w.-]*:", raw) and not raw.startswith("/"):      # host:path (scp/rsync từ xa)
+    if re.match(r"^[\w.-]+@?[\w.-]*:", raw) and not raw.startswith("/") \
+            and not re.match(r"^[A-Za-z]:[/\\]", raw):                        # host:path (scp/rsync từ xa), trừ C:/…
         return True
     try:
         return not inside(resolve(raw, cwd, env), QA_DIR)
@@ -77,11 +80,11 @@ def out_of_qa(raw: str, cwd: Path, env: dict) -> bool:
         return False
 
 
-def check_bash(command: str) -> tuple[bool, str]:
+def check_bash(command: str, ps: bool = False) -> tuple[bool, str]:
     cwd, env = Path.cwd(), {}
     stack: list[list] = []                                   # [cwd trước subshell, subshell có xuất nội dung bằng chứng?]
     sub_ev = False                                           # subshell vừa đóng có xuất bằng chứng → redirect sau `)` là đích
-    for seg in split_commands(command):
+    for seg in (ps_commands(command) if ps else split_commands(command)):
         if seg == SUB_OPEN:
             stack.append([cwd, False])
             continue
@@ -204,9 +207,9 @@ def main() -> int:
         return 0
     if tool.startswith(("mcp__browser", "mcp__mobile")):
         return check_mcp(tool, tool.rsplit("__", 1)[-1], ti)
-    if tool == "Bash":
-        ok, why = check_bash(str(ti.get("command") or ""))
-        return 0 if ok else block("lệnh Bash", why)
+    if tool in ("Bash", "PowerShell"):
+        ok, why = check_bash(str(ti.get("command") or ""), ps=tool == "PowerShell")
+        return 0 if ok else block(f"lệnh {tool}", why)
     return 0
 
 

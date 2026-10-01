@@ -8,6 +8,7 @@ curl -o/--output, wget -O, unzip -d, tar -x -C, find -delete/-exec, xargs với 
 -C, -c, --work-tree, pathspec, chạy ở gốc repo khi thư mục chỉ đọc nằm bên trong), `bash -c`/`sh -lc`, `python -c` mở
 file để ghi, `$(…)`/`…`, biến gán/export trước, glob. Tiền tố env/sudo/timeout/nice/nohup, từ khoá do/then/!, lệnh nền
 `&`, thân heredoc (bỏ qua — là dữ liệu). Đọc thuần, cp LẤY từ đó, git chỉ liệt kê đi qua. Thư mục qa/ LUÔN ghi được.
+Lệnh PowerShell (Windows) được đổi về dạng bash tương đương trước khi soi — xem `_root.ps_commands`.
 
 Giới hạn đã biết (hàng rào phụ — luật trong skill qa vẫn áp): eval, script ngoài tự ghi, thân `python - <<EOF`,
 vòng lặp dùng biến chạy lúc thực thi, đường dẫn tính lúc chạy (`$(pwd)`). Người dùng nhờ ghi thật → gỡ đường dẫn
@@ -23,7 +24,8 @@ import unicodedata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _root import SUB_CLOSE, SUB_OPEN, drop_inputs, expand, is_redir, opt_value, project_root, split_commands, tokens  # noqa: E402
+from _root import (SUB_CLOSE, SUB_OPEN, drop_inputs, expand, is_redir, opt_value, project_root,  # noqa: E402
+                   ps_commands, split_commands, tokens)
 
 ROOT = project_root().resolve()
 QA_DIR = ROOT / "qa"
@@ -165,13 +167,13 @@ def git_hit(rest: list[str], roots, cwd, env) -> Path | None:
     return None
 
 
-def check_bash(cmd: str, roots: list[Path], depth: int = 0) -> Path | None:
+def check_bash(cmd: str, roots: list[Path], depth: int = 0, ps: bool = False) -> Path | None:
     cwd0 = Path.cwd()
     cwd = cwd0
     env: dict = {}
     prev: list[str] = []
     stack: list[Path] = []
-    for seg in split_commands(cmd):
+    for seg in (ps_commands(cmd) if ps else split_commands(cmd)):
         if seg == SUB_OPEN:                                # ( cd src && … ): cd không ra khỏi subshell
             stack.append(cwd)
             continue
@@ -295,8 +297,8 @@ def main() -> int:
     r = None
     if tool in ("Write", "Edit", "MultiEdit", "NotebookEdit"):
         r = hit(str(ti.get("file_path") or ti.get("notebook_path") or ""), roots, ROOT, {})
-    elif tool == "Bash":
-        r = check_bash(str(ti.get("command") or ""), roots)
+    elif tool in ("Bash", "PowerShell"):
+        r = check_bash(str(ti.get("command") or ""), roots, ps=tool == "PowerShell")
     if r:
         sys.stderr.write(
             f"CHẶN {tool} — `{r}` là nguồn CHỈ ĐỌC (qa/QA.md §Nguồn chỉ đọc).\n"

@@ -220,6 +220,167 @@ def tokens(seg: str) -> list[str]:
     return out
 
 
+# ---- PowerShell: chuyển lệnh về dạng bash tương đương để các guard soi chung một đường ----
+# Không phải trình phân tích PowerShell đầy đủ: bắt cmdlet/alias ghi-xoá-chép phổ biến, tham số có tên (-Path, -Destination,
+# -FilePath, -OutFile, -DestinationPath…, cả viết tắt ≥3 ký tự và -Path:x), redirect (> >> 2> *>), khối { … },
+# `cmd /c "…"`, `powershell -Command "…"`, [IO.File]::Write…/Copy/Move/Delete, gán `$x = '…'`.
+# Giới hạn đã biết: biến tính lúc chạy, pipeline đưa đường dẫn qua $_, Invoke-Expression, script .ps1 ngoài.
+PS_CMD = {
+    **dict.fromkeys(("remove-item", "ri", "del", "erase", "rd", "rmdir", "rm"), "rm"),
+    **dict.fromkeys(("move-item", "mi", "move", "mv"), "mv"),
+    **dict.fromkeys(("rename-item", "rni", "ren"), "ren"),
+    **dict.fromkeys(("copy-item", "cpi", "copy", "cp"), "cp"),
+    **dict.fromkeys(("set-content", "sc", "add-content", "ac", "clear-content", "clc", "out-file", "tee-object", "tee",
+                     "export-csv", "epcsv", "export-clixml", "set-item", "si", "clear-item", "cli"), "write"),
+    **dict.fromkeys(("new-item", "ni", "mkdir", "md"), "new"),
+    **dict.fromkeys(("invoke-webrequest", "iwr", "invoke-restmethod", "irm", "curl", "wget", "start-bitstransfer"), "web"),
+    "expand-archive": "unzip", "compress-archive": "zip",
+    **dict.fromkeys(("get-content", "gc", "type"), "cat"),
+    **dict.fromkeys(("set-location", "sl", "cd", "chdir", "push-location", "pushd"), "cd"),
+    **dict.fromkeys(("pop-location", "popd"), "popd"),
+    "cmd": "cmd", "powershell": "ps", "pwsh": "ps",
+}
+PS_VALUE = ("path", "literalpath", "destination", "filepath", "outfile", "destinationpath", "value", "encoding", "name",
+            "itemtype", "type", "target", "include", "exclude", "filter", "newname", "uri", "method", "body", "headers",
+            "contenttype", "inputobject", "delimiter", "width", "credential", "erroraction", "warningaction",
+            "informationaction", "outvariable", "errorvariable", "stream", "command", "totalcount", "tail", "readcount",
+            "depth", "source")
+PS_HERESTR = re.compile(r"@(['\"])\r?\n.*?\r?\n\1@", re.S)
+PS_FILE_API = re.compile(r"""\[(?:System\.)?IO\.(?:File|Directory)\]::(\w+)\(\s*['"]([^'"]+)['"](?:\s*,\s*['"]([^'"]+)['"])?""", re.I)
+
+
+def ps_prepare(cmd: str) -> str:
+    """Đưa văn bản PowerShell về cú pháp mà split_commands/tokens hiểu."""
+    cmd = PS_HERESTR.sub("''", cmd)                        # here-string @'…'@ là dữ liệu
+    cmd = re.sub(r"`\r?\n", " ", cmd)                      # ` cuối dòng = nối dòng
+    cmd = re.sub(r"`(.)", r"\1", cmd)                      # ` là ký tự thoát của PowerShell (không phải subshell)
+    cmd = cmd.replace("\\", "/")                           # \ trong PowerShell là chữ thường — đường dẫn Windows
+    cmd = re.sub(r"\$env:(\w+)", r"$\1", cmd, flags=re.I)
+    cmd = re.sub(r"\$null\b", "/dev/null", cmd, flags=re.I)
+    cmd = re.sub(r"\$home\b", "~", cmd, flags=re.I)
+    cmd = re.sub(r"\*>", ">", cmd)                         # *> = mọi luồng
+    return re.sub(r"(?<![$@])[{}]", ";", cmd)              # khối { … } (ForEach-Object, if): soi lệnh bên trong
+
+
+def _ps_params(rest: list[str]) -> tuple[dict, list[str], list[str]]:
+    named: dict[str, list[str]] = {}
+    pos: list[str] = []
+    switches: list[str] = []
+    i = 0
+    while i < len(rest):
+        t = rest[i]
+        m = re.fullmatch(r"-([A-Za-z][\w-]*)(?::(.*))?", t)
+        if m:
+            name = m.group(1).lower()
+            full = [k for k in PS_VALUE if k == name] or \
+                ([k for k in PS_VALUE if k.startswith(name)] if len(name) >= 3 else [])
+            key = full[0] if len(full) == 1 else name
+            if m.group(2) is not None:
+                named.setdefault(key, []).append(m.group(2))
+            elif len(full) == 1 and i + 1 < len(rest):
+                named.setdefault(key, []).append(rest[i + 1])
+                i += 1
+            else:
+                switches.append(name)
+        elif not re.fullmatch(r"/[A-Za-z?]", t):            # /s /q của cmd là cờ
+            pos.append(t)
+        i += 1
+    return named, pos, switches
+
+
+def ps_segment(seg: str, depth: int = 0) -> list[str]:
+    """Một lệnh PowerShell → danh sách lệnh dạng bash (đã quote) cho guard soi."""
+    m = re.fullmatch(r"\s*\$(\w+)\s*=\s*(['\"]?)([^'\"]*)\2\s*", seg)
+    if m:                                                  # $D = 'src' → D=src (để $D phía sau mở rộng được)
+        return [f"{m.group(1)}={shlex.quote(m.group(3))}"]
+    out: list[str] = []
+    for fm in PS_FILE_API.finditer(seg):
+        op, a, b = fm.group(1).lower(), fm.group(2), fm.group(3)
+        if op in ("copy", "move") and b:
+            out.append(f"{'cp' if op == 'copy' else 'mv'} {shlex.quote(a)} {shlex.quote(b)}")
+        elif op.startswith(("write", "append", "create", "delete", "open")):
+            out.append(f"touch {shlex.quote(a)}")
+    toks = tokens(seg)
+    redirs: list[str] = []
+    plain: list[str] = []
+    k = 0
+    while k < len(toks):
+        if is_redir(toks[k]) and k + 1 < len(toks):
+            redirs += [toks[k], shlex.quote(toks[k + 1])]
+            k += 2
+            continue
+        plain.append(toks[k])
+        k += 1
+    while plain and plain[0] in ("&", "."):
+        plain = plain[1:]
+    if not plain:
+        return out + [seg]
+    head_raw = Path(plain[0]).name.lower()
+    head = re.sub(r"\.(exe|cmd|bat)$", "", head_raw)
+    grp = PS_CMD.get(head)
+    if grp is None or (head_raw != head and grp in ("web", "write", "rm", "cp", "mv")):   # curl.exe, tee.exe…: bản gốc
+        return out + [seg]
+    named, pos, sw = _ps_params(plain[1:])
+    q = lambda xs: " ".join(shlex.quote(x) for x in xs)
+    get = lambda *keys: [v for key in keys for v in named.get(key, [])]
+    tail = (" " + " ".join(redirs)) if redirs else ""
+    src = get("path", "literalpath", "source")
+    if grp == "rm":
+        targets = src + pos
+        rec = any(s.startswith("r") for s in sw) or head in ("rd", "rmdir")     # rd /s: cờ /s đã bị lọc
+        out.append(f"rm {'-r ' if rec else ''}{q(targets)}{tail}")
+    elif grp in ("mv", "cp"):
+        dest = get("destination")
+        if src:
+            dest = dest or pos[:1]
+        else:
+            src, dest = pos[:1], dest or pos[1:2]
+        out.append(f"{grp} {q(src)} {q(dest or ['.'])}{tail}")
+    elif grp == "ren":
+        out.append(f"mv {q(src or pos[:1])}{tail}")
+    elif grp == "write":
+        out.append(f"touch {q(get('filepath') or src or pos[:1])}{tail}")
+    elif grp == "new":
+        base = src or pos[:1]
+        names = get("name")
+        targets = [f"{b.rstrip('/')}/{n}" for b in (base or ["."]) for n in names] if names else base
+        out.append(f"touch {q(targets)}{tail}")
+    elif grp == "web":
+        dest = get("outfile")
+        out.append(f"touch {q(dest)}{tail}" if dest else f"true{tail}")
+    elif grp == "unzip":
+        out.append(f"touch {q(get('destinationpath') or pos[1:2] or ['.'])}{tail}")
+    elif grp == "zip":
+        dest = get("destinationpath") or (pos[:1] if src else pos[1:2])
+        srcs = src or pos[:1]
+        out += [f"zip {q(dest)} {q(srcs)}{tail}", f"touch {q(dest)}"]
+    elif grp == "cat":
+        out.append(f"cat {q(src or pos)}{tail}")
+    elif grp == "cd":
+        out.append(f"cd {q(src or pos[:1])}" if (src or pos) else "cd")
+    elif grp == "popd":
+        out.append("popd")
+    elif grp in ("cmd", "ps") and depth < 3:
+        rest = plain[1:]
+        pat = r"/[ck]" if grp == "cmd" else r"[-/]c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?"
+        idx = next((j for j, a in enumerate(rest) if re.fullmatch(pat, a, re.I)), None)
+        if idx is None:
+            return out + [seg]
+        inner = " ".join(rest[idx + 1:])
+        out += [SUB_OPEN, *ps_commands(inner, depth + 1), SUB_CLOSE]
+    else:
+        return out + [seg]
+    return out
+
+
+def ps_commands(cmd: str, depth: int = 0) -> list[str]:
+    """Như split_commands nhưng cho PowerShell: mỗi lệnh đã đổi sang dạng bash tương đương."""
+    out: list[str] = []
+    for seg in split_commands(ps_prepare(cmd)):
+        out.extend([seg] if seg in (SUB_OPEN, SUB_CLOSE) else ps_segment(seg, depth))
+    return out
+
+
 def expand(tok: str, env: dict) -> str:
     """Mở rộng ~, $HOME, ${F:-mặc định} và biến đã gán/export trước đó trong cùng lệnh."""
     def sub(m: re.Match) -> str:
