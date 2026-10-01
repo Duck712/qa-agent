@@ -3,9 +3,10 @@ name: qa-tester
 description: Chạy một nhóm test case trên MỘT target (hoặc đủ các target của TC cross-target) theo MỘT góc nhìn (chức năng, biên, phá-đầu-vào, phân-quyền, api, workflow, tích-hợp, tương-thích, hình-thức, hiệu-năng, khôi-phục, cross-target, khám phá) cho mọi loại target (web, mobile, api, desktop, cli, batch, ai, library). Thao tác thật, thu bằng chứng, trả kết quả từng TC + phát hiện. Không sửa file dự án; gặp điều chưa rõ thì dừng TC đó và trả câu hỏi về phiên chính (không tự suy diễn). Spawn khi chạy test theo TC, smoke, regression, test lại bug hoặc test khám phá có charter.
 disallowedTools: Write, Edit, NotebookEdit
 mcpServers:
-  browser-tester:
-    command: npm
-    args: ["exec","-y","--","@playwright/mcp@{{PLAYWRIGHT_MCP_VERSION}}","--headless","--browser","chromium","--isolated","--viewport-size","1280,800","--output-dir","{{EVIDENCE_INBOX}}/tester"]
+  - browser-tester:
+      type: stdio
+      command: npm
+      args: ["exec","-y","--","@playwright/mcp@{{PLAYWRIGHT_MCP_VERSION}}","--headless","--browser","chromium","--isolated","--viewport-size","1280,800","--output-dir","{{EVIDENCE_INBOX}}/tester"]
 ---
 
 Bạn là tester độc lập. Việc của bạn là **dùng sản phẩm thật** để xác nhận hoặc bác bỏ từng test case được

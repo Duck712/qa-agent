@@ -218,13 +218,34 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list, rec: di
     return {"file": path.name, "perms": new_perms, "hooks": new_hooks}
 
 
+@lru_cache(maxsize=None)
+def win_npm_launch() -> tuple[str, list[str]]:
+    """(command, tiền tố args) để chạy npm trên Windows mà KHÔNG qua shell và KHÔNG cần PATH:
+    `<Node>/node.exe -e <thêm thư mục Node vào PATH rồi nạp npm-cli.js> <npm-cli.js> …` — chạy được cả khi ứng dụng
+    chứa Claude Code (Orca, VS Code…) mở từ trước khi Node vào PATH. Thêm PATH vì `npm exec` gọi shim .cmd của gói,
+    shim lại tìm `node` trên PATH. Không tìm thấy Node → `cmd /c npm` (cần PATH).
+    Không dùng `cmd /c "<đường dẫn có dấu cách>"`: cmd cắt sai dấu nháy ('C:/Program' is not recognized)."""
+    dirs = [Path(p).parent for p in (shutil.which("node.exe"), shutil.which("npm.cmd")) if p] + \
+           [Path(os.environ[v]) / "nodejs" for v in ("ProgramFiles", "ProgramFiles(x86)") if os.environ.get(v)]
+    boot = ("const p=require('path');process.env.PATH=p.dirname(process.execPath)+p.delimiter+(process.env.PATH||'');"
+            "require(process.argv[1])")
+    for d in dirs:
+        node, cli = d / "node.exe", d / "node_modules" / "npm" / "bin" / "npm-cli.js"
+        if node.is_file() and cli.is_file():
+            return node.as_posix(), ["-e", boot, cli.as_posix()]
+    return "cmd", ["/c", "npm"]
+
+
 def win_npm(text: str) -> str:
     """Windows: `npm` là npm.cmd — Claude Code khởi động server MCP không qua shell nên gọi thẳng `npm` báo ENOENT
-    (server không lên, tool mcp__… không xuất hiện). Bọc thành `cmd /c npm …` (cả .mcp.json lẫn frontmatter agent)."""
+    (server không lên, tool mcp__… không xuất hiện). Đổi thành node.exe + npm-cli.js tuyệt đối (cả .mcp.json lẫn
+    frontmatter agent). Đổi máy / cài lại Node chỗ khác → chạy lại `install.py --update`."""
     if os.name != "nt":
         return text
-    text = re.sub(r'"command":\s*"npm",(\s*)"args":\s*\[', r'"command": "cmd",\1"args": ["/c", "npm", ', text)
-    return re.sub(r"(?m)^(\s*)command: npm\n(\s*)args: \[", r'\1command: cmd\n\2args: ["/c","npm",', text)
+    cmd, pre = win_npm_launch()
+    c, pj, pa = json.dumps(cmd), ", ".join(json.dumps(x) for x in pre), ",".join(json.dumps(x) for x in pre)
+    text = re.sub(r'"command":\s*"npm",(\s*)"args":\s*\[', lambda m: f'"command": {c},{m.group(1)}"args": [{pj}, ', text)
+    return re.sub(r"(?m)^(\s*)command: npm\n(\s*)args: \[", lambda m: f'{m.group(1)}command: {c}\n{m.group(2)}args: [{pa},', text)
 
 
 def merge_mcp(path: Path, ctx: dict, dry: bool, log: list, old_mcp: dict) -> dict:

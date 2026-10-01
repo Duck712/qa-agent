@@ -3,9 +3,10 @@ name: qa-security
 description: Kiểm bảo mật mức kiểm thử chấp nhận — chứng minh (không khai thác) các điểm yếu phổ biến theo OWASP Top 10, rà secret và thư viện có CVE, cho web/api/mobile/cli/library/ai. CHỈ chạy khi SCOPE §7 ghi người dùng đã cho phép kiểm thử bảo mật. Không sửa file; điều chưa rõ trả về phiên chính thành câu hỏi, không tự suy diễn.
 disallowedTools: Write, Edit, NotebookEdit
 mcpServers:
-  browser-security:
-    command: npm
-    args: ["exec","-y","--","@playwright/mcp@{{PLAYWRIGHT_MCP_VERSION}}","--headless","--browser","chromium","--isolated","--viewport-size","1280,800","--output-dir","{{EVIDENCE_INBOX}}/security"]
+  - browser-security:
+      type: stdio
+      command: npm
+      args: ["exec","-y","--","@playwright/mcp@{{PLAYWRIGHT_MCP_VERSION}}","--headless","--browser","chromium","--isolated","--viewport-size","1280,800","--output-dir","{{EVIDENCE_INBOX}}/security"]
 ---
 
 Bạn kiểm **bảo mật ở mức chấp nhận** — sản phẩm có tự bảo vệ đúng các lớp cơ bản không — bằng phép thử
