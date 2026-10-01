@@ -764,6 +764,19 @@ def main() -> int:
     check("Bash(psql:*)" not in st["permissions"]["ask"] and len(ev_h) == 1 and ev_h[0].get("timeout") == 30 and not ro_h
           and "đã được chỉnh tay" in r.stdout and "đã gỡ hook" in r.stdout,
           "--update không thêm lại quyền/hook người dùng đã xoá, giữ hook đã chỉnh tay", r.stdout + json.dumps(st))
+    # hook đã giống bản kit mới nhưng manifest còn băm cũ (kit đổi matcher, dự án được vá theo) → không báo "chỉnh tay"
+    ip6 = tmp / "inst6"
+    run([sys.executable, str(REPO / "install.py"), str(ip6)], tmp)
+    mp = ip6 / ".claude/qa-agent.json"
+    man = json.loads(mp.read_text(encoding="utf-8"))
+    man["settings"]["hooks"]["guard_readonly"] = "0" * 16
+    mp.write_text(json.dumps(man, ensure_ascii=False), encoding="utf-8")
+    r = run([sys.executable, str(REPO / "install.py"), str(ip6), "--update"], tmp)
+    man = json.loads(mp.read_text(encoding="utf-8"))
+    st = json.loads((ip6 / ".claude/settings.json").read_text(encoding="utf-8"))
+    ro_h = [h for e in st["hooks"]["PreToolUse"] for h in e["hooks"] if "guard_readonly" in json.dumps(h)]
+    check("đã được chỉnh tay" not in r.stdout and len(ro_h) == 1 and man["settings"]["hooks"]["guard_readonly"] != "0" * 16,
+          "--update: hook đã giống bản kit mới không bị coi là chỉnh tay, manifest được làm mới", r.stdout + json.dumps(man["settings"]))
 
     print("\n[15] quan điểm test · bám nguồn · xuất/nhập CSV · bài học · hook đầu phiên/sửa lưng")
     vp = tmp / "vp-proj"
