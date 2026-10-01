@@ -202,7 +202,8 @@ Hai tầng, để kinh nghiệm không mất khi hết phiên:
   bài học chỉ nằm trong bản clone của một người thì dự án người khác không nhận được.
 - **Chỉ bài học lên git, tài liệu dự án ở local**: thứ duy nhất được đưa lên repo qa-agent là bài học đã tổng quát hoá —
   không tên dự án/khách, URL, tài khoản, dữ liệu, trích tài liệu, ảnh. Mọi thứ riêng của dự án (`qa/`, tài liệu sản phẩm,
-  evidence, `.mcp.json`) chỉ để local, không push lên đâu cả. Thư mục dự án nằm trong repo git của sản phẩm → loại `qa/`,
+  evidence, `.mcp.json`) chỉ để local, không push, không publish (Artifact, Claude Docs — đã `deny` trong settings),
+  không gửi feedback, không ghi vào bộ nhớ Claude. Thư mục dự án nằm trong repo git của sản phẩm → loại `qa/`,
   `.claude/` khỏi commit (vd `.git/info/exclude`) trước khi làm; chưa rõ → hỏi người dùng.
 
 ## 7. Dữ liệu test & test tự động
