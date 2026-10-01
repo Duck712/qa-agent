@@ -218,10 +218,19 @@ def merge_settings(path: Path, ctx: dict, py: str, dry: bool, log: list, rec: di
     return {"file": path.name, "perms": new_perms, "hooks": new_hooks}
 
 
+def win_npm(text: str) -> str:
+    """Windows: `npm` là npm.cmd — Claude Code khởi động server MCP không qua shell nên gọi thẳng `npm` báo ENOENT
+    (server không lên, tool mcp__… không xuất hiện). Bọc thành `cmd /c npm …` (cả .mcp.json lẫn frontmatter agent)."""
+    if os.name != "nt":
+        return text
+    text = re.sub(r'"command":\s*"npm",(\s*)"args":\s*\[', r'"command": "cmd",\1"args": ["/c", "npm", ', text)
+    return re.sub(r"(?m)^(\s*)command: npm\n(\s*)args: \[", r'\1command: cmd\n\2args: ["/c","npm",', text)
+
+
 def merge_mcp(path: Path, ctx: dict, dry: bool, log: list, old_mcp: dict) -> dict:
     """Thêm server browser/mobile. Server đã có mà KHÔNG phải bản qa-agent đã cài y nguyên (so băm lưu trong
     manifest) → giữ nguyên + báo, không ghi đè tinh chỉnh của người dùng. Trả về băm các server đã ghi."""
-    src = json.loads(render((KIT / ".mcp.qa.json").read_text(encoding="utf-8"), ctx, as_json=True))
+    src = json.loads(win_npm(render((KIT / ".mcp.qa.json").read_text(encoding="utf-8"), ctx, as_json=True)))
     cur = {}
     if path.exists():
         try:
@@ -302,7 +311,7 @@ def main() -> int:
     for src in kit_files():
         rel = src.relative_to(KIT)
         dst = proj / rel
-        data = render(src.read_text(encoding="utf-8"), ctx, as_json=src.parent.name == "agents").encode("utf-8") \
+        data = win_npm(render(src.read_text(encoding="utf-8"), ctx, as_json=src.parent.name == "agents")).encode("utf-8") \
             if src.suffix in (".md", ".py", ".json") else src.read_bytes()
         if os.name == "nt" and src.suffix == ".md":
             data = data.replace(b"python3 ", b"python ")
