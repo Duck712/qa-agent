@@ -31,6 +31,8 @@ Phạm vi: $ARGUMENTS
    Bản đang kiểm đổi giữa run (dev deploy lại) → dừng, hỏi người dùng: chạy lại TC đã xong trên bản mới hay mở run mới;
    TC đã chạy trên bản cũ ghi bản vào cột Lý do và Nhật ký. Nhiều hơn → chia nhóm theo target × góc nhìn, spawn `qa-tester`
    (số tester song song theo `QA.md §Môi trường` — chưa có thì hỏi; mobile/desktop native tuần tự; nhóm phá-đầu-vào/phân-quyền/bảo-mật chạy cuối, dọn dữ liệu sau).
+   TC `Thực hiện: người` (new-run in danh sách) → giao cho người ở `QA.md §Người chạy TC thủ công` theo skill `qa` §7,
+   chạy phần còn lại song song; nhận kết quả về thì chép bằng chứng + `nguoi-thuc-hien.md`, ghi RUNLOG đúng lời người làm.
    Bảo mật → `qa-security`, chỉ khi SCOPE §7 cho phép (kết quả `INCONCLUSIVE` ghi RUNLOG thành
    `BLOCKED (inconclusive: …)` + câu hỏi). Mỗi prompt tester gửi đủ: target + loại + cách vào, góc nhìn, TC-ID + file,
    run-id, **đường dẫn tuyệt đối** thư mục bằng chứng `qa/evidence/<run-id>/`, tài khoản, prefix, môi trường, và

@@ -42,10 +42,11 @@ nằm rải rác ở /tmp là rò rỉ, và RUNLOG không trỏ được tới).
 | khôi-phục | Trạng thái **trước** khi ngắt + cách ngắt (lệnh/thao tác + thời điểm) + trạng thái **sau** khi tiếp tục (dữ liệu, bản ghi, file) |
 | tương-thích | Cấu hình/phiên bản đang chạy (trình duyệt/OS/runtime/bản cũ) + kết quả trên từng cấu hình; dữ liệu cũ: bản ghi trước/sau nâng cấp |
 | cross-target | Cặp: hành động ở A + kết quả ở B + network của B |
+| so sánh song song · đối soát dữ liệu | Cặp `A-…`/`B-…` (cũ/mới) cùng bước + môi trường/phiên bản từng bên + diff sau chuẩn hoá + truy vấn đối soát và kết quả nguyên văn (`qa-testcase-design/ky-thuat/oracle.md` §7) |
 | hình-thức | Giá trị đo + selector/phần tử + màn (`color: rgb(37,99,235) @ button.cta`) |
 | hiệu-năng | Từng lần đo + median/max kèm n (phân vị chỉ khi người dùng chốt cỡ mẫu) + cách đo + thời điểm |
 | bảo-mật | Request + response nguyên văn (che dữ liệu) + mục OWASP/CVE; secret: file + dòng + loại, **không** ghi giá trị |
-| thủ công (người dùng làm) | Ảnh/video/ghi chú người dùng gửi + ghi rõ "người dùng thực hiện" |
+| thủ công (`Thực hiện: người`) | Ảnh/video/file/ghi chú người làm gửi, đủ loại như dòng tương ứng ở trên + `nguoi-thuc-hien.md` (ai làm, lúc nào, môi trường/bản, nhận qua đâu, nguyên văn kết quả họ báo — skill `qa` §7). Lời "đã test OK" không kèm gì không tính |
 
 Thiếu bằng chứng đúng loại → `BLOCKED`, không phải `PASS`.
 

@@ -23,7 +23,8 @@ nhưng kết quả mỗi TC chỉ đến từ việc chạy thật, không suy t
   `python3 .claude/qa-scripts/qa_check.py lessons --for <target> <góc nhìn>` trước TC đầu tiên
 
 **Cách làm**
-1. Nạp skill `qa-targets`, mở `<loại>.md` của target — dùng đúng công cụ và công thức ở đó. Nạp `qa-evidence`.
+1. Nạp skill `qa-targets`, mở `<loại>.md` của target — dùng đúng công cụ và công thức ở đó; máy Windows (có tool
+   PowerShell) → mở thêm `windows.md` và chạy theo bản PowerShell. Nạp `qa-evidence`.
    Nạp checklist `qa-knowledge` hợp góc nhìn để biết chỗ đáng đào.
 2. Trước TC đầu tiên: xác nhận đúng môi trường/bản (URL/host/version). Lệch → dừng cả nhóm, báo. Đọc bài học liên
    quan — sự cố môi trường/công cụ đã biết thì làm theo cách xử đã ghi, kiểu lỗi đã biết thì để ý khi chạy.

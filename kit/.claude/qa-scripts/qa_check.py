@@ -14,7 +14,9 @@
     python3 .claude/qa-scripts/qa_check.py vp [REQ-…|<tính năng>] [--strict]
                                                                   soát quan điểm test (qa/viewpoints/): trường, trích dẫn, duyệt, phủ
     python3 .claude/qa-scripts/qa_check.py src [--strict] [--list]  soát nguồn: REQ/VP có nguồn + trích nguyên văn khớp tài liệu
-    python3 .claude/qa-scripts/qa_check.py export <tc|vp> [--out <file.csv>]   xuất CSV (UTF-8 BOM, mở bằng Excel)
+    python3 .claude/qa-scripts/qa_check.py export <tc|vp> [--out <file.csv>] [--lang vi|en|ja]
+                                                                  xuất CSV (UTF-8 BOM, mở bằng Excel); tiêu đề cột theo
+                                                                  ngôn ngữ bàn giao (QA.md) — nội dung ô không tự dịch
     python3 .claude/qa-scripts/qa_check.py import <tc|vp> <file.csv> --feature <tính-năng>
                                                                   nhập CSV (Excel "Lưu thành CSV UTF-8") thành markdown để soát/review
     python3 .claude/qa-scripts/qa_check.py lessons [--brief] [--for <từ khoá>] [--archive]
@@ -64,7 +66,11 @@ MUC = ("R1", "R2", "R3")
 LOAI = {"chức năng", "biên", "phá-đầu-vào", "phân-quyền", "workflow", "api", "tích-hợp", "tương-thích",
         "hình-thức", "hiệu-năng", "bảo-mật", "khôi-phục", "cross-target", "khám-phá", "smoke"}
 REQUIRED = ["REQ", "Target", "Loại", "Kiểu", "Mức", "Nguồn", "Bước", "Kỳ vọng", "Bằng chứng cần"]
-OPTIONAL = ["VP", "Regression", "Tag", "Ticket", "Kỹ thuật", "Tiền điều kiện", "Dữ liệu", "Ô ma trận"]
+OPTIONAL = ["VP", "Regression", "Tag", "Ticket", "Kỹ thuật", "Tiền điều kiện", "Dữ liệu", "Ô ma trận", "Thực hiện"]
+# `Thực hiện:` trống/agent = agent chạy · người = người chạy tay, agent ghi kết quả + bằng chứng họ gửi (skill qa §7)
+BY_HUMAN = ("người", "thủ công", "manual", "human")
+BY_AGENT = ("", "agent", "tự động", "auto")
+HUMAN_NOTE = "nguoi-thuc-hien.md"     # trong thư mục bằng chứng của TC chạy tay: ai làm, lúc nào, bằng chứng nhận qua đâu
 VAGUE = ["hoạt động đúng", "hiển thị đúng", "chạy đúng", "hoạt động bình thường", "hợp lý", "như mong đợi",
          "đúng nghiệp vụ", "đúng yêu cầu", "đúng thiết kế", "xử lý đúng", "tử tế", "thân thiện", "rõ ràng",
          "performance ok", "ổn định", "mượt"]
@@ -83,7 +89,7 @@ TECHNIQUES = {
     "bảng quyết định": "logic", "phân quyền": "logic", "crud": "logic", "chuyển trạng thái": "logic",
     "use case": "logic", "pairwise": "logic", "classification tree": "logic", "hộp trắng": "logic",
     "metamorphic": "oracle", "property": "oracle", "fuzz": "oracle", "đồng thời": "oracle", "rubric": "oracle",
-    "mốc hành vi": "oracle",
+    "mốc hành vi": "oracle", "so sánh song song": "oracle", "đối soát dữ liệu": "oracle",
     "error guessing": "kinh nghiệm", "checklist": "kinh nghiệm", "khám phá": "kinh nghiệm",
     "phi chức năng": "phi chức năng", "a11y": "phi chức năng", "khả dụng": "phi chức năng",
     "hiệu năng": "phi chức năng", "tương thích": "phi chức năng", "i18n": "phi chức năng",
@@ -93,7 +99,9 @@ ALIASES = {"phân vùng tương đương": "phân vùng", "ep": "phân vùng", "
            "ma trận phân quyền": "phân quyền", "trạng thái": "chuyển trạng thái", "kịch bản": "use case",
            "scenario": "use case", "tổ hợp": "pairwise", "white-box": "hộp trắng", "hộp trắng nhẹ": "hộp trắng",
            "race": "đồng thời", "concurrency": "đồng thời", "sbtm": "khám phá", "exploratory": "khám phá",
-           "wcag": "a11y", "usability": "khả dụng", "characterization": "mốc hành vi", "golden master": "mốc hành vi"}
+           "wcag": "a11y", "usability": "khả dụng", "characterization": "mốc hành vi", "golden master": "mốc hành vi",
+           "back-to-back": "so sánh song song", "differential": "so sánh song song", "parallel run": "so sánh song song",
+           "so sánh cũ mới": "so sánh song song", "reconciliation": "đối soát dữ liệu", "đối soát": "đối soát dữ liệu"}
 
 
 def read(p: Path) -> str:
@@ -213,8 +221,9 @@ def load_tcs() -> tuple[dict[str, dict], list[str]]:
             tc = {"id": tid, "title": h.group(2).strip(), "file": f.name, "feature": f.stem, "body": body}
             for k in REQUIRED + OPTIONAL:
                 tc[k] = field(body, k)
-            for k in ("Kiểu", "Mức", "Loại", "Regression", "Tag"):
+            for k in ("Kiểu", "Mức", "Loại", "Regression", "Tag", "Thực hiện"):
                 tc[k] = no_paren(plain(tc[k]))
+            tc["human"] = tc["Thực hiện"].lower() in BY_HUMAN
             tc["reqs"] = req_ids(tc["REQ"])
             tc["vps"] = [x.upper() for x in re.findall(VP_ID, tc["VP"], re.I)]
             tc["steps"] = block_items(body, "Bước")
@@ -661,6 +670,8 @@ def cmd_tc(args: list[str]) -> int:
             errors.append(f"{t['id']}: trường REQ `{t['REQ']}` không đọc được mã REQ-…")
         if t["Kiểu"] and t["Kiểu"].lower() not in KIEU:
             errors.append(f"{t['id']}: `Kiểu: {t['Kiểu']}` — phải là normal hoặc abnormal")
+        if t["Thực hiện"].lower() not in BY_HUMAN + BY_AGENT:
+            errors.append(f"{t['id']}: `Thực hiện: {t['Thực hiện']}` — phải là `agent` (mặc định, để trống được) hoặc `người`")
         if vps:                                   # dự án đã dùng lớp quan điểm test → TC phải đi ra từ quan điểm đã duyệt
             if not t["vps"]:
                 if plain(t["VP"]) and plain(t["VP"]) not in ("—", "-"):
@@ -866,6 +877,8 @@ def cmd_new_run(args: list[str]) -> int:
     d = QA / "runs" / run_id
     d.mkdir(parents=True)
     rows = "\n".join(f"| {i} | CHƯA CHẠY | | | |" for i in ids)
+    tcs_all, _ = load_tcs()
+    human = [i for i in ids if tcs_all.get(i, {}).get("human")]
     (d / "RUNLOG.md").write_text(
         f"# RUNLOG — {run_id}\n\n"
         "> Kết quả: `PASS` · `FAIL` (cột cuối ghi BUG-…) · `BLOCKED` (cột cuối ghi lý do / `chờ trả lời #n`) · "
@@ -876,13 +889,16 @@ def cmd_new_run(args: list[str]) -> int:
         f"- Bắt đầu: {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
         f"- Phạm vi: {how}\n"
         f"- Danh sách TC lúc tạo run: {', '.join(ids) or '(khám phá)'}\n"
-        f"- Scope lúc tạo run: {st}\n"
+        + (f"- TC do người thực hiện (giao cho người dùng; bằng chứng họ gửi + `{HUMAN_NOTE}`): {', '.join(human)}\n" if human else "")
+        + f"- Scope lúc tạo run: {st}\n"
         f"- Tiêu chí ({src}; không sửa sau khi đã chạy):\n{crit_lines}{ai_lines}\n"
         "| TC | Kết quả | Ngày | Bằng chứng | Bug / Lý do |\n|---|---|---|---|---|\n"
         f"{rows}\n\n## Nhật ký\n", encoding="utf-8")
     (QA / "evidence" / run_id).mkdir(parents=True, exist_ok=True)
     print(f"run-id: {run_id}")
     print(f"RUNLOG: {d.relative_to(ROOT)}/RUNLOG.md · {len(ids)} TC ({how})")
+    if human:
+        print(f"TC do người thực hiện: {len(human)} — {', '.join(human)} → giao danh sách + bước cho người dùng (skill qa §7)")
     return 0
 
 
@@ -981,6 +997,7 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
     counts = {k: 0 for k in RESULTS}
     per_level: dict[str, list[int]] = {}
     explore = 0
+    human_done = 0
     run_tcs: list[str] = []
     noted_bugs: set[str] = set()
     for r in table_rows(text):
@@ -1022,6 +1039,11 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
             ok, why = evidence_ok(ev, run_id, tid, log.parent)
             if not ok:
                 errors.append(f"{tid}: {res_u} nhưng {why}")
+            if tcs.get(tid, {}).get("human"):
+                human_done += 1
+                if not (QA / "evidence" / run_id / tid / HUMAN_NOTE).is_file():
+                    errors.append(f"{tid}: TC do người thực hiện nhưng thiếu `{HUMAN_NOTE}` trong bằng chứng "
+                                  "(ai làm, lúc nào, trên môi trường/bản nào, bằng chứng nhận qua đâu)")
             if tid in tcs and re.match(r"ai\b", ttype.get(tcs[tid]["Target"], "")):
                 n_ai, _raw = ai_n(text)
                 lv = tc_level(tcs[tid], levels)
@@ -1116,7 +1138,7 @@ def cmd_run(args: list[str], quiet: bool = False) -> tuple[int, dict]:
     if not quiet:
         print(f"Run {run_id}: {total} dòng · PASS {counts['PASS']} · FAIL {counts['FAIL']} · BLOCKED {counts['BLOCKED']}"
               f" · SKIP {counts['SKIP']} · CHƯA CHẠY {counts['CHƯA CHẠY']} · tỉ lệ PASS {pass_rate:.1f}%"
-              + (f" · khám phá {explore}" if explore else ""))
+              + (f" · khám phá {explore}" if explore else "") + (f" · người thực hiện {human_done}" if human_done else ""))
         if crit:
             per = "".join(f" · PASS {lv} ≥ {v:g}%" for lv, v in crit["per_level"].items())
             print(f"Tiêu chí: bug mở cấm {'/'.join(sorted(crit['forbidden'])) or '—'} · PASS ≥ {crit['min_pass']:g}%{per}"
@@ -1436,8 +1458,9 @@ def cmd_src(args: list[str]) -> int:
 # ---------------------------------------------------------------- lệnh: export / import
 
 TC_COLS = ["ID", "Tiêu đề", "REQ", "VP", "Target", "Loại", "Kiểu", "Mức", "Kỹ thuật", "Nguồn", "Regression", "Tag",
-           "Ticket", "Tiền điều kiện", "Dữ liệu", "Ô ma trận", "Bước", "Kỳ vọng", "Bằng chứng cần"]
-TC_FIELDS = TC_COLS[2:16]            # REQ … Ô ma trận: một dòng `- Khoá: giá trị`
+           "Ticket", "Tiền điều kiện", "Dữ liệu", "Ô ma trận", "Thực hiện", "Bước", "Kỳ vọng", "Bằng chứng cần"]
+TC_FIELDS = TC_COLS[2:17]            # REQ … Thực hiện: một dòng `- Khoá: giá trị`
+SPARSE = ("Ô ma trận", "Thực hiện")  # trường tuỳ chọn hiếm dùng: nhập CSV không ghi dòng trống
 VP_COLS = ["VP", "Tính năng", "REQ", "Hạng mục", "Quan điểm test", "Kiểu", "Kỹ thuật dự kiến", "Mức", "Nguồn",
            "Trích nguyên văn", "Trạng thái"]
 ALIASES_COMMON = {
@@ -1461,6 +1484,35 @@ ALIASES_VP = {
 }
 FORMULA = ("=", "+", "-", "@", "\t", "\r")
 
+# Ngôn ngữ bàn giao (`QA.md` dòng `- Ngôn ngữ bàn giao:` hoặc `export … --lang`): CHỈ đổi tiêu đề cột của file xuất.
+# File trong qa/ vẫn tiếng Việt (qa_check đọc tên trường tiếng Việt); nội dung ô do agent dịch khi được nhờ (skill qa §1.8).
+LANGS = {"vi": "vi", "tiếng việt": "vi", "vietnamese": "vi", "en": "en", "tiếng anh": "en", "english": "en",
+         "ja": "ja", "tiếng nhật": "ja", "japanese": "ja", "日本語": "ja"}
+HEAD_TR = {
+    "en": {"ID": "ID", "Tiêu đề": "Title", "REQ": "Requirement ID", "VP": "Viewpoint ID", "Target": "Target",
+           "Loại": "Test type", "Kiểu": "Kind (normal/abnormal)", "Mức": "Risk level", "Kỹ thuật": "Technique",
+           "Nguồn": "Source", "Regression": "Regression", "Tag": "Tag", "Ticket": "Ticket", "Tiền điều kiện": "Precondition",
+           "Dữ liệu": "Test data", "Ô ma trận": "Matrix cell", "Thực hiện": "Executed by (agent/human)", "Bước": "Steps",
+           "Kỳ vọng": "Expected result", "Bằng chứng cần": "Required evidence", "Tính năng": "Feature",
+           "Hạng mục": "Category", "Quan điểm test": "Test viewpoint", "Kỹ thuật dự kiến": "Planned technique",
+           "Trích nguyên văn": "Verbatim quote (source language)", "Trạng thái": "Status"},
+    "ja": {"ID": "ID", "Tiêu đề": "タイトル", "REQ": "要件ID", "VP": "観点ID", "Target": "対象", "Loại": "テスト種別",
+           "Kiểu": "区分（正常系/異常系）", "Mức": "リスクレベル", "Kỹ thuật": "技法", "Nguồn": "根拠", "Regression": "回帰対象",
+           "Tag": "タグ", "Ticket": "チケット", "Tiền điều kiện": "前提条件", "Dữ liệu": "テストデータ", "Ô ma trận": "マトリクスセル",
+           "Thực hiện": "実施者（エージェント/人）", "Bước": "手順", "Kỳ vọng": "期待結果", "Bằng chứng cần": "必要なエビデンス",
+           "Tính năng": "機能", "Hạng mục": "分類", "Quan điểm test": "テスト観点", "Kỹ thuật dự kiến": "想定技法",
+           "Trích nguyên văn": "原文引用（原語のまま）", "Trạng thái": "ステータス"},
+}
+HEAD_BACK = {label.lower(): canon for tr in HEAD_TR.values() for canon, label in tr.items()}   # nhập lại file đã xuất
+
+
+def export_lang(args: list[str]) -> tuple[str, str]:
+    """(mã ngôn ngữ, lỗi). --lang thắng dòng QA.md; trống → vi."""
+    raw = args[args.index("--lang") + 1] if "--lang" in args and args.index("--lang") + 1 < len(args) \
+        else no_paren(plain(field(read(QA / "QA.md"), "Ngôn ngữ bàn giao")))
+    code = LANGS.get(raw.strip().lower(), "") if raw.strip() else "vi"
+    return code, ("" if code else f"ngôn ngữ bàn giao `{raw}` chưa hỗ trợ — dùng vi / en / ja")
+
 
 def csv_safe(c: str) -> str:
     """Chống chèn công thức khi mở bằng Excel (TC phá-đầu-vào hay chứa `=HYPERLINK(…)`): thêm `'` phía trước."""
@@ -1475,10 +1527,14 @@ def csv_unsafe(c: str) -> str:
 def cmd_export(args: list[str]) -> int:
     kind = args[0].lower() if args else ""
     if kind not in ("tc", "vp"):
-        print("cách gọi: export <tc|vp> [--out <file.csv>]", file=sys.stderr)
+        print("cách gọi: export <tc|vp> [--out <file.csv>] [--lang vi|en|ja]", file=sys.stderr)
+        return 2
+    lang, bad_lang = export_lang(args)
+    if bad_lang:
+        print(f"✗ {bad_lang}", file=sys.stderr)
         return 2
     out = Path(args[args.index("--out") + 1]) if "--out" in args and args.index("--out") + 1 < len(args) \
-        else QA / "export" / f"{kind}-{dt.date.today().isoformat()}.csv"
+        else QA / "export" / f"{kind}-{dt.date.today().isoformat()}{'' if lang == 'vi' else '-' + lang}.csv"
     out = out if out.is_absolute() else ROOT / out
     rows: list[list[str]] = []
     if kind == "tc":
@@ -1496,9 +1552,13 @@ def cmd_export(args: list[str]) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8-sig", newline="") as fh:
         w = csv.writer(fh)
-        w.writerow(cols)
+        w.writerow([HEAD_TR.get(lang, {}).get(c, c) for c in cols])
         w.writerows([[csv_safe(c) for c in r] for r in rows])
-    print(f"Đã xuất {len(rows)} {'TC' if kind == 'tc' else 'quan điểm'} → {out}")
+    print(f"Đã xuất {len(rows)} {'TC' if kind == 'tc' else 'quan điểm'} → {out}"
+          + ("" if lang == "vi" else f" (tiêu đề cột: {lang})"))
+    if lang != "vi":
+        print(f"  ⚠ nội dung ô vẫn là tiếng Việt — bàn giao bằng `{lang}` thì dịch file này (skill qa §1.8): giữ nguyên mã "
+              "ID/REQ/VP, giá trị chuẩn (normal/abnormal, R1–R3), và cột trích nguyên văn")
     return 0
 
 
@@ -1512,7 +1572,7 @@ def read_csv(path: Path, kind: str) -> list[dict]:
     if not rows:
         return []
     canon = set(TC_COLS if kind == "tc" else VP_COLS)
-    aliases = {**ALIASES_COMMON, **(ALIASES_TC if kind == "tc" else ALIASES_VP)}
+    aliases = {**{k: v for k, v in HEAD_BACK.items() if v in canon}, **ALIASES_COMMON, **(ALIASES_TC if kind == "tc" else ALIASES_VP)}
     raw = [unicodedata.normalize("NFC", h).strip() for h in rows[0]]
     exact = {h for h in raw if h in canon}
     head = []
@@ -1561,7 +1621,7 @@ def cmd_import(args: list[str]) -> int:
                 continue
             seen.add(tid)
             lines = [f"## {tid} — {one_line(r.get('Tiêu đề', ''))}".rstrip(" —")]
-            lines += [f"- {k}: {one_line(r.get(k))}" for k in TC_FIELDS if k != "Ô ma trận" or r.get(k)]
+            lines += [f"- {k}: {one_line(r.get(k))}" for k in TC_FIELDS if k not in SPARSE or r.get(k)]
             for k in ("Bước", "Kỳ vọng"):
                 lines.append(f"- {k}:")
                 lines += [f"  {n}. {x}" for n, x in enumerate(items(r.get(k, "")), 1)]

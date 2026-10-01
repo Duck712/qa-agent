@@ -4,7 +4,7 @@
 Bash, trong thư mục riêng mỗi TC: `qa/sandbox/<run-id>/<TC-ID>/` (không commit). Dùng bản được giao
 (binary/gói/version ở `QA.md §Target`), không chạy thẳng từ code nguồn trừ khi đó chính là cách phát hành.
 
-Ghi mỗi lệnh thành bằng chứng:
+Ghi mỗi lệnh thành bằng chứng (Windows/PowerShell: [windows.md](windows.md) §2 — kể cả ngắt giữa chừng, đo thời gian):
 ```bash
 RUN=<run-id>; TC=<TC-ID>   # gán trong cùng một lệnh Bash
 D=qa/evidence/$RUN/$TC; S=qa/sandbox/$RUN/$TC; mkdir -p "$D" "$S"

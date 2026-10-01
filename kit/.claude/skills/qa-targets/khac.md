@@ -4,8 +4,8 @@ Firmware/IoT, game, extension trình duyệt, plugin IDE, hệ thống phần c�
 hạ tầng (IaC, Helm chart)... Chưa có file riêng thì lập công thức trước khi viết TC, trả lời 5 câu:
 
 1. **Điều khiển bằng gì?** Công cụ nào thao tác được như người dùng thật (UI automation, lệnh, API, thiết bị
-   giả lập, emulator phần cứng)? Không có công cụ → phần đó là test thủ công do người dùng làm, QA viết TC +
-   checklist và ghi kết quả người dùng báo lại (bằng chứng: ảnh/video người dùng gửi, ghi rõ nguồn).
+   giả lập, emulator phần cứng)? Không có công cụ → phần đó là TC `Thực hiện: người` (người dùng duyệt), QA viết TC +
+   checklist và ghi kết quả người làm báo lại theo skill `qa` §7 (bằng chứng họ gửi + `nguoi-thuc-hien.md`).
 2. **Quan sát bằng gì?** Màn hình, log, trạng thái thiết bị, dữ liệu đích — thứ nào chứng minh được kết quả?
 3. **Bằng chứng tối thiểu** cho PASS là gì? (ghi vào SCOPE §4 để cả lượt dùng chung)
 4. **Vùng an toàn** là gì? (thiết bị test, tài khoản sandbox của nền tảng, namespace/cluster test)

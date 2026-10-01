@@ -6,6 +6,8 @@
 > quan điểm test (`qa_check.py tc` nhắc; `tc --strict`, bắt buộc sạch trước run all/reg, báo lỗi); TC tái hiện bug
 > (`Nguồn: BUG-…`) được miễn.
 > `Regression: có` = đưa vào bộ regression · `Tag: smoke` = đưa vào bộ smoke · `Ticket:` = mã Jira/GitHub nếu đội dùng.
+> `Thực hiện: người` = người chạy tay (agent không điều khiển được target/bước đó, hoặc đội giao cho tester người) — agent
+> ghi kết quả + bằng chứng họ gửi (skill qa §7); bỏ trống = agent chạy.
 
 ## TC-FEAT-001 — <điều được kiểm, viết theo hành vi người dùng>
 - REQ: REQ-FEAT-1
@@ -19,6 +21,7 @@
 - Regression: không
 - Tag: 
 - Ticket: 
+- Thực hiện: 
 - Tiền điều kiện: <trạng thái hệ thống, vai đăng nhập>
 - Dữ liệu: <giá trị cụ thể, mang prefix QA->
 - Bước:

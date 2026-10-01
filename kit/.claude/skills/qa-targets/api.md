@@ -7,7 +7,7 @@ nhiều bước. Công cụ chưa cài → BLOCKED + đề xuất lệnh cài, k
 > Mỗi khối lệnh dưới là **một** lệnh Bash: biến không giữ giữa các lần gọi. Tool Read bị chặn đọc `qa/.env` —
 > nạp bí mật bằng `set -a; . qa/.env; set +a` trong cùng lệnh, không in ra.
 
-Lưu mỗi lời gọi thành bằng chứng ngay khi chạy:
+Lưu mỗi lời gọi thành bằng chứng ngay khi chạy (Windows/PowerShell: [windows.md](windows.md) §3 — `curl.exe`, body qua file):
 ```bash
 RUN=<run-id>; TC=<TC-ID>; set -a; . qa/.env; set +a   # BASE, TOKEN_B… trong qa/.env
 D=qa/evidence/$RUN/$TC; mkdir -p "$D"

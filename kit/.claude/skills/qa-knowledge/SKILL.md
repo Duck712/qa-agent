@@ -54,7 +54,8 @@ phải thử (`auth-login §3`, `form-input §2`, `api-common`).
 
 ## Luật sửa skill này
 - Mỗi dòng thêm vào là **một phép thử cụ thể** (thao tác + điều quan sát), không phải lời khuyên chung.
-- Ghi nguồn cuối dòng: `(bài học <dự án>)`.
+- Ghi nguồn cuối dòng: `(bài học từ dự án)` — **không** ghi tên dự án/khách, URL, tài khoản, dữ liệu (skill `qa` §6:
+  repo này là kho chung, chỉ chứa bài học đã tổng quát hoá).
 - Không xoá dòng vì "dự án này không dùng" — dự án khác vẫn dùng. Dòng sai thật → đề xuất sửa, người dùng duyệt mới sửa (ghi DECISIONS trích lời duyệt).
 - Kho này dùng chung nhiều dự án: bài học riêng của một sản phẩm (tên màn, tên API) → viết lại cho tổng quát trước khi thêm.
 - Sửa ở **repo qa-agent** (đường dẫn: `source` trong `.claude/qa-agent.json`), rồi nhắc người dùng commit + push lên repo

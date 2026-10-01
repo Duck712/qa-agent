@@ -34,7 +34,7 @@ Checksum/mẫu dữ liệu vào · lệnh/cách kích + thời điểm · log jo
   file test vào nguồn dùng chung của job thật; `cleanup` theo prefix không dọn được dòng tổng hợp.
 - **Bộ dữ liệu cố định** của TC ở `qa/testdata/<TC-ID>/input/` + `expected/` (commit, không chứa dữ liệu thật) — dùng
   lại được cho regression. Khi chạy: chép vào `qa/sandbox/<run>/<TC>/`. Bằng chứng ở `qa/evidence/<run>/<TC>/`:
-  `sha256sum` (macOS: `shasum -a 256`) input/expected, lệnh kích + thời điểm, log có run id, output, diff.
+  `sha256sum` (macOS: `shasum -a 256`; Windows: `Get-FileHash` — [windows.md](windows.md) §2) input/expected, lệnh kích + thời điểm, log có run id, output, diff.
 - **Ngày chạy**: tìm trong code tham số ngày (`--date`, biến môi trường, tham số DAG) để chạy cho ngày biên (29/2,
   31/12, quanh 0h, đổi giờ mùa hè). Không có → hỏi. Không tự đổi giờ máy/container, không sửa lịch cron dùng chung.
 - **Đọc output trong DB**: là oracle bắt buộc → hỏi quyền đọc đúng bảng đích test ở bước chốt scope (SCOPE §7).

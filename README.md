@@ -74,6 +74,10 @@ Gõ `/qa-status` (in ra tình trạng = agent đã chạy đúng), rồi lần l
 ```
 Cần giao test case/quan điểm dưới dạng Excel: nói *"xuất test case ra Excel"* (agent tạo CSV trong `qa\export\`, mở bằng
 Excel hoặc import vào Google Sheets). TC người khác viết trên Sheets: tải CSV rồi nói *"review file tc.csv"*.
+Bàn giao bằng tiếng Anh/Nhật: ghi `- Ngôn ngữ bàn giao: en` (hoặc `ja`) trong `qa\QA.md` — file xuất có tiêu đề cột theo
+ngôn ngữ đó; nhờ agent dịch nội dung thì bản dịch nằm riêng trong `qa\export\`, file trong `qa\` vẫn tiếng Việt.
+TC agent không tự chạy được (thiết bị thật, máy in…) hoặc đội muốn người chạy: ghi `- Thực hiện: người` trong TC —
+agent giao cho người, nhận kết quả + bằng chứng họ gửi về và ghi vào run.
 
 **Dự án tiếp theo**: lặp lại Bước 2 → 5 với thư mục mới. Bước 1 không cần làm lại.
 
@@ -220,5 +224,7 @@ công cụ sinh TC phân quyền từ ma trận, 6 loại target mới, cơ ch�
 
 - Kiểm từ bên ngoài như người dùng — không viết unit test trong code sản phẩm (trừ khi được nhờ viết test tự động).
 - Load/stress chỉ khi khai môi trường riêng; không bao giờ trên production hay máy dùng chung.
-- Native Windows cần máy Windows; firmware/phần cứng không có emulator → QA viết TC, người dùng thực hiện và gửi bằng chứng.
+- Native Windows cần máy Windows (UI Automation có sẵn — `qa-targets/windows.md`); app cũ không lộ phần tử UI, firmware/
+  phần cứng không có emulator → TC `Thực hiện: người`: QA viết TC, người thực hiện và gửi bằng chứng.
+- Trên Windows agent không gửi được Ctrl-C thật cho tiến trình — ca "ngắt bằng Ctrl-C" cần người bấm tay.
 - Tính năng AI chấm theo tiêu chí quan sát được × N lần chạy — tiêu chí chủ quan cần người dùng duyệt mẫu.

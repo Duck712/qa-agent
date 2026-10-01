@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -993,6 +994,54 @@ def main() -> int:
            for x in json.loads((vp / ".claude" / f).read_text()).get("permissions", {}).get("ask", [])]
     check(all(f"PowerShell({c}:*)" in ask for c in ("psql", "mysql", "mongosh", "redis-cli", "sqlcmd", "sqlplus")),
           "lệnh DB qua PowerShell (Windows) cũng phải hỏi trước", json.dumps(ask))
+
+    print("\n[16c] TC do người chạy tay · ngôn ngữ bàn giao khi xuất CSV")
+    tay = tcd / "tay.md"
+    tay_tc = ("## TC-TAY-001 — In phiếu ra máy in thật\n- REQ: REQ-DK-1\n- Target: web\n- Loại: chức năng\n- Kiểu: normal\n"
+              "- Mức: R1\n- Nguồn: BUG-001\n- Thực hiện: {th}\n- Bước:\n  1. Bấm In\n- Kỳ vọng:\n  1. Máy in ra một trang\n"
+              "- Bằng chứng cần: ảnh trang in\n")
+    tay.write_text(tay_tc.format(th="robot"))
+    check("`Thực hiện: robot`" in q("tc").stdout, "TC: giá trị `Thực hiện` lạ bị báo", q("tc").stdout)
+    tay.write_text(tay_tc.format(th="người"))
+    r = q("new-run", "tay", "TC-TAY-001")
+    rid = re.search(r"run-id: (\S+)", r.stdout).group(1)
+    rl = vp / "qa/runs" / rid / "RUNLOG.md"
+    check("TC do người thực hiện: 1" in r.stdout and "TC do người thực hiện (giao cho người dùng" in rl.read_text(),
+          "new-run: liệt kê TC do người thực hiện, ghi vào RUNLOG", r.stdout)
+    ev = vp / "qa/evidence" / rid / "TC-TAY-001"
+    ev.mkdir(parents=True, exist_ok=True)
+    (ev / "01-trang-in.jpg").write_bytes(b"x")
+    rl.write_text(rl.read_text().replace("| TC-TAY-001 | CHƯA CHẠY | | | |",
+                                         f"| TC-TAY-001 | PASS | 2026-10-01 | qa/evidence/{rid}/TC-TAY-001/ | |"))
+    check("thiếu `nguoi-thuc-hien.md`" in q("run", rid).stdout, "run: TC người làm có PASS mà thiếu nguoi-thuc-hien.md → lỗi", q("run", rid).stdout)
+    (ev / "nguoi-thuc-hien.md").write_text("- Người làm: tester nhóm B\n- Lúc: 2026-10-01 10:00\n- Kết quả họ báo: \"in ra 1 trang\"\n")
+    r = q("run", rid)
+    check("nguoi-thuc-hien" not in r.stdout and "người thực hiện 1" in r.stdout, "run: đủ nguoi-thuc-hien.md → hết lỗi, đếm riêng TC người làm", r.stdout)
+    r = q("export", "tc", "--out", "qa/export/en.csv", "--lang", "en")
+    en = (vp / "qa/export/en.csv").read_text(encoding="utf-8-sig")
+    check(r.returncode == 0 and en.startswith("ID,Title,Requirement ID,Viewpoint ID") and "Executed by (agent/human)" in en
+          and "nội dung ô vẫn là tiếng Việt" in r.stdout, "export --lang en: tiêu đề cột tiếng Anh + nhắc nội dung chưa dịch", en[:200] + r.stdout)
+    r = q("import", "tc", "qa/export/en.csv", "--feature", "nhap-en")
+    back = (tcd / "nhap-en.md").read_text() if (tcd / "nhap-en.md").exists() else ""
+    check("Đã nhập 0" in r.stdout and "đã có" in r.stdout, "import lại file tiêu đề tiếng Anh: nhận đúng cột ID (mã trùng bị bỏ qua)", r.stdout + back)
+    c4 = vp / "qa/export/en2.csv"
+    c4.write_text(en.replace("TC-TAY-001", "TC-TAYEN-001").split("\n")[0] + "\n"
+                  + next(l for l in en.replace("TC-TAY-001", "TC-TAYEN-001").split("\n") if l.startswith("TC-TAYEN-001")) + "\n", encoding="utf-8")
+    q("import", "tc", str(c4), "--feature", "nhap-en")
+    back = (tcd / "nhap-en.md").read_text() if (tcd / "nhap-en.md").exists() else ""
+    check("## TC-TAYEN-001 — In phiếu ra máy in thật" in back and "- Thực hiện: người" in back and "1. Bấm In" in back,
+          "import file tiêu đề tiếng Anh: map đúng về trường của kit", back)
+    for f in (tcd / "nhap-en.md", tay):
+        f.unlink(missing_ok=True)
+    qam = vp / "qa/QA.md"
+    qa_txt = qam.read_text()
+    qam.write_text(re.sub(r"(?m)^- Ngôn ngữ bàn giao:.*$", "- Ngôn ngữ bàn giao: ja <!-- x -->", qa_txt)
+                   if "Ngôn ngữ bàn giao" in qa_txt else qa_txt + "\n- Ngôn ngữ bàn giao: ja\n")
+    r = q("export", "vp", "--out", "qa/export/ja.csv")
+    check("観点ID" in (vp / "qa/export/ja.csv").read_text(encoding="utf-8-sig"), "export đọc `Ngôn ngữ bàn giao: ja` ở QA.md", r.stdout)
+    r = q("export", "tc", "--lang", "klingon")
+    check(r.returncode == 2 and "chưa hỗ trợ" in r.stderr, "ngôn ngữ không hỗ trợ → báo lỗi, không xuất", r.stderr)
+    qam.write_text(qa_txt)
 
     print("\n[17] cài vào thư mục chưa có")
     nd = tmp / "moi" / "du-an-dat-lich"

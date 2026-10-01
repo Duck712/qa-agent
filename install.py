@@ -106,6 +106,12 @@ def migrate_notes(proj: Path) -> list[str]:
     sc = qa / "SCOPE.md"
     if sc.is_file() and "Tiêu chí vào" not in sc.read_text(encoding="utf-8", errors="replace"):
         out.append("qa/SCOPE.md bản cũ: chưa có §9–§12 (vào/ra, lịch, bàn giao, rủi ro dự án) — thêm theo kit/qa/SCOPE.md khi lập đợt mới")
+    if tpl.is_file() and "- Thực hiện:" not in tpl.read_text(encoding="utf-8", errors="replace"):
+        out.append("qa/testcases/_TEMPLATE.md bản cũ: chưa có dòng `- Thực hiện:` (TC do người chạy tay) — chép lại từ kit/qa/testcases/_TEMPLATE.md")
+    qm = qa / "QA.md"
+    if qm.is_file() and "Ngôn ngữ bàn giao" not in qm.read_text(encoding="utf-8", errors="replace"):
+        out.append("qa/QA.md bản cũ: chưa có dòng `- Ngôn ngữ bàn giao:` và `- Người chạy TC thủ công:` dưới §Quy trình — "
+                   "thêm theo kit/qa/QA.md (thiếu thì xuất CSV tiếng Việt)")
     les = qa / "LESSONS.md"
     if les.is_file() and "Phạm vi áp" not in les.read_text(encoding="utf-8", errors="replace"):
         out.append("qa/LESSONS.md bản cũ: chưa có cột `Phạm vi áp` (lessons --for coi mọi bài là chung) — thêm cột cuối bảng nếu cần")

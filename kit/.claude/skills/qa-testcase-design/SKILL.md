@@ -42,6 +42,7 @@ description: >
 | Nhiều tham số cấu hình/môi trường kết hợp | Pairwise, classification tree | `ky-thuat/to-hop.md` |
 | Có code trong tay | Hộp trắng nhẹ (mỗi nhánh/validate/mã lỗi có TC) | `ky-thuat/hop-trang.md` |
 | Không biết trước đáp án đúng (AI, xếp hạng, batch lớn, tính toán phức tạp) | Oracle, metamorphic, property | `ky-thuat/oracle.md` |
+| Thay hệ cũ bằng hệ mới (di trú dữ liệu, đổi nền tảng/hạ tầng, nâng OS/DB/framework, viết lại, chạy song song) | So sánh song song + đối soát dữ liệu | `ky-thuat/oracle.md` §7 |
 | Đầu vào tự do, parser, upload | Fuzz / sinh đầu vào | `ky-thuat/oracle.md` §4 |
 | Tài liệu mỏng, vùng rủi ro chưa rõ | Error guessing, checklist, khám phá theo phiên | `ky-thuat/kinh-nghiem.md` |
 | Hiệu năng, khả dụng, a11y, tương thích, i18n, tin cậy | Kỹ thuật phi chức năng | `ky-thuat/phi-chuc-nang.md` |
@@ -54,7 +55,7 @@ thuật đã dùng vào trường `Kỹ thuật:` của TC bằng **tên chuẩn
 |---|---|
 | dữ liệu | `phân vùng` · `giá trị biên` · `biên nhiều chiều` · `syntax` |
 | logic | `bảng quyết định` · `phân quyền` · `CRUD` · `chuyển trạng thái` · `use case` · `pairwise` · `classification tree` · `hộp trắng` |
-| oracle | `metamorphic` · `property` · `fuzz` · `đồng thời` · `rubric` (chấm AI theo tiêu chí) · `mốc hành vi` |
+| oracle | `metamorphic` · `property` · `fuzz` · `đồng thời` · `rubric` (chấm AI theo tiêu chí) · `mốc hành vi` · `so sánh song song` · `đối soát dữ liệu` |
 | kinh nghiệm | `error guessing` · `checklist` · `khám phá` |
 | phi chức năng | `phi chức năng` · `a11y` · `khả dụng` · `hiệu năng` · `tương thích` · `i18n` |
 
@@ -107,7 +108,9 @@ File `qa/testcases/<tinh-nang>.md`, mỗi TC một khối (khuôn đầy đủ: 
 - Bằng chứng cần: ảnh + URL trang bước 1 · request/response nguyên văn bước 2 · ảnh/response bước 3
 ```
 ID `TC-<TÍNH-NĂNG>-<3 chữ số>`, không tái dùng ID đã xoá. Bắt buộc: REQ, Target, Loại, Kiểu, Mức, Nguồn, Bước,
-Kỳ vọng, Bằng chứng cần; `VP` khi dự án có quan điểm test (TC tái hiện bug được miễn). Nên có: Kỹ thuật. Tiêu đề/kỳ vọng viết theo hành vi người dùng; chi tiết kỹ thuật
+Kỳ vọng, Bằng chứng cần; `VP` khi dự án có quan điểm test (TC tái hiện bug được miễn). Nên có: Kỹ thuật. Tuỳ chọn:
+`Thực hiện: người` khi bước không tự động được — người dùng duyệt (skill `qa` §7); bước + kỳ vọng phải đủ rõ để người
+chưa biết sản phẩm làm theo. Tiêu đề/kỳ vọng viết theo hành vi người dùng; chi tiết kỹ thuật
 (selector, endpoint, lệnh) chỉ ở Bước/Dữ liệu. Mỗi kỳ vọng ứng với một bước — hành động nào kiểm ở kỳ vọng phải có
 trong Bước.
 

@@ -72,7 +72,12 @@ Bốn thứ **luôn đúng** dù làm việc gì: không bịa · chưa rõ thì
 7. **An toàn môi trường** (`qa-targets` §An toàn): tài khoản/dữ liệu test, bản ghi mang prefix
    `QA-<run-id>-`, không bắn thông báo tới người thật, không tiêu tiền thật, không chạm thẳng DB
    production, không load/stress trừ khi SCOPE khai môi trường riêng.
-8. **Tiếng Việt có dấu**, giữ tiếng Anh cho ID (`REQ-`, `TC-`, `BUG-`), API path, lệnh, tên file.
+8. **Tiếng Việt có dấu**, giữ tiếng Anh cho ID (`REQ-`, `TC-`, `BUG-`), API path, lệnh, tên file. Đó là ngôn ngữ của
+   file trong `qa/` (qa_check đọc tên trường tiếng Việt). **Bàn giao** bằng ngôn ngữ khác (`QA.md` dòng `Ngôn ngữ bàn
+   giao:` — en/ja) → `qa_check.py export` xuất tiêu đề cột theo ngôn ngữ đó; nội dung (TC, quan điểm, bug, REPORT) chỉ dịch
+   khi người dùng nhờ, ra **bản riêng** ở `qa/export/` — bản dịch không phải nguồn, sửa thì sửa bản tiếng Việt rồi xuất
+   lại. Khi dịch: giữ nguyên mã ID, giá trị chuẩn (normal/abnormal, R1–R3, PASS/FAIL…), tên màn/nút/thông điệp đúng như
+   sản phẩm hiển thị, và cột **trích nguyên văn** (giữ ngôn ngữ của tài liệu gốc); không thêm/bớt ý.
    Đội dùng mã ngoài (Jira, Linear, GitHub issue) → ghi thêm vào trường `Ticket:`, không thay mã nội bộ.
    Nhãn chờ thống nhất một kiểu: `(chờ trả lời #n)` — dùng cho cả REQ rút từ code chưa được xác nhận.
 9. **Học từ lỗi** (§6): lỗi tìm được, sự cố khi làm, và điều người dùng sửa lưng đều ghi `LESSONS.md` —
@@ -89,7 +94,7 @@ Bốn thứ **luôn đúng** dù làm việc gì: không bịa · chưa rõ thì
 | 4 | **Thiết kế test case** | "viết TC cho tính năng X" | Từ quan điểm đã duyệt (`VP:`); chọn kỹ thuật theo `qa-testcase-design` §1 (phân vùng, giá trị biên, bảng quyết định, chuyển trạng thái, use case, pairwise, hộp trắng, metamorphic/property/fuzz, error guessing/checklist/khám phá, phi chức năng — tên chuẩn ở §1) + checklist | `testcases/<tính-năng>.md` |
 | 5 | **Review tài liệu test** (quan điểm test, TC, kế hoạch) | "review TC này", "bộ quan điểm đủ chưa", "review test plan" | `/qa-review`: máy (`qa_check.py vp` · `tc` · `src` · `trace`) + checklist `qa-testcase-design/ky-thuat/quan-diem.md` §3 · `qa-testcase-design/ky-thuat/review-tc.md` · `qa-knowledge/scope-review.md` + `qa-source-check` đối chiếu nguồn. TC từ Excel → `qa_check.py import` | `TRACE.md` + báo cáo trong chat (sửa khi được đồng ý) |
 | 6 | **Dữ liệu & môi trường test** | "chuẩn bị data", "tạo tài khoản test" | §7: hỏi cách tạo/dọn được phép, script seed/dọn có prefix, kiểm môi trường sống | `QA.md §Tài khoản`, `qa/scripts/` |
-| 7 | **Chạy test theo TC** | "chạy bộ TC", "test tính năng X" | Tạo run → chạy (tự làm hoặc `qa-tester`) → bằng chứng → bug | `runs/<run-id>/RUNLOG.md`, `BUGS.md`, `evidence/` |
+| 7 | **Chạy test theo TC** | "chạy bộ TC", "test tính năng X" | Tạo run → chạy (tự làm hoặc `qa-tester`; TC `Thực hiện: người` → giao người dùng, §7) → bằng chứng → bug | `runs/<run-id>/RUNLOG.md`, `BUGS.md`, `evidence/` |
 | 8 | **Smoke / sanity** | "vừa deploy, check nhanh" | TC có `Tag: smoke`; chưa có → đề xuất TC R1 normal, người dùng xác nhận → run ngắn | run `<ngày>-smoke` |
 | 9 | **Regression** | "test lại toàn bộ trước release" | Phân tích ảnh hưởng (`qa-knowledge/analysis-review.md` §8) → `new-run reg <TC-…>` lấy mọi TC `Regression: có` + TC truyền thêm (R1 luồng lõi, tái hiện bug cũ của vùng bị chạm); chỉ muốn vùng bị chạm → `new-run reg-vung <danh sách TC-ID>` (run không phủ hết SCOPE thì kết luận luôn ghi "chỉ trong phạm vi run này") | run `<ngày>-reg` |
 | 10 | **Test lại bug** | "dev fix BUG-012 rồi" | Ghi `đã sửa` (nguồn: lời dev/ticket) → chạy TC tái hiện (bug từ khám phá chưa có TC → viết TC tái hiện, người dùng duyệt) → PASS thì `đóng`, FAIL thì `đã sửa → mở`; bug không tái hiện ổn định → số lần test lại do người dùng chốt | run `<ngày>-retest`, trường `Lịch sử` của bug |
@@ -206,7 +211,7 @@ Hai tầng, để kinh nghiệm không mất khi hết phiên:
   không gửi feedback, không ghi vào bộ nhớ Claude. Thư mục dự án nằm trong repo git của sản phẩm → loại `qa/`,
   `.claude/` khỏi commit (vd `.git/info/exclude`) trước khi làm; chưa rõ → hỏi người dùng.
 
-## 7. Dữ liệu test & test tự động
+## 7. Dữ liệu test, test tự động, TC do người chạy tay
 
 **Dữ liệu test (việc 6)** — trước khi tạo gì, hỏi (nếu `QA.md` chưa ghi): tạo/dọn bằng đường nào được phép (UI, API,
 lệnh của sản phẩm; chạm DB chỉ khi SCOPE §7 cho phép), tài khoản/tenant nào dùng được, dữ liệu nào không được đụng.
@@ -224,3 +229,15 @@ nơi đặt (`qa/automation/` mặc định; repo sản phẩm chỉ khi ngườ
 - Phụ thuộc chỉ cài trong `qa/automation/` và **chỉ sau khi người dùng đồng ý** (DECISIONS); không cài toàn máy.
 - Chạy thật; output (report của framework, stdout, ảnh) ghi vào `qa/evidence/<run-id>/<TC-ID>/` — đó là bằng chứng,
   kết quả ghi RUNLOG như chạy tay. Script lỗi do chính script (không phải sản phẩm) → sửa script, không ghi FAIL.
+
+**TC do người chạy tay** (`Thực hiện: người`) — khi agent không điều khiển được target/bước (thiết bị thật, phần cứng, máy
+in, hộp thoại hệ thống, Ctrl-C thật, cảm nhận game…) hoặc đội giao TC cho tester người. Đặt `Thực hiện: người` là quyết
+định của người dùng (đề xuất kèm lý do, họ duyệt). Rồi:
+- `new-run` ghi danh sách TC này vào RUNLOG. Giao cho người ở `QA.md §Người chạy TC thủ công`: TC-ID, bước, kỳ vọng,
+  `Bằng chứng cần`, thư mục bằng chứng `qa/evidence/<run-id>/<TC-ID>/`, môi trường/bản phải dùng.
+- Người làm gửi kết quả + bằng chứng (ảnh, video, file, ghi chú) → agent chép vào đúng thư mục TC, thêm
+  `nguoi-thuc-hien.md`: ai làm (vai/nhóm — không cần họ tên nếu đội không muốn), lúc nào, môi trường/bản, bằng chứng
+  nhận qua đâu, và **nguyên văn** kết quả họ báo. `qa_check.py run` báo lỗi khi PASS/FAIL thiếu file này.
+- Agent **không** tự chấm thay: ghi đúng kết quả người làm báo; bằng chứng không chứng minh được kỳ vọng (ảnh thiếu bước,
+  "đã test OK" không kèm gì) → hỏi lại người làm, chưa đủ thì `BLOCKED`. Lệch kỳ vọng → `FAIL` + `/qa-bug` như thường.
+- Không có ai chạy tay được → TC `BLOCKED` (lý do: chờ người thực hiện), không đổi thành agent chạy bằng cách đoán.

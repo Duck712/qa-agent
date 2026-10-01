@@ -5,7 +5,7 @@
 |---|---|---|
 | **Electron** | Playwright `_electron` qua script Node trong `qa/automation/` | Điều khiển như web: selector, computed style, console |
 | **Native macOS** | AppleScript / System Events (`osascript`) + `screencapture` | Cần cấp quyền Accessibility + Screen Recording cho Terminal — không có quyền thì BLOCKED, báo người dùng tự cấp |
-| **Native Windows** | `pywinauto` / WinAppDriver (chạy trên máy Windows) | Máy macOS không kiểm được → BLOCKED |
+| **Native Windows** (WinForms, WPF, Win32, UWP/WinUI) | UI Automation qua PowerShell — có sẵn, không cài gì ([windows.md](windows.md) §4) | Máy macOS/Linux không kiểm được → BLOCKED. App cũ không lộ phần tử UIA → BLOCKED/thủ công |
 | **Linux GUI** | `xdotool` + `xwd`/`import`, hoặc `dogtail` (AT-SPI) | Cần X/Wayland session |
 | **Web bọc (Tauri, CEF)** | Nếu bật được remote debugging → Playwright `connectOverCDP` | Không bật được → như native |
 
@@ -42,7 +42,7 @@ osascript -e 'tell application "System Events" to tell process "TenApp" to get e
 Cài/gỡ/cập nhật (bản cũ → mới giữ dữ liệu?) · mở nhiều cửa sổ/instance · kéo thả file · menu và phím tắt ·
 đổi kích thước cửa sổ/màn hình phụ/HiDPI · chế độ tối · offline · file lớn / đường dẫn có dấu cách và unicode ·
 quyền hệ điều hành bị từ chối (file, camera, thông báo) · thoát giữa lúc đang lưu rồi mở lại · crash log
-(macOS `~/Library/Logs/DiagnosticReports/`, Windows Event Viewer).
+(macOS `~/Library/Logs/DiagnosticReports/`, Windows: `Get-WinEvent` — [windows.md](windows.md) §4).
 
 ## Bằng chứng tối thiểu
 Screenshot cửa sổ + cây UI (hoặc selector Electron) + version app đang chạy · crash: file log nguyên văn.

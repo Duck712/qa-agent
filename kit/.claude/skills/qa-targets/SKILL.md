@@ -24,6 +24,9 @@ description: >
 | `library` | Gói npm/pip/maven, SDK, plugin | chương trình dùng thử trong `qa/sandbox/` | [library.md](library.md) |
 | khác | Firmware, game, hệ thống IoT, extension trình duyệt... | tự lập công thức | [khac.md](khac.md) |
 
+Máy chạy QA là **Windows** (tool PowerShell): khối lệnh trong các file trên viết cho Bash → dùng bản PowerShell ở
+[windows.md](windows.md) (bẫy PowerShell 5.1, thu stdout/stderr/exit, `curl.exe`, checksum, UI Automation cho app native).
+
 Một sản phẩm thường có nhiều target (web + api + mobile) — mỗi target một dòng `QA.md §Target`, TC ghi
 đúng `Target:`. Hành động ở target A phải hiện ở target B → TC loại `cross-target`, bằng chứng cả hai phía.
 

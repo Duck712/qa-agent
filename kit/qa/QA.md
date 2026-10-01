@@ -7,6 +7,8 @@
 - Quy trình: 
 - Mã ticket ngoài: <!-- vd Jira KAI-123, GitHub #45 — ghi vào trường Ticket: của TC/bug -->
 - Việc tiếp theo: 
+- Ngôn ngữ bàn giao: vi <!-- vi · en · ja — tiêu đề cột khi `qa_check.py export`; nội dung tài liệu bàn giao agent dịch khi được nhờ (skill qa §1.8). File trong qa/ luôn tiếng Việt -->
+- Người chạy TC thủ công: <!-- ai nhận TC `Thực hiện: người` (vai/nhóm), gửi bằng chứng qua đâu — skill qa §7 -->
 
 ## Nguồn tài liệu
 <!-- Mọi thứ mô tả sản phẩm cần test: PRD, user story, ticket, release note, API doc (OpenAPI), thiết kế, README... -->
