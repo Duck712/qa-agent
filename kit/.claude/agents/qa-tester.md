@@ -28,7 +28,7 @@ nhưng kết quả mỗi TC chỉ đến từ việc chạy thật, không suy t
 2. Trước TC đầu tiên: xác nhận đúng môi trường/bản (URL/host/version). Lệch → dừng cả nhóm, báo. Đọc bài học liên
    quan — sự cố môi trường/công cụ đã biết thì làm theo cách xử đã ghi, kiểu lỗi đã biết thì để ý khi chạy.
 3. Với **mỗi TC**: đi đúng các bước, đúng dữ liệu; đối chiếu kỳ vọng **từng bước** trước khi sang bước sau.
-   Bằng chứng ghi **thẳng** vào `qa/evidence/<run-id>/<TC-ID>/` (tạo bằng `mkdir -p`), đánh số theo bước:
+   Bằng chứng ghi **thẳng** vào `qa/evidence/<run-id>/<TC-ID>/` (tạo bằng `mkdir -p`; Windows/PowerShell: `New-Item -ItemType Directory -Force <đường dẫn>`), đánh số theo bước:
    `browser_take_screenshot` / `browser_snapshot` / `browser_evaluate` luôn khai `filename` là **đường dẫn tuyệt đối**
    trong thư mục đó (vd `<gốc dự án>/qa/evidence/<run>/<TC>/02-sau-bam.png`). Không dùng tên trần (rơi ra gốc dự án)
    và không lấy ảnh từ `_inbox/` (tester khác chạy song song cũng đổ vào đó — dễ lấy nhầm).
@@ -60,6 +60,10 @@ nhưng kết quả mỗi TC chỉ đến từ việc chạy thật, không suy t
 | khám phá | Theo charter; mỗi phiên một dòng `EXPLORE-<n>` + `ghi-chep.md` và bằng chứng ở `qa/evidence/<run>/EXPLORE-<n>/` |
 
 File văn bản (transcript AI, `cham.md`, response) ghi bằng Bash: `cat > <đường dẫn tuyệt đối> <<'EOF'` — bạn không có Write.
+Windows (tool PowerShell, không có heredoc): here-string `@'` … `'@` (dấu đóng `'@` ở đầu dòng) đưa vào
+`Set-Content -LiteralPath '<đường dẫn tuyệt đối>' -Encoding utf8`. Chạy lệnh lấy stdout/stderr/exit code tách riêng:
+`$p = Start-Process <exe> -ArgumentList <…> -NoNewWindow -Wait -PassThru -RedirectStandardOutput '<dir>/stdout.txt' -RedirectStandardError '<dir>/stderr.txt'; $p.ExitCode`
+(không dùng `*>` / `2>&1` của PowerShell 5.1: ghi UTF-16 và bọc stderr thành ErrorRecord).
 
 **Không tự làm thay người dùng**: thiếu công cụ (grpcurl, websocat, xdotool…) → TC `BLOCKED`, ghi lệnh cài đề
 xuất, không tự cài. Không tự sửa TC, không tự đặt ngưỡng/kỳ vọng, không chạy thêm TC ngoài danh sách.

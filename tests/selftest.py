@@ -83,7 +83,7 @@ def main() -> int:
           ".mcp.json: --output-dir tuyệt đối trong qa/evidence/_inbox", od)
     check(not any("@latest" in a for a in args), ".mcp.json: version MCP khoá cứng, không @latest")
     agent = (proj / ".claude/agents/qa-tester.md").read_text()
-    check(str(proj / "qa/evidence/_inbox/tester") in agent and "@latest" not in agent,
+    check((proj.resolve() / "qa/evidence/_inbox/tester").as_posix() in agent and "@latest" not in agent,
           "qa-tester: output-dir tuyệt đối + version khoá")
 
     print("\n[2] cài lại / cập nhật")
@@ -402,7 +402,30 @@ def main() -> int:
     check(hook(proj, "guard_readonly.py", "Bash", {"command": 'cd src && grep -rn "=>" .'}) == 0, "grep có `=>` trong chuỗi không bị chặn nhầm")
     check(hook(proj, "guard_readonly.py", "Bash", {"command": "git -C src branch"}) == 0, "git branch (liệt kê) không bị chặn")
     check(hook(proj, "guard_readonly.py", "Bash", {"command": "(cd src && rm app.js)"}) == 2, "chặn rm trong subshell")
+    ps_block = [r"Remove-Item src\app.js", r"Remove-Item -Path .\src -Recurse -Force", r"'x' | Out-File src/a.txt",
+                r"Set-Content -Path src\a.txt -Value x -Encoding utf8", r"echo x > src\a.txt",
+                r"Copy-Item qa\a.txt -Destination src\b.txt", r"New-Item -ItemType File -Path src -Name b.js",
+                r"Invoke-WebRequest https://x -OutFile src\y.zip", r"Set-Location src; ni b.js", r'cmd /c "del /q src\app.js"',
+                r'powershell -Command "Remove-Item src\app.js"', r"[IO.File]::WriteAllText('src\a.js', 'x')",
+                r"$d = 'src'; Remove-Item $d\a.js", r"Get-ChildItem src | ForEach-Object { Remove-Item src\a.js }"]
+    ps_pass = [r"Get-Content src\app.js", r"Copy-Item src\app.js qa\testdata\x", r"Set-Content qa\x.md -Value 1 -Encoding utf8",
+               r"python .claude/qa-scripts/qa_check.py status 2>$null", "git commit -m @'\nrm src/a.js > src/x\n'@",
+               r"Get-ChildItem src -Recurse | Select-Object Name", r'cmd /c "dir src"']
+    bad_ps = [c for c in ps_block if hook(proj, "guard_readonly.py", "PowerShell", {"command": c}) != 2] + \
+             [c for c in ps_pass if hook(proj, "guard_readonly.py", "PowerShell", {"command": c}) != 0]
+    check(not bad_ps, f"PowerShell: chặn {len(ps_block)} kiểu ghi vào src, cho qua {len(ps_pass)} lệnh đọc/ghi qa/", "\n".join(bad_ps))
+    ev = (proj / "qa/evidence/r1/TC-A-001/01.png").as_posix()
+    bad_ev = [c for c, want in [(f"Copy-Item {ev} C:/Users/Public/a.png", 2),
+                                (r"Copy-Item qa\evidence\r1\TC-A-001\01.png -Destination $env:TEMP\a.png", 2),
+                                (r"Compress-Archive -Path qa\evidence -DestinationPath C:\Users\Public\ev.zip", 2),
+                                (r"Copy-Item qa\evidence\r1\TC-A-001\01.png qa\runs\a.png", 0),
+                                (f"Copy-Item {ev} {(proj / 'qa/evidence/r2/a.png').as_posix()}", 0)]
+              if hook(proj, "guard_evidence.py", "PowerShell", {"command": c}) != want]
+    check(not bad_ev, "PowerShell: chặn chép/nén bằng chứng ra ngoài qa/, ổ đĩa C:/… trong qa/ vẫn cho qua", "\n".join(bad_ev))
     st3 = json.loads((proj / ".claude/settings.json").read_text())
+    guards = [e for e in st3["hooks"]["PreToolUse"] if "guard_" in json.dumps(e["hooks"])]
+    check(len(guards) == 2 and all("PowerShell" in e["matcher"].split("|") for e in guards),
+          "settings: hook guard khớp cả tool PowerShell", json.dumps(guards)[:300])
     wrap = [h for e in st3["hooks"]["PreToolUse"] for h in e["hooks"] if "guard_readonly" in json.dumps(h)][0]
     miss = run([wrap["command"], *[a.replace("${CLAUDE_PROJECT_DIR}", str(tmp / "khong-co")) for a in wrap["args"]]], tmp,
                stdin=json.dumps({"tool_name": "Write", "tool_input": {"file_path": "/x"}}))
@@ -427,9 +450,10 @@ def main() -> int:
         body = (f"- Bắt đầu: 2099-01-01 00:00\n- Danh sách TC lúc tạo run: {', '.join(ids)}\n- Tiêu chí (test):\n{crit}{extra}\n"
                 "| TC | Kết quả | Ngày | Bằng chứng | Bug / Lý do |\n|---|---|---|---|---|\n")
         for tid, res, note in rows:
-            e = proj / "qa/evidence" / name / tid
+            eid = tid.strip("*")                       # **TC-…** (in đậm trong RUNLOG) — `*` không hợp lệ trong tên thư mục Windows
+            e = proj / "qa/evidence" / name / eid
             e.mkdir(parents=True, exist_ok=True); (e / "a.txt").write_text("x")
-            body += f"| {tid} | {res} | 2099-01-01 | qa/evidence/{name}/{tid}/ | {note} |\n"
+            body += f"| {tid} | {res} | 2099-01-01 | qa/evidence/{name}/{eid}/ | {note} |\n"
         (d / "RUNLOG.md").write_text(body)
         return name
     good = "  - Bug mở không được phép: S1, S2\n  - Tỉ lệ PASS tối thiểu: 95%\n  - Tỉ lệ BLOCKED tối đa: 5%\n"
@@ -929,4 +953,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if not sys.flags.utf8_mode:      # Windows: mặc định cp1252 → đọc/ghi tiếng Việt vỡ; chạy lại chính nó ở chế độ UTF-8
+        os.environ["PYTHONUTF8"] = "1"                 # tiến trình con (install, qa_check, hook) cũng UTF-8
+        sys.exit(subprocess.call([sys.executable, "-X", "utf8", *sys.argv]))
     sys.exit(main())
