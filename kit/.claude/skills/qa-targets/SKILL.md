@@ -77,3 +77,7 @@ Một sản phẩm thường có nhiều target (web + api + mobile) — mỗi t
    xuất và báo người dùng; **không tự cài** (brew/pip/npm toàn máy), không tự đổi cấu hình máy/MCP.
 10. **Máy dùng chung**: giới hạn worker/song song theo `QA.md §Môi trường` (chưa có → hỏi), đóng trình duyệt/simulator/
    tiến trình nền khi xong; việc cần container hay chạy lâu → theo quy ước máy/đội của người dùng, không tự dựng hạ tầng.
+11. **Khảo sát giao diện chưa rõ** (web / desktop / mobile; bài học từ dự án): không dùng script bấm hàng loạt mục menu /
+   nút — mục lá có thể mở màn xử lý hoặc tự chạy việc gì đó. Lấy cây menu từ dữ liệu (API, model phía client), mở từng
+   màn và chỉ đọc. Lỡ mở / bấm hàng loạt → dừng ngay, kiểm dấu vết (ô "lần chạy trước", log, lịch sử) xác nhận chưa có
+   xử lý nào chạy, báo người dùng và ghi LESSONS.

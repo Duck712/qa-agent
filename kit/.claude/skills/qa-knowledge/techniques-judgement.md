@@ -14,6 +14,13 @@ Làm theo phiên có charter, ghi chép và debrief — chi tiết + các "tour"
 
 Khám phá là **nguồn phát hiện**, không thay TC: thấy lỗi → ghi bug (có bằng chứng) + đề xuất TC mới vào `qa/testcases/`. Ghi đường đã đi vào RUNLOG (dòng `EXPLORE-<n>`) để lần sau không đi lại đúng chỗ đó.
 
+**Target có giao diện (web / desktop / mobile) — không suy chức năng nút từ nhãn** (bài học từ dự án). Nhãn như
+"Xác nhận / Confirm / OK" chưa chắc là "lưu"; có thể chỉ là chốt điều kiện rồi mới mở ô nhập. Muốn ghi một nút **làm gì** và
+**bật khi nào**: đọc hàm xử lý gắn với nút trong mã phía client (gọi chức năng nào ở máy chủ, có hỏi xác nhận không, bật / tắt
+nút nào ở bước nào), hoặc bấm thử nút không ghi dữ liệu — ghi rõ nguồn (đọc mã / đã bấm thử / suy từ nhãn). Ảnh chụp màn lúc
+vừa mở **không đủ**: có nút chỉ hiện sau một bước, nút đổi nhãn theo bước, và nút chung của khung giao diện bật theo ô đang
+đứng (vd mở hộp chọn mã). Ghi trạng thái từng nút: lúc mở bật / tắt, bật khi nào, tắt khi nào.
+
 ## 2. Viết bug chất lượng cao
 
 - **Tối giản repro**: thử bỏ bớt từng bước xem lỗi còn không → bộ bước còn lại là tối thiểu.
