@@ -23,29 +23,96 @@ Nguyên tắc bao trùm: **agent không tự ý làm thay người dùng** — k
 số lần chạy; không tự đổi trạng thái/severity bug ngoài các chuyển được phép ghi ở `qa/BUGS.md`, tự chạy lại hay hạ kết quả, tự cài công cụ, tự sửa repo sản phẩm.
 Kit không có con số mặc định: thiếu thì đề xuất và hỏi; chưa chốt tiêu chí thì kết luận là `CHƯA KẾT LUẬN`.
 
-## Cài — từng bước
+## Cài — từng bước (cho người mới bắt đầu)
 
-> Hình dung: thư mục **`qa-agent`** là **bộ cài** (giữ một chỗ, không làm việc trong đó). Mỗi dự án cần test có
-> **một thư mục riêng**; bộ cài chép agent vào thư mục đó, bạn mở thư mục đó bằng Claude Code để làm việc.
+> **Hình dung trước khi làm**
+> - Thư mục **`qa-agent`** là **bộ cài**: tải về một lần, để yên một chỗ, **không làm việc trong đó**.
+> - Mỗi dự án cần test có **một thư mục riêng** (vd `Documents\QA\du-an-dat-lich`). Bộ cài chép agent vào thư mục đó.
+> - Bạn làm việc bằng cách mở thư mục dự án trong **Orca** (ứng dụng chạy Claude Code) rồi gõ lệnh cho **Claude**.
 >
-> Cần có: **Python 3.9+**, **Claude Code** (qua Orca, VS Code hoặc terminal). Chỉ khi chạy test web/mobile mới cần
-> thêm Node 18+ (Xcode/Android SDK nếu có app mobile). Lệnh dưới ghi cho Windows (PowerShell) — máy Mac/Linux thay
-> `python` bằng `python3` và `$HOME\Documents\…` bằng `~/Documents/…`.
+> Hướng dẫn ghi cho **Windows**. Máy Mac: xem dòng *Mac:* ở từng bước.
 
-### Bước 1 — Lấy bộ cài về máy (làm một lần)
-GitHub Desktop → **File → Clone repository** → chọn `Duck712/qa-agent`. Bạn có thư mục
-`Documents\GitHub\qa-agent`. (Dùng lệnh: `git clone https://github.com/Duck712/qa-agent $HOME\Documents\GitHub\qa-agent`.)
+**Cách mở PowerShell** (nhiều bước dưới cần): bấm phím **Windows** → gõ `PowerShell` → bấm **Windows PowerShell**.
+Cửa sổ hiện ra có dòng `PS C:\Users\<tên bạn>>`. Dán lệnh bằng **chuột phải** (hoặc Ctrl+V) rồi bấm **Enter**.
+*Mac:* mở **Terminal** (Cmd+Space → gõ `Terminal`).
 
-### Bước 2 — Cài vào dự án mới (mỗi dự án một lần)
-Mở PowerShell, chạy (đổi `du-an-dat-lich` và `"Đặt lịch"` theo dự án của bạn):
+### Phần A — Chuẩn bị máy (chỉ làm một lần)
+
+#### A1. Tài khoản Claude
+Claude Code cần tài khoản Claude trả phí: **Pro, Max, Team hoặc Enterprise** (gói Free không dùng được Claude Code).
+Đăng ký / đăng nhập ở <https://claude.ai>. Công ty cấp tài khoản Team/Enterprise thì dùng tài khoản đó.
+
+#### A2. Cài Python (để chạy bộ cài)
+1. Vào <https://www.python.org/downloads/> → bấm nút **Download Python 3.x** (bản 3.9 trở lên đều được).
+2. Mở file vừa tải. Ở màn hình đầu tiên **tích ô `Add python.exe to PATH`** (quan trọng — quên tích thì lệnh
+   `python` không chạy) → bấm **Install Now** → chờ xong → **Close**.
+3. Kiểm tra: mở **PowerShell mới**, gõ `python --version` → thấy `Python 3.x.x` là được.
+   Nếu Windows mở Microsoft Store thay vì in số phiên bản: cài lại Python và nhớ tích ô ở bước 2.
+
+*Mac:* tải bản macOS ở cùng trang, cài như phần mềm thường; kiểm tra bằng `python3 --version`.
+
+#### A3. Cài Git
+Orca làm việc với thư mục dạng "repo git"; Claude Code trên Windows cũng nên có Git.
+1. Vào <https://git-scm.com/downloads/win> → tải **Git for Windows** (bản 64-bit).
+2. Mở file cài → bấm **Next** liên tục, giữ mọi lựa chọn mặc định → **Install** → **Finish**.
+3. Kiểm tra: mở PowerShell mới, gõ `git --version` → thấy `git version …` là được.
+
+*Mac:* gõ `git --version` trong Terminal; máy hỏi cài "command line developer tools" thì bấm **Install**.
+
+#### A4. Cài GitHub Desktop và tải bộ cài `qa-agent`
+1. Vào <https://desktop.github.com> → **Download** → mở file cài (cài tự động, không cần bấm gì thêm).
+2. Mở GitHub Desktop. Đăng nhập GitHub hoặc bấm **Skip this step** — tải bộ cài không cần tài khoản.
+3. Menu **File → Clone repository…** → chọn tab **URL** → ô *Repository URL* dán:
+   `https://github.com/Duck712/qa-agent`
+4. Ô **Local path** để mặc định (`C:\Users\<tên bạn>\Documents\GitHub\qa-agent`) → bấm **Clone**.
+5. Xong: máy bạn có thư mục `Documents\GitHub\qa-agent`. Đây là bộ cài — không sửa gì trong đó.
+
+#### A5. Cài Claude Code và đăng nhập
+1. Mở PowerShell, dán lệnh sau rồi Enter (lệnh chạy im lặng một lúc, chờ đến khi hiện lại dòng `PS C:\…>`):
+   ```powershell
+   irm https://claude.ai/install.ps1 | iex
+   ```
+2. **Đóng PowerShell, mở cửa sổ mới**, gõ `claude --version` → thấy số phiên bản (vd `2.x.x (Claude Code)`) là được.
+   Báo `claude is not recognized`: khởi động lại máy rồi thử lại.
+3. Đăng nhập: gõ `claude` → Enter → chọn đăng nhập bằng tài khoản Claude → trình duyệt mở ra → đăng nhập và bấm
+   cho phép → quay lại PowerShell thấy Claude sẵn sàng là xong. Gõ `/exit` để thoát.
+   Chỉ cần đăng nhập một lần — Orca dùng lại phiên đăng nhập này.
+
+*Mac:* lệnh cài là `curl -fsSL https://claude.ai/install.sh | bash`, các bước còn lại giống hệt.
+
+#### A6. Cài Orca
+Orca (<https://github.com/stablyai/orca>) là ứng dụng chạy Claude Code trong một cửa sổ có danh sách dự án,
+terminal và trình duyệt.
+1. Tải bản Windows: <https://github.com/stablyai/orca/releases/latest/download/orca-windows-setup.exe>
+   (hoặc vào <https://onorca.dev/download>).
+2. Mở file `orca-windows-setup.exe` để cài. Nếu Windows hiện cảnh báo "Windows protected your PC" thì bấm
+   **More info → Run anyway**.
+3. Mở Orca lần đầu:
+   - Orca xin quyền truy cập thư mục người dùng (home) → **cho phép** (để Orca mở được thư mục dự án).
+   - Orca hỏi nhập cài đặt có sẵn (`~/.claude` …) → **đồng ý** (dùng lại đăng nhập Claude ở bước A5).
+
+*Mac:* ở trang <https://github.com/stablyai/orca/releases/latest> tải `orca-macos-arm64.dmg` (máy chip Apple M1/M2/M3…)
+hoặc `orca-macos-x64.dmg` (máy chip Intel), kéo Orca vào **Applications**; lần đầu mở nếu máy hỏi thì bấm **Open**.
+
+#### A7. (Chỉ khi test web hoặc app mobile) Cài Node.js
+Agent điều khiển trình duyệt / điện thoại qua Node.js. Chỉ phân tích tài liệu, viết quan điểm / test case thì **bỏ qua**.
+Vào <https://nodejs.org> → tải bản **LTS** → cài mặc định (Next liên tục). Kiểm tra: `node --version` (cần 18 trở lên).
+Test app mobile cần thêm Android Studio (Android) hoặc Xcode (iOS, chỉ trên Mac).
+
+### Phần B — Mỗi dự án mới (làm lại cho từng dự án)
+
+#### B1. Cài agent vào thư mục dự án
+Mở PowerShell, dán lệnh dưới — **đổi `du-an-dat-lich`** (tên thư mục, viết liền không dấu) và **`"Đặt lịch"`**
+(tên sản phẩm) theo dự án của bạn:
 ```powershell
 python $HOME\Documents\GitHub\qa-agent\install.py $HOME\Documents\QA\du-an-dat-lich --name "Đặt lịch"
 ```
-Thư mục chưa có thì bộ cài **tự tạo**, kèm thư mục `docs\` cho tài liệu. Cài xong thấy các dòng `✓` và mục
-**Tiếp theo** — bên trong dự án giờ có `.claude\` (agent) và `qa\` (nơi agent ghi phân tích, quan điểm test, test case,
-bài học).
+Thư mục chưa có thì bộ cài **tự tạo**. Cài xong thấy các dòng `✓` và mục **Tiếp theo**. Trong thư mục dự án giờ có:
+`.claude\` (agent), `qa\` (nơi agent ghi phân tích, quan điểm test, test case, bài học) và `docs\` (để tài liệu).
 
-### Bước 3 — Bỏ tài liệu đặc tả vào `docs\`
+*Mac:* `python3 ~/Documents/GitHub/qa-agent/install.py ~/Documents/QA/du-an-dat-lich --name "Đặt lịch"`
+
+#### B2. Bỏ tài liệu đặc tả vào `docs\`
 Tài liệu trên Google Drive / Sheets / Excel → tải về thư mục `docs\` của dự án (agent không tự mở link Drive):
 
 | Tài liệu | Tải về dạng | Agent đối chiếu trích dẫn tự động? |
@@ -58,34 +125,74 @@ Tài liệu trên Google Drive / Sheets / Excel → tải về thư mục `docs\
 Đặt tên kèm ngày tải (vd `docs\prd-dat-lich-2026-09-23.txt`) và ghi link gốc vào `qa\QA.md` mục **Tài liệu** —
 tài liệu trên Drive hay bị sửa, cần biết test đang bám bản nào. Có bản mới thì tải lại.
 
-### Bước 4 — Mở dự án bằng Claude Code
-Trong Orca (hoặc VS Code) mở **thư mục dự án** (`Documents\QA\du-an-dat-lich`) — **không** mở thư mục `qa-agent`.
-Terminal: `cd $HOME\Documents\QA\du-an-dat-lich` rồi `claude`. Lần đầu có hai câu hỏi, cả hai chọn **đồng ý**:
-tin cậy thư mục (trust — không đồng ý thì hook và quyền của agent không chạy) và bật MCP `browser`/`mobile`.
+#### B3. Biến thư mục dự án thành repo git (để Orca mở được)
+Orca chỉ thêm được thư mục là repo git. Làm bằng GitHub Desktop, **chỉ lưu trên máy bạn**:
+1. GitHub Desktop → menu **File → Add local repository…** → **Choose…** → chọn thư mục dự án
+   (`Documents\QA\du-an-dat-lich`).
+2. Hiện dòng *"This directory does not appear to be a Git repository…"* → bấm chữ **create a repository**.
+3. Giữ nguyên **Name** và **Local path** → bấm **Create repository**.
+4. Nếu tab **Changes** bên trái còn liệt kê file: ô **Summary** gõ `bắt đầu` → bấm **Commit to main**.
 
-### Bước 5 — Làm việc
-Gõ `/qa-status` (in ra tình trạng = agent đã chạy đúng), rồi lần lượt:
-```text
-/qa-analyze docs           phân tích tài liệu → yêu cầu (REQ) + câu hỏi cho bạn
-/qa-viewpoint <tính-năng>  quan điểm test → bạn duyệt
-/qa-plan <tên đợt>         chốt scope + tiêu chí đạt
-/qa-testcase <tính-năng>   viết test case từ quan điểm đã duyệt
-/qa-review all             review quan điểm + test case + scope
-```
-Cần giao test case/quan điểm dưới dạng Excel: nói *"xuất test case ra Excel"* (agent tạo CSV trong `qa\export\`, mở bằng
-Excel hoặc import vào Google Sheets). TC người khác viết trên Sheets: tải CSV rồi nói *"review file tc.csv"*.
-Bàn giao bằng tiếng Anh/Nhật: ghi `- Ngôn ngữ bàn giao: en` (hoặc `ja`) trong `qa\QA.md` — file xuất có tiêu đề cột theo
-ngôn ngữ đó; nhờ agent dịch nội dung thì bản dịch nằm riêng trong `qa\export\`, file trong `qa\` vẫn tiếng Việt.
-TC agent không tự chạy được (thiết bị thật, máy in…) hoặc đội muốn người chạy: ghi `- Thực hiện: người` trong TC —
-agent giao cho người, nhận kết quả + bằng chứng họ gửi về và ghi vào run.
+> ⚠️ **Không bấm "Publish repository"**. Thư mục dự án chứa tài liệu và kết quả test của khách — chỉ để trên máy,
+> không đưa lên GitHub. (File mật khẩu `qa\.env` đã được bộ cài loại khỏi git sẵn.)
 
-**Dự án tiếp theo**: lặp lại Bước 2 → 5 với thư mục mới. Bước 1 không cần làm lại.
+#### B4. Mở dự án trong Orca và chạy Claude
+1. Mở Orca → bấm **Add Repo** (thanh bên trái) → chọn thư mục dự án (`Documents\QA\du-an-dat-lich`).
+   **Không** chọn thư mục `qa-agent`.
+2. Dưới tên dự án ở thanh bên trái, bấm **dòng thư mục chính** (dòng nhánh `main`).
+   > ⚠️ **Không bấm dấu `+`** cạnh tên dự án. Dấu `+` tạo một **bản sao** thư mục (worktree) — agent sẽ ghi kết quả
+   > vào bản sao, còn ảnh bằng chứng vẫn đổ về thư mục chính → kết quả bị tách hai nơi.
+3. Mở terminal ở dòng đó, chọn **Claude Code** trong ô chọn agent. Nếu chỉ thấy terminal trống thì gõ `claude` rồi Enter.
+4. Lần đầu Claude hỏi hai câu, **cả hai chọn đồng ý**:
+   - **Tin cậy thư mục** (trust) — không đồng ý thì luật và quyền của agent không chạy.
+   - **Bật MCP `browser` / `mobile`** — công cụ điều khiển trình duyệt / điện thoại.
+
+Không dùng Orca cũng được: mở PowerShell, gõ `cd $HOME\Documents\QA\du-an-dat-lich` rồi `claude` (khi đó bỏ qua B3).
+
+#### B5. Dùng agent
+Gõ vào ô chat của Claude:
+1. `/qa-status` → Claude in ra tình trạng dự án = agent đã cài đúng.
+2. Lần lượt các việc chính (mỗi lệnh xong, Claude hỏi lại những chỗ chưa rõ — bạn trả lời rồi làm lệnh tiếp):
+   ```text
+   /qa-analyze docs           phân tích tài liệu → yêu cầu (REQ) + câu hỏi cho bạn
+   /qa-viewpoint <tính-năng>  quan điểm test → bạn duyệt
+   /qa-plan <tên đợt>         chốt scope + tiêu chí đạt
+   /qa-testcase <tính-năng>   viết test case từ quan điểm đã duyệt
+   /qa-review all             review quan điểm + test case + scope
+   ```
+3. Việc khác thì nói bằng lời thường sau `/qa`, vd `/qa vừa deploy lên staging, smoke giúp` (xem mục **Dùng** bên dưới).
+
+Mẹo:
+- Cần giao test case/quan điểm dưới dạng Excel: nói *"xuất test case ra Excel"* (agent tạo CSV trong `qa\export\`, mở bằng
+  Excel hoặc import vào Google Sheets). TC người khác viết trên Sheets: tải CSV rồi nói *"review file tc.csv"*.
+- Bàn giao bằng tiếng Anh/Nhật: ghi `- Ngôn ngữ bàn giao: en` (hoặc `ja`) trong `qa\QA.md` — file xuất có tiêu đề cột theo
+  ngôn ngữ đó; nhờ agent dịch nội dung thì bản dịch nằm riêng trong `qa\export\`, file trong `qa\` vẫn tiếng Việt.
+- TC agent không tự chạy được (thiết bị thật, máy in…) hoặc đội muốn người chạy: ghi `- Thực hiện: người` trong TC —
+  agent giao cho người, nhận kết quả + bằng chứng họ gửi về và ghi vào run.
+- Lần sau mở lại: Orca → bấm dòng thư mục chính của dự án → mở terminal Claude Code → làm tiếp (agent tự nạp bài học
+  và câu hỏi đang chờ).
+
+**Dự án tiếp theo**: làm lại Phần B (B1 → B5) với thư mục mới. Phần A không cần làm lại.
+
+### Gặp lỗi thường gặp
+
+| Hiện tượng | Cách xử lý |
+|---|---|
+| `python` mở Microsoft Store / báo không tìm thấy | Cài lại Python, tích ô **Add python.exe to PATH** (A2), mở PowerShell mới |
+| `claude is not recognized` | Mở PowerShell mới; vẫn lỗi thì khởi động lại máy (A5) |
+| Claude báo cần đăng nhập / gói không hỗ trợ | Gõ `claude` trong PowerShell để đăng nhập lại; kiểm tra tài khoản là Pro/Max/Team/Enterprise (A1) |
+| Orca không thêm được thư mục | Thư mục chưa là repo git → làm B3 |
+| Orca không chạy được Claude Code | Gõ `claude` trong PowerShell thường xem có chạy không; có chạy thì trong Orca vào **Settings → Agents** kiểm tra đường dẫn Claude Code |
+| Gõ `/qa-status` không thấy lệnh | Đang mở nhầm thư mục (vd `qa-agent`) hoặc chưa đồng ý **tin cậy thư mục** → mở đúng thư mục dự án, mở lại Claude |
+| Test web báo lỗi `npm` / không mở được trình duyệt | Chưa cài Node.js (A7) |
 
 ### Nhận bản mới của bộ cài
-GitHub Desktop → repo `qa-agent` → **Fetch/Pull origin**, rồi với **từng** dự án:
-```powershell
-python $HOME\Documents\GitHub\qa-agent\install.py $HOME\Documents\QA\du-an-dat-lich --update
-```
+1. GitHub Desktop → chọn repo `qa-agent` (ô **Current repository** góc trên trái) → bấm **Fetch origin**, có bản mới thì
+   bấm **Pull origin**.
+2. Với **từng** dự án, chạy trong PowerShell:
+   ```powershell
+   python $HOME\Documents\GitHub\qa-agent\install.py $HOME\Documents\QA\du-an-dat-lich --update
+   ```
 Dữ liệu trong `qa\` không bị ghi đè; file mẫu cũ cần gộp tay thì bộ cài báo ra.
 
 ### Tuỳ chọn nâng cao
