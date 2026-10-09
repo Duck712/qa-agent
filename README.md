@@ -317,16 +317,6 @@ câu hỏi chờ) và `hook_prompt` (người dùng sửa lưng → nhắc ghi `
 `qa_check.py` cũng báo: REQ/quan điểm thiếu nguồn hoặc trích dẫn không có trong file nguồn, quan điểm ngoài đặc tả chưa
 được duyệt, TC trỏ quan điểm chưa duyệt (run tự bỏ TC đó).
 
-## Lấy gì từ SPEC (v2)
-
-v3 bỏ bộ máy pha S-P-E-C, gate, release/lượt bàn giao; giữ phần prompt và cấu trúc agent đã chứng minh hiệu quả:
-ngưỡng ghi trước khi chạy · bằng chứng bắt buộc theo loại + checklist chống test giả · auditor soi bằng chứng trước
-khi báo cáo · kỹ thuật thiết kế TC (v2 có 4, v3 mở rộng thành đủ bộ ở trên) + luật normal/abnormal · tester theo góc nhìn (gộp 13 agent thành một
-`qa-tester` nhận góc nhìn làm tham số) · luật an toàn khi test trên môi trường thật · hook giữ bằng chứng trong dự án.
-Thêm: đường dẫn bằng chứng tuyệt đối (v2 để tương đối nên ảnh lạc thư mục khi mở phiên chỗ khác), MCP khoá version,
-công cụ sinh TC phân quyền từ ma trận, 6 loại target mới, cơ chế lưu bài học hai tầng. Bản v2 vẫn ở lịch sử git
-(commit `11b5a85`).
-
 ## Giới hạn
 
 - Kiểm từ bên ngoài như người dùng — không viết unit test trong code sản phẩm (trừ khi được nhờ viết test tự động).
