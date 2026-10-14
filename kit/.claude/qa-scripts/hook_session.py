@@ -22,7 +22,7 @@ def main() -> int:
            "ghi nhãn `(chờ trả lời #n)`.",
            "· Tài liệu test (quan điểm test, test case) bám đặc tả: mỗi REQ/quan điểm trích NGUYÊN VĂN câu nguồn; "
            "điều đặc tả không nói → điểm hỏi hoặc `ngoài đặc tả` chờ người dùng duyệt.",
-           "· Người dùng sửa cách làm → ghi ngay một dòng qa/LESSONS.md (skill qa §6). Bài học nghề QA ghi ở "
+           "· Người dùng sửa cách làm → ghi một dòng qa/LESSONS.md (skill qa §6); trước khi ghi chạy `qa_check.py lessons --like` — có bài giống thì báo người dùng quyết thêm mới hay gộp. Bài học nghề QA ghi ở "
            "LESSONS.md, không ghi vào bộ nhớ riêng của Claude."]
     b = q.lessons_brief()
     if b:

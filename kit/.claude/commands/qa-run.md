@@ -45,7 +45,8 @@ Phạm vi: $ARGUMENTS
    phạm vi/trạng thái → một dòng DECISIONS trích nguyên văn; rồi chạy lại TC đó theo câu trả lời.
 7. **Ghi kết quả** vào RUNLOG ngay sau mỗi nhóm (kết quả, ngày, đường dẫn bằng chứng, BUG/lý do). FAIL → `/qa-bug`
    (retest: cập nhật trạng thái + `Lịch sử` của bug cũ).
-8. Hết phạm vi: `python3 .claude/qa-scripts/qa_check.py run <run-id>` phải sạch → spawn `qa-evidence-check` kèm run-id và tỉ lệ ở SCOPE §6 `Soi bằng chứng — tỉ lệ bốc mẫu PASS` (chưa có thì hỏi
+8. Hết phạm vi: kiểm mọi item đã có case normal + abnormal, rồi review **toàn bộ file giao + từng evidence** theo
+   `qa-knowledge/deliverable-review.md` (bắt buộc — skill `qa` §1 luật 10; gồm cả công thức của file bảng tính) → `python3 .claude/qa-scripts/qa_check.py run <run-id>` phải sạch → spawn `qa-evidence-check` kèm run-id và tỉ lệ ở SCOPE §6 `Soi bằng chứng — tỉ lệ bốc mẫu PASS` (chưa có thì hỏi
    người dùng trước khi spawn) → ghi
    `Đã soi bằng chứng <ngày> — <x> lệch` vào Nhật ký → **trình danh sách lệch cho người dùng**, người dùng quyết chạy
    lại hay hạ BLOCKED (ghi DECISIONS) → hỏi có dọn dữ liệu test không → ghi bài học mới vào `qa/LESSONS.md` → đề xuất

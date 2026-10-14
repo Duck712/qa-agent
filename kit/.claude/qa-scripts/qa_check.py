@@ -19,7 +19,7 @@
                                                                   ngôn ngữ bàn giao (QA.md) — nội dung ô không tự dịch
     python3 .claude/qa-scripts/qa_check.py import <tc|vp> <file.csv> --feature <tính-năng>
                                                                   nhập CSV (Excel "Lưu thành CSV UTF-8") thành markdown để soát/review
-    python3 .claude/qa-scripts/qa_check.py lessons [--brief] [--for <từ khoá>] [--archive]
+    python3 .claude/qa-scripts/qa_check.py lessons [--brief] [--for <từ khoá>] [--like "<bài định thêm>"] [--archive]
                                                                   bài học: liệt kê · bản ngắn đầu phiên · lọc cho tester · cất dòng đã xong
 
 Không phải cổng chặn — chỉ báo. Không tự đặt con số nào: tiêu chí đạt, mức rủi ro, N lần chạy AI lấy từ SCOPE do
@@ -1668,6 +1668,8 @@ def cmd_import(args: list[str]) -> int:
 # ---------------------------------------------------------------- lệnh: lessons
 
 LESSON_DONE = ("đã nâng", "bỏ")
+LESSON_BRIEF_LIMIT = 80   # số bài học đang hiệu lực nạp đầu phiên (người dùng 2026-10-14: nâng từ 30)
+LESSON_WARN = 60          # vượt → `lessons` nhắc gộp trước khi chạm giới hạn nạp
 LESSON_HEAD = "| Ngày | Loại | Bài học | Nguồn | Trạng thái | Phạm vi áp |\n|---|---|---|---|---|---|\n"
 
 
@@ -1708,6 +1710,23 @@ def lesson_lines(text: str) -> list[tuple[int, dict]]:
     return out
 
 
+def lesson_orphans(text: str | None = None) -> list[int]:
+    """Số dòng (từ 1) của dòng trông như bài học (`| yyyy-mm-dd |…`) mà bảng không đọc được — thường do dòng trống / chữ
+    chen giữa bảng làm bảng bị cắt: các dòng sau đó không được nạp đầu phiên, không hiện ở `lessons --for`."""
+    text = read(QA / "LESSONS.md") if text is None else text
+    got = {n for n, _ in lesson_lines(text)}
+    return [n + 1 for n, l in enumerate(text.splitlines())
+            if n not in got and re.match(r"\s*\|\s*\d{4}-\d{2}-\d{2}\s*\|", l)]
+
+
+def orphan_warning(text: str | None = None) -> str:
+    o = lesson_orphans(text)
+    if not o:
+        return ""
+    return (f"⚠ LESSONS.md: {len(o)} dòng bài học KHÔNG được đọc (dòng {', '.join(map(str, o[:8]))}{'…' if len(o) > 8 else ''}) — "
+            "bảng bị cắt bởi dòng trống / chữ chen giữa; xoá dòng chen để bảng liền một khối")
+
+
 def lesson_rows(text: str | None = None) -> list[dict]:
     return [r for _, r in lesson_lines(read(QA / "LESSONS.md") if text is None else text)]
 
@@ -1716,14 +1735,37 @@ def fold_key(s: str) -> str:
     return re.sub(r"[\s_\-–—/]+", " ", unicodedata.normalize("NFC", s or "").casefold()).strip()
 
 
-def lessons_brief(limit: int = 30) -> str:
+def lessons_like(query: str, rows: list[dict] | None = None, top: int = 5) -> list[tuple[float, dict]]:
+    """Bài học có sẵn giống / gần giống một bài định thêm: điểm = phần từ chung (Jaccard trên tập từ ≥ 2 ký tự)
+    kết hợp độ giống chuỗi. Dùng trước khi ghi bài mới để hỏi người dùng thêm mới hay gộp."""
+    import difflib
+    stop = {"và", "của", "khi", "thì", "là", "có", "không", "cho", "các", "một", "những", "được", "với", "trong", "để", "đã",
+            "này", "đó", "ở", "từ", "theo", "hay", "hoặc", "rồi", "mới", "phải", "cần", "trên", "ra", "vào", "lại", "còn",
+            "chỉ", "nếu", "vd", "người", "dùng", "file", "bài", "ghi"}
+    words = lambda s: {w for w in re.findall(r"\w+", fold_key(norm_text(s))) if len(w) >= 2 and w not in stop}
+    qw, qn = words(query), fold_key(norm_text(query))
+    out = []
+    for r in lesson_rows() if rows is None else rows:
+        t = r["text"]
+        tw = words(t)
+        jac = len(qw & tw) / len(qw | tw) if qw and tw else 0.0
+        cover = len(qw & tw) / len(qw) if qw else 0.0      # bài mới ngắn nằm gọn trong bài cũ dài
+        seq = difflib.SequenceMatcher(None, qn, fold_key(norm_text(t))).quick_ratio()
+        score = max(jac, 0.6 * cover, 0.5 * seq)
+        if score >= 0.30:
+            out.append((round(score, 2), r))
+    return sorted(out, key=lambda x: -x[0])[:top]
+
+
+def lessons_brief(limit: int = LESSON_BRIEF_LIMIT) -> str:
     rows = [r for r in lesson_rows() if not r["state"].startswith(LESSON_DONE)]
+    warn = orphan_warning()
     if not rows:
-        return ""
+        return warn
     rows = sorted(rows, key=lambda r: r["day"], reverse=True)
     lines = [f"- [{r['kind'] or '?'}{' · ' + r['scope'] if r['scope'] else ''}] {r['text']} ({r['state'] or '?'})" for r in rows[:limit]]
     more = f"\n… còn {len(rows) - limit} bài học cũ hơn — `qa_check.py lessons` để xem hết" if len(rows) > limit else ""
-    return "\n".join(lines) + more
+    return (warn + "\n" if warn else "") + "\n".join(lines) + more
 
 
 def cmd_lessons(args: list[str]) -> int:
@@ -1744,6 +1786,21 @@ def cmd_lessons(args: list[str]) -> int:
         print(f"# bài học áp cho {' '.join(keys) or '(chung)'}: {len(sel)} — dán vào prompt tester")
         for r in sel:
             print(f"- [{r['kind']}] {r['text']} (nguồn: {plain(r['src']) or '—'})")
+        return 0
+    if "--like" in args:
+        i = args.index("--like")
+        query = " ".join(a for a in args[i + 1:] if not a.startswith("--"))
+        if not query.strip():
+            print("cần nội dung bài học định thêm: lessons --like \"<ý chính>\"", file=sys.stderr)
+            return 1
+        sim = lessons_like(query)
+        if not sim:
+            print("không có bài học giống — ghi dòng mới")
+            return 0
+        print(f"# {len(sim)} bài học có sẵn giống / gần giống — báo người dùng chọn: thêm mới · gộp vào bài nào · "
+              "chỉ là vi phạm bài cũ (không thêm)")
+        for s, r in sim:
+            print(f"- [{s:.2f}] {r['day']} [{r['kind']}] ({r['state'] or '?'}) {r['text'][:220]}")
         return 0
     if "--archive" in args:
         text = read(path)
@@ -1767,6 +1824,8 @@ def cmd_lessons(args: list[str]) -> int:
     for r in rows:
         by[r["state"] or "?"] = by.get(r["state"] or "?", 0) + 1
     print(f"Bài học: {len(rows)} ({', '.join(f'{k} {v}' for k, v in sorted(by.items())) or '—'})")
+    if orphan_warning():
+        print("  " + orphan_warning())
     seen: dict[str, str] = {}
     for r in rows:
         k = norm_text(r["text"])
@@ -1774,8 +1833,9 @@ def cmd_lessons(args: list[str]) -> int:
             print(f"  ⚠ trùng: \"{r['text'][:60]}\" ({seen[k]} và {r['day']}) — gộp thành một dòng")
         seen[k] = r["day"]
     active = [r for r in rows if not r["state"].startswith(LESSON_DONE)]
-    if len(active) > 40:
-        print(f"  ⚠ {len(active)} bài học đang hiệu lực — gộp bài na ná, đánh `bỏ` bài hết hiệu lực, rồi `lessons --archive`")
+    if len(active) > LESSON_WARN:
+        print(f"  ⚠ {len(active)} bài học đang hiệu lực (đầu phiên chỉ nạp {LESSON_BRIEF_LIMIT} bài mới nhất) — đề xuất gộp bài "
+              "na ná cho người dùng duyệt, đánh `bỏ` bài hết hiệu lực, rồi `lessons --archive`")
     for r in active:
         print(f"  - {r['day']} [{r['kind']}] {r['text'][:100]} ({r['state']})")
     return 0

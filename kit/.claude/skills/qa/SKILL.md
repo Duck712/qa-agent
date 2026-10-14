@@ -82,6 +82,12 @@ Bốn thứ **luôn đúng** dù làm việc gì: không bịa · chưa rõ thì
    Nhãn chờ thống nhất một kiểu: `(chờ trả lời #n)` — dùng cho cả REQ rút từ code chưa được xác nhận.
 9. **Học từ lỗi** (§6): lỗi tìm được, sự cố khi làm, và điều người dùng sửa lưng đều ghi `LESSONS.md` —
    đọc lại mỗi khi bắt đầu việc mới để không lặp lại.
+10. **Đủ normal + abnormal, xong thì review toàn bộ file + evidence — bắt buộc, không đợi người dùng nhắc.** Mỗi item
+   trong phạm vi (ô nhập, nút, tìm kiếm, điều kiện lọc / in / xuất, danh sách) chạy cả case normal lẫn abnormal, kể cả
+   khi chạy theo checklist có sẵn thay cho TC. Chạy xong / sửa xong file giao nào → review **toàn bộ file đó + từng
+   bằng chứng** theo `qa-knowledge/deliverable-review.md` (máy soát, số đếm, từng câu kết quả, **công thức**, evidence
+   đúng / đủ / rõ đạt-lỗi, trình bày, quét ngang các file cùng loại) rồi mới báo, báo kèm kết quả review. Thiếu một
+   bước → chưa được báo xong. Tóm tắt / bàn giao quy trình cũng phải nêu đủ hai bước này.
 
 ## 2. Danh mục việc QA
 
@@ -192,12 +198,15 @@ Hai tầng, để kinh nghiệm không mất khi hết phiên:
   đó, tránh sự cố đó), và nói ra là đang áp bài học nào. Subagent không tự thấy bài học của phiên → phiên chính dán
   `qa_check.py lessons --for …` vào prompt giao việc.
 - **Nhắc ghi**: hook `hook_prompt` thấy tin nhắn giống sửa lưng ("lần sau", "đừng", "sao lại tự…") → nhắc ghi
-  `LESSONS.md` ngay trong lượt. Hook chỉ nhắc — tự xét có phải sửa lưng không; trùng bài học cũ thì nói bài đó đang bị
-  vi phạm thay vì thêm dòng.
+  `LESSONS.md` ngay trong lượt. Hook chỉ nhắc — tự xét có phải sửa lưng không.
+- **Rà bài giống trước khi thêm**: mỗi bài học mới (sửa lưng, sự cố, kiểu lỗi) → `qa_check.py lessons --like "<ý chính>"`.
+  Có bài giống / gần giống → **không tự thêm, không tự gộp**: báo người dùng bài định thêm + các bài cũ giống + đề xuất
+  (thêm dòng mới · gộp vào bài nào, viết lại thế nào · chỉ là vi phạm bài cũ, không thêm) và chờ quyết. Không có bài
+  giống → ghi ngay. Gộp thì giữ đủ ý + nguồn của các dòng cũ.
 - **Bug lọt vì thiếu quan điểm**: bug tìm được mà không quan điểm nào phủ → dòng loại `lỗ quan điểm` + đề xuất quan
   điểm mới cho tính năng đó (người dùng duyệt).
 - **Giữ gọn**: dòng `đã nâng`/`bỏ` → `qa_check.py lessons --archive` cất sang `LESSONS-archive.md`; bài na ná → gộp;
-  `qa_check.py lessons` báo trùng và báo khi đang hiệu lực quá nhiều.
+  `qa_check.py lessons` báo trùng và báo khi đang hiệu lực quá nhiều (đầu phiên nạp tối đa 80 bài mới nhất).
 - **Một nơi ghi**: bài học nghề QA của dự án ghi ở `qa/LESSONS.md` — không ghi vào bộ nhớ riêng của Claude (auto-memory),
   để mọi người/phiên/tester cùng thấy và không có hai bản lệch nhau.
 - **Nâng lên kho chung**: bài học dùng được cho dự án khác → viết lại cho tổng quát, hỏi người dùng; đồng ý → sửa

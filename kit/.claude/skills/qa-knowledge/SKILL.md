@@ -37,6 +37,7 @@ description: >
 | `checklists/batch-data.md` | Target `batch` — job, ETL, pipeline |
 | `checklists/ai-llm.md` | Target `ai` — chatbot, tóm tắt, phân loại, agent |
 | `analysis-review.md` | **Phân tích & review tài liệu**: tiêu chí chất lượng yêu cầu, INVEST, Given–When–Then, từ yếu, đọc theo góc nhìn, yêu cầu ngầm ISO 25010, example mapping, mô hình hoá, rủi ro, phân tích ảnh hưởng |
+| `deliverable-review.md` | **Bắt buộc** mỗi lần chạy xong / sửa xong file giao: độ phủ normal + abnormal, review toàn bộ file (số đếm, câu kết quả, công thức, trình bày) + từng evidence |
 | `scope-review.md` | **Review kế hoạch / SCOPE** — phạm vi, chạy được, kết luận được |
 | `techniques-judgement.md` | Khám phá có kỷ luật · viết bug · soi yêu cầu mơ hồ · cắt phạm vi · viết báo cáo |
 
