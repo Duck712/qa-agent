@@ -49,3 +49,17 @@ câu sau đây **không đủ để viết TC** — ghi `ANALYSIS.md §5` kèm �
 - Kết luận trước, chi tiết sau: dòng đầu là verdict + 1 câu lý do.
 - Số cụ thể, không tính từ mơ hồ ("khá ổn") — "23/25 TC PASS, 2 FAIL đều S3".
 - Tin xấu nói ngay đầu, không chôn giữa báo cáo.
+
+## 6. Chọn mức effort trước mỗi đơn vị test (bài học từ dự án)
+
+Agent chạy theo mức effort (suy nghĩ) người dùng đặt — agent **không tự đổi được**. Tiêu chí là **test hiệu quả nhất**
+(bắt được lỗi, không phải làm lại), không phải tiết kiệm. Trước khi bắt đầu mỗi đơn vị test (màn, tính năng, nhóm TC):
+
+1. Đánh giá theo những gì đã biết (tên chức năng, kết quả khảo sát: số ô / nút / điều kiện, có ghi dữ liệu không).
+2. Đề xuất mức, kèm lý do một dòng:
+   - **medium** — xem / in / xuất file đơn giản, không ghi dữ liệu, ít ô;
+   - **high** — có ghi dữ liệu (tạo / sửa / xoá), nhiều ô hoặc điều kiện kết hợp, so sánh hai bản cho kết quả lệch cần lần nguyên nhân;
+   - **xhigh** — xử lý / chốt dữ liệu / chạy hàng loạt, tính toán phức tạp, luồng xuyên nhiều màn / hệ thống, thao tác không hoàn tác được.
+3. Mức đề xuất cao hơn mức đang chạy → **báo người dùng và chờ họ đổi xong rồi mới chạy**. Có thể báo trước dự kiến cho
+   loạt đơn vị sắp tới (bảng mức / lý do) và chốt lại từng đơn vị sau khảo sát.
+4. Đang chạy mà đơn vị lộ ra phức tạp hơn dự kiến (lệch khó lần, nhiều nhánh hơn) → dừng ở điểm an toàn, báo, đề xuất nâng mức.

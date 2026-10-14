@@ -39,7 +39,7 @@ description: >
 | `analysis-review.md` | **Phân tích & review tài liệu**: tiêu chí chất lượng yêu cầu, INVEST, Given–When–Then, từ yếu, đọc theo góc nhìn, yêu cầu ngầm ISO 25010, example mapping, mô hình hoá, rủi ro, phân tích ảnh hưởng |
 | `deliverable-review.md` | **Bắt buộc** mỗi lần chạy xong / sửa xong file giao: độ phủ normal + abnormal, review toàn bộ file (số đếm, câu kết quả, công thức, trình bày) + từng evidence |
 | `scope-review.md` | **Review kế hoạch / SCOPE** — phạm vi, chạy được, kết luận được |
-| `techniques-judgement.md` | Khám phá có kỷ luật · viết bug · soi yêu cầu mơ hồ · cắt phạm vi · viết báo cáo |
+| `techniques-judgement.md` | Khám phá có kỷ luật · viết bug · soi yêu cầu mơ hồ · cắt phạm vi · viết báo cáo · **chọn mức effort trước mỗi đơn vị test** (§6) |
 
 Bảo mật chuyên sâu (OWASP, CVE, secret) thuộc agent `qa-security`. Ở đây chỉ giữ ca bảo mật cơ bản ai cũng
 phải thử (`auth-login §3`, `form-input §2`, `api-common`).

@@ -24,7 +24,9 @@ Phạm vi: $ARGUMENTS
    chưa nhờ chạy ngay thì hỏi tiêu chí trước. Tiêu chí chốt sau khi đã chạy → làm theo skill `qa` §2 (sửa dòng tiêu đề
    khối thành `- Tiêu chí (chốt sau khi chạy — DECISIONS #n; …):`, hoặc tạo run mới chạy lại — người dùng chọn). Trước run `all`/`reg`:
    `python3 .claude/qa-scripts/qa_check.py tc --strict` phải sạch. Cần dữ liệu test → seed theo skill `qa` §7 và ghi Nhật ký.
-4. **Kiểm môi trường sống** trước (URL trả lời, đăng nhập được, build đúng bản, lệnh chạy được). Chết/lệch → dừng,
+4. **Mức effort**: trước mỗi đơn vị test (màn / tính năng / nhóm TC) đề xuất mức theo `qa-knowledge/techniques-judgement.md` §6 —
+   cao hơn mức đang chạy thì báo người dùng, chờ đổi xong mới chạy.
+   **Kiểm môi trường sống** trước (URL trả lời, đăng nhập được, build đúng bản, lệnh chạy được). Chết/lệch → dừng,
    báo người dùng, hỏi chờ hay đánh `BLOCKED`.
 5. **Chạy**: việc nhỏ (vài TC trên một target — người dùng thấy tự làm được) → tự làm. TC `Loại: cross-target` hoặc workflow xuyên target → phiên chính tự
    chạy, hoặc giao **một** qa-tester đủ các target (mỗi target một cách vào trong prompt) — không tách hai nửa.
