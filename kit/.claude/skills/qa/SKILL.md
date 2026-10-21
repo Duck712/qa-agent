@@ -184,79 +184,25 @@ dùng rồi giao lại. Phiên chính không tự trả lời thay người dùn
 
 ## 6. Lưu lỗi và bài học
 
-Hai tầng, để kinh nghiệm không mất khi hết phiên:
+Chi tiết (hai tầng dự án / kho chung, khi nào ghi / đọc, quy trình bắt buộc, viết bài, gộp, cất, nâng lên kho chung): `.claude/skills/qa/bai-hoc.md` — **đọc file này trước khi** ghi, gộp, cất hay nâng bài học. Luật luôn phải nhớ:
 
-| Tầng | File | Ghi gì | Ai quyết |
-|---|---|---|---|
-| Dự án | `qa/LESSONS.md` | Kiểu lỗi tìm được đáng nhớ · sự cố khi test (môi trường, công cụ, dữ liệu) và cách xử · điều người dùng sửa lưng QA ("lần sau đừng…") · câu hỏi hay bị hỏi lại | QA tự ghi ngay khi gặp |
-| Dùng chung mọi dự án | skill `qa-knowledge` trong **repo qa-agent** (đường dẫn: `source` trong `.claude/qa-agent.json`) | Bài học đã tổng quát hoá, thành một phép thử cụ thể | **Người dùng duyệt** mới thêm |
-
-- **Khi nào ghi**: ngay lúc gặp — sau mỗi bug có kiểu lỗi mới, mỗi sự cố làm chậm việc, mỗi lần người dùng sửa
-  cách làm. Cuối run rà lại một lượt (`/qa-report` bước 4).
-- **Khi nào đọc**: hook `hook_session` nạp bài học đang hiệu lực vào **mọi phiên** (kể cả chat không gõ lệnh, sau khi
-  nén ngữ cảnh). Dự án có `QA.md §Quy trình bắt buộc` → hook nạp toàn văn quy trình đó, bài học **chỉ tiêu đề**: trước
-  khi làm việc thuộc phạm vi một bài, chạy `qa_check.py lessons --for <công đoạn / target>` đọc toàn văn. Các lệnh
-  `/qa…` cũng chạy `lessons --for` đầu mỗi việc (không đọc cả `LESSONS.md`). Bài học áp dụng được → dùng (vd thêm quan
-  điểm/TC cho kiểu lỗi đó, tránh sự cố đó), và nói ra là đang áp bài học nào. Subagent không tự thấy bài học của phiên →
-  phiên chính dán `qa_check.py lessons --for …` vào prompt giao việc.
-- **Quy trình bắt buộc**: công đoạn lặp lại nhiều lần (mỗi màn, mỗi run, mỗi lô) mà người dùng đã chốt các bước → đề
-  xuất gom các bước + luật an toàn môi trường vào `QA.md §Quy trình bắt buộc` (danh sách đánh số theo thứ tự làm, mỗi
-  bước kèm nguồn ngắn), người dùng duyệt rồi mới ghi. Bài học gốc giữ lại làm căn cứ + chi tiết. Một luật chỉ viết đầy
-  đủ ở **một** chỗ: quy trình ghi việc phải làm, bài học ghi chi tiết / cách xử; không chép lại nhau. Quyết định người
-  dùng (DECISIONS) đổi cách làm lâu dài → đưa vào quy trình hoặc bài học, vì DECISIONS không được nạp đầu phiên.
-- **Viết bài học**: bài dài mở đầu bằng **tiêu đề in đậm ngắn** (hook hiện tiêu đề này); viết thành việc cần làm, lời
-  trích người dùng để ở cột Nguồn. `qa_check.py lessons` / `status` nhắc khi bài dài thiếu tiêu đề, quy trình quá dài,
-  hoặc dòng QA.md thành nhật ký.
-- **Nhắc ghi**: hook `hook_prompt` thấy tin nhắn giống sửa lưng ("lần sau", "đừng", "sao lại tự…") → nhắc ghi
-  `LESSONS.md` ngay trong lượt. Hook chỉ nhắc — tự xét có phải sửa lưng không.
-- **Rà bài giống trước khi thêm**: mỗi bài học mới (sửa lưng, sự cố, kiểu lỗi) → `qa_check.py lessons --like "<ý chính>"`.
-  Có bài giống / gần giống → **không tự thêm, không tự gộp**: báo người dùng bài định thêm + các bài cũ giống + đề xuất
-  (thêm dòng mới · gộp vào bài nào, viết lại thế nào · chỉ là vi phạm bài cũ, không thêm) và chờ quyết. Không có bài
-  giống → ghi ngay. Gộp thì giữ đủ ý + nguồn của các dòng cũ.
-- **Bug lọt vì thiếu quan điểm**: bug tìm được mà không quan điểm nào phủ → dòng loại `lỗ quan điểm` + đề xuất quan
-  điểm mới cho tính năng đó (người dùng duyệt).
-- **Giữ gọn**: dòng `đã nâng`/`bỏ` → `qa_check.py lessons --archive` cất sang `LESSONS-archive.md`; bài na ná → gộp;
-  `qa_check.py lessons` báo trùng và báo khi đang hiệu lực quá nhiều (đầu phiên nạp tối đa 80 bài mới nhất).
-- **Một nơi ghi**: bài học nghề QA của dự án ghi ở `qa/LESSONS.md` — không ghi vào bộ nhớ riêng của Claude (auto-memory),
-  để mọi người/phiên/tester cùng thấy và không có hai bản lệch nhau.
-- **Nâng lên kho chung**: bài học dùng được cho dự án khác → viết lại cho tổng quát, hỏi người dùng; đồng ý → sửa
-  `kit/.claude/skills/qa-knowledge/…` trong repo qa-agent (ghi `(bài học từ dự án)`) và bản trong dự án, đánh dấu dòng
-  LESSONS `đã nâng`. Các dự án khác nhận bài học khi chạy `python3 <repo qa-agent>/install.py <dự án> --update`.
-  Repo qa-agent là repo khác — sửa xong nhắc người dùng commit + push lên repo chung (thẳng `main` hoặc PR tuỳ đội; commit/push do họ làm);
-  bài học chỉ nằm trong bản clone của một người thì dự án người khác không nhận được.
-- **Chỉ bài học lên git, tài liệu dự án ở local**: thứ duy nhất được đưa lên repo qa-agent là bài học đã tổng quát hoá —
-  không tên dự án/khách, URL, tài khoản, dữ liệu, trích tài liệu, ảnh. Mọi thứ riêng của dự án (`qa/`, tài liệu sản phẩm,
-  evidence, `.mcp.json`) chỉ để local, không push, không publish (Artifact, Claude Docs — đã `deny` trong settings),
-  không gửi feedback, không ghi vào bộ nhớ Claude. Thư mục dự án nằm trong repo git của sản phẩm → loại `qa/`,
-  `.claude/` khỏi commit (vd `.git/info/exclude`) trước khi làm; chưa rõ → hỏi người dùng.
+- Ghi `qa/LESSONS.md` **ngay khi gặp**: kiểu lỗi mới, sự cố làm chậm việc, người dùng sửa cách làm (hook `hook_prompt`
+  nhắc). Trước khi ghi: `qa_check.py lessons --like "<ý chính>"` — có bài giống thì **không tự thêm / gộp**, hỏi người dùng.
+- Đọc: hook nạp bài học đầu mọi phiên; dự án có `QA.md §Quy trình bắt buộc` → bài học chỉ tiêu đề, chạy
+  `qa_check.py lessons --for <công đoạn / target>` đọc toàn văn trước khi làm việc thuộc phạm vi bài. Nói ra đang áp bài
+  nào. Subagent không tự thấy bài học → phiên chính dán `lessons --for …` vào prompt giao việc.
+- Một nơi ghi: bài học của dự án chỉ ở `qa/LESSONS.md`, không ghi vào bộ nhớ riêng của Claude. Chỉ bài học **đã tổng
+  quát hoá** (không tên dự án / khách, URL, tài khoản, dữ liệu, trích tài liệu, ảnh) mới được đưa vào repo qa-agent, khi
+  người dùng đồng ý; mọi thứ riêng của dự án chỉ để local, không push, không publish.
 
 ## 7. Dữ liệu test, test tự động, TC do người chạy tay
 
-**Dữ liệu test (việc 6)** — trước khi tạo gì, hỏi (nếu `QA.md` chưa ghi): tạo/dọn bằng đường nào được phép (UI, API,
-lệnh của sản phẩm; chạm DB chỉ khi SCOPE §7 cho phép), tài khoản/tenant nào dùng được, dữ liệu nào không được đụng.
-Rồi:
-- Script seed/dọn đặt ở `qa/scripts/seed.<ext>` và `qa/scripts/cleanup.<ext>`; mọi bản ghi mang prefix `QA-<run-id>-`;
-  `cleanup` chỉ xoá bản ghi có prefix, in danh sách đã xoá (đó là bằng chứng đã dọn). Bí mật đọc từ `qa/.env`.
-- Chạy seed trước run, ghi vào `## Nhật ký` của RUNLOG; hết run (hoặc hết nhóm phá-đầu-vào/phân-quyền) **hỏi người
-  dùng** có dọn không rồi chạy cleanup — trên môi trường dùng chung, mặc định đề xuất dọn.
-- Thứ không dọn được qua đường chính thức → ghi `## Nhật ký` "rác còn lại", báo người dùng.
+Chi tiết: `.claude/skills/qa/du-lieu-test.md` — **đọc file này trước khi** tạo / dọn dữ liệu test (việc 6), viết test
+tự động (việc 12), giao hoặc nhận kết quả TC `Thực hiện: người`. Luật luôn phải nhớ:
 
-**Test tự động (việc 12)** — hỏi trước khi viết: framework (theo cái đội đang dùng nếu có — xem code/test sẵn có),
-nơi đặt (`qa/automation/` mặc định; repo sản phẩm chỉ khi người dùng nhờ rõ và gỡ đường dẫn khỏi `Chỉ đọc:`), chạy ở
-đâu (máy local / CI / môi trường riêng), dữ liệu test lấy từ đâu. Rồi:
-- Một script ↔ một hoặc vài TC, tên file chứa TC-ID; không đổi kỳ vọng của TC khi viết script.
-- Phụ thuộc chỉ cài trong `qa/automation/` và **chỉ sau khi người dùng đồng ý** (DECISIONS); không cài toàn máy.
-- Chạy thật; output (report của framework, stdout, ảnh) ghi vào `qa/evidence/<run-id>/<TC-ID>/` — đó là bằng chứng,
-  kết quả ghi RUNLOG như chạy tay. Script lỗi do chính script (không phải sản phẩm) → sửa script, không ghi FAIL.
-
-**TC do người chạy tay** (`Thực hiện: người`) — khi agent không điều khiển được target/bước (thiết bị thật, phần cứng, máy
-in, hộp thoại hệ thống, Ctrl-C thật, cảm nhận game…) hoặc đội giao TC cho tester người. Đặt `Thực hiện: người` là quyết
-định của người dùng (đề xuất kèm lý do, họ duyệt). Rồi:
-- `new-run` ghi danh sách TC này vào RUNLOG. Giao cho người ở `QA.md §Người chạy TC thủ công`: TC-ID, bước, kỳ vọng,
-  `Bằng chứng cần`, thư mục bằng chứng `qa/evidence/<run-id>/<TC-ID>/`, môi trường/bản phải dùng.
-- Người làm gửi kết quả + bằng chứng (ảnh, video, file, ghi chú) → agent chép vào đúng thư mục TC, thêm
-  `nguoi-thuc-hien.md`: ai làm (vai/nhóm — không cần họ tên nếu đội không muốn), lúc nào, môi trường/bản, bằng chứng
-  nhận qua đâu, và **nguyên văn** kết quả họ báo. `qa_check.py run` báo lỗi khi PASS/FAIL thiếu file này.
-- Agent **không** tự chấm thay: ghi đúng kết quả người làm báo; bằng chứng không chứng minh được kỳ vọng (ảnh thiếu bước,
-  "đã test OK" không kèm gì) → hỏi lại người làm, chưa đủ thì `BLOCKED`. Lệch kỳ vọng → `FAIL` + `/qa-bug` như thường.
-- Không có ai chạy tay được → TC `BLOCKED` (lý do: chờ người thực hiện), không đổi thành agent chạy bằng cách đoán.
+- Dữ liệu test: hỏi trước đường tạo / dọn được phép (chạm DB chỉ khi SCOPE §7 cho phép); mọi bản ghi mang prefix
+  `QA-<run-id>-`; dọn chỉ bản ghi có prefix, hết run hỏi người dùng có dọn không.
+- Test tự động: hỏi framework / nơi đặt / nơi chạy trước khi viết; cài phụ thuộc chỉ trong `qa/automation/` và chỉ
+  sau khi người dùng đồng ý; không đổi kỳ vọng của TC khi viết script.
+- TC `Thực hiện: người`: người dùng quyết; agent không tự chấm thay — ghi đúng kết quả người làm báo, thiếu bằng chứng
+  thì hỏi lại hoặc `BLOCKED`.

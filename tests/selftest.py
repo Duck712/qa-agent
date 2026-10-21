@@ -48,6 +48,32 @@ def qa(proj: Path, *args: str) -> subprocess.CompletedProcess:
     return run([sys.executable, ".claude/qa-scripts/qa_check.py", *args], proj, {"CLAUDE_PROJECT_DIR": str(proj)})
 
 
+DUP_MIN = 25    # từ — đoạn lặp nguyên văn dài hơn ở 2 file kit là chép luật, nên viết một chỗ rồi trỏ tới
+DUP_OK = ("câu hỏi để thử",   # đầu mỗi checklist: tester mở thẳng file checklist, phải thấy luật ngay tại đó
+          "playwright/mcp")   # khai server MCP riêng của từng agent
+
+
+def dup_passages() -> list[str]:
+    import difflib
+    import itertools
+    kit = REPO / "kit" / ".claude"
+    files = sorted(p for d in ("skills", "commands", "agents") for p in (kit / d).rglob("*.md"))
+    words = {}
+    for p in files:
+        t = p.read_text(encoding="utf-8")
+        words[p] = (t, [(m.group(0).lower(), m.start(), m.end()) for m in re.finditer(r"\w+", t)])
+    out = []
+    for a, b in itertools.combinations(files, 2):
+        (ta, wa), (_, wb) = words[a], words[b]
+        sm = difflib.SequenceMatcher(None, [w for w, _, _ in wa], [w for w, _, _ in wb], autojunk=False)
+        for m in sm.get_matching_blocks():
+            if m.size >= DUP_MIN:
+                s = ta[wa[m.a][1]:wa[m.a + m.size - 1][2]]
+                if not any(k in s for k in DUP_OK):
+                    out.append(f"{m.size} từ: {a.relative_to(kit)} ↔ {b.relative_to(kit)}: {s[:120]!r}")
+    return out
+
+
 def main() -> int:
     keep = "--keep" in sys.argv
     tmp = Path(tempfile.mkdtemp(prefix="qa-agent-selftest-"))
@@ -1090,6 +1116,10 @@ def main() -> int:
     f = tmp / "la-file.txt"; f.write_text("x")
     check(run([sys.executable, str(REPO / "install.py"), str(f)], tmp).returncode == 2, "đường dẫn là file → báo lỗi")
     check(not (proj / "docs").exists(), "cài vào repo đã có sẵn nội dung → không tự thêm docs/")
+
+    print("\n[18] không chép trùng nguyên văn giữa skill / lệnh / agent")
+    check(not dup_passages(), "không đoạn nào ≥ 25 từ lặp nguyên văn ở 2 file (luật viết một chỗ, nơi khác trỏ tới)",
+          "\n".join(dup_passages()[:5]))
     print(f"\n{'=' * 50}\n  {OK} ✓ · {BAD} ✗")
     if keep:
         print(f"  giữ thư mục nháp: {tmp}")
