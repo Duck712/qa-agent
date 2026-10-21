@@ -5,7 +5,9 @@
 > (môi trường/công cụ/dữ liệu làm chậm việc) · `cách làm` (người dùng sửa lưng QA) · `câu hỏi` (điều đã chốt, đừng hỏi lại).
 > Trạng thái: `mới` · `đã áp` (đã thêm quan điểm/TC/đổi cách làm) · `đã nâng` (đã đưa vào qa-knowledge dùng chung) · `bỏ`.
 > Phạm vi áp: target / tính năng / công đoạn bài học đúng cho (trống = mọi việc) — `qa_check.py lessons --for <…>` lọc
-> theo cột này để gửi cho tester. Đầu mỗi phiên hook nạp các dòng chưa `đã nâng`/`bỏ`; `lessons --archive` cất dòng xong.
+> theo cột này để gửi cho tester. Đầu mỗi phiên hook nạp các dòng chưa `đã nâng`/`bỏ` (dự án có `QA.md §Quy trình bắt
+> buộc` → chỉ tiêu đề); `lessons --archive` cất dòng xong. Bài dài mở đầu bằng **tiêu đề in đậm ngắn**; lời trích người
+> dùng để ở cột Nguồn.
 
 | Ngày | Loại | Bài học (phép thử cụ thể / việc cần làm khác đi) | Nguồn (BUG/run/lời người dùng) | Trạng thái | Phạm vi áp |
 |---|---|---|---|---|---|

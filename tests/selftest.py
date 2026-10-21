@@ -897,6 +897,43 @@ def main() -> int:
           "lessons --archive: cất dòng đã nâng sang LESSONS-archive.md", r.stdout)
     hs2 = run([sys.executable, str(tmp / "inst5/.claude/qa-scripts/hook_session.py")], tmp, {"CLAUDE_PROJECT_DIR": str(tmp / "khong-co")}, "{}")
     check(hs2.returncode == 0, "hook_session: không có qa/ → không làm hỏng phiên", hs2.stderr)
+
+    print("\n[16a] quy trình bắt buộc: nạp toàn văn, bài học chỉ tiêu đề")
+    qa_md, les0 = vp / "qa/QA.md", les.read_text()
+    qa0 = qa_md.read_text()
+    les.write_text(les0.rstrip("\n") + "\n| 2026-09-05 | cách làm | **Gõ ô số chờ focus** — bấm vào ô, chờ 300 ms rồi mới gõ; "
+                   "chi tiết riêng chỉ có ở bài học | lời người dùng | mới | web |\n")
+    hs = run([sys.executable, str(vp / ".claude/qa-scripts/hook_session.py")], vp, {"CLAUDE_PROJECT_DIR": str(vp)}, "{}")
+    check("chi tiết riêng chỉ có ở bài học" in hs.stdout and "Quy trình bắt buộc của dự án" not in hs.stdout,
+          "chưa có §Quy trình bắt buộc → bài học vẫn nạp toàn văn như cũ", hs.stdout)
+    check(qa0.count("## Quy trình bắt buộc") == 1, "mẫu QA.md có sẵn §Quy trình bắt buộc (trống)", "")
+    qa_md.write_text(qa0.replace("\n## Nguồn tài liệu", "<!-- chú thích không nạp -->\n"
+                                 "1. Mỗi màn: chạy normal + abnormal mọi ô (LESSONS 2026-09-05)\n\n2. Xong màn: review rồi mới báo\n\n## Nguồn tài liệu", 1))
+    hs = run([sys.executable, str(vp / ".claude/qa-scripts/hook_session.py")], vp, {"CLAUDE_PROJECT_DIR": str(vp)}, "{}")
+    check(hs.returncode == 0 and "1. Mỗi màn: chạy normal + abnormal" in hs.stdout and "2. Xong màn: review" in hs.stdout
+          and "chú thích không nạp" not in hs.stdout and "trích NGUYÊN VĂN" in hs.stdout,
+          "có §Quy trình bắt buộc → hook nạp toàn văn quy trình, bỏ chú thích", hs.stdout)
+    check("Gõ ô số chờ focus" in hs.stdout and "chi tiết riêng chỉ có ở bài học" not in hs.stdout and "lessons --for" in hs.stdout,
+          "có §Quy trình bắt buộc → bài học chỉ hiện tiêu đề in đậm, kèm nhắc `lessons --for`", hs.stdout)
+    r = q("lessons", "--for", "web")
+    check("chi tiết riêng chỉ có ở bài học" in r.stdout, "lessons --for vẫn trả toàn văn bài học", r.stdout)
+    r = q("lessons", "--for", "web", "--kind", "sự cố")
+    check("Staging hết phiên" in r.stdout and "chi tiết riêng" not in r.stdout and "sự cố" not in r.stdout.splitlines()[0].split("·")[0],
+          "lessons --for … --kind: chỉ lấy đúng loại, giá trị --kind không bị coi là từ khoá", r.stdout)
+    r = q("lessons", "--brief", "--full")
+    check("chi tiết riêng chỉ có ở bài học" in r.stdout, "lessons --brief --full: toàn văn dù đã có quy trình", r.stdout)
+    r = run([sys.executable, "-c", "import sys; sys.path.insert(0, '.claude/qa-scripts'); import qa_check as q; "
+             "print(q.lesson_title('Chạy checklist PT (mỗi màn) — làm đúng theo các điểm đã chốt: (1) đếm')); "
+             "print(q.lesson_title('x' * 300)[-1])"], vp, {"CLAUDE_PROJECT_DIR": str(vp)})
+    check(r.stdout.splitlines() == ["Chạy checklist PT (mỗi màn)", "…"], "lesson_title: không in đậm → cắt câu đầu; quá dài → cắt + …", r.stdout)
+    les.write_text(les0.rstrip("\n") + "\n| 2026-09-06 | cách làm | " + "bài dài không tiêu đề " * 40 + "| x | mới | |\n")
+    qa_md.write_text(qa_md.read_text().replace("- Việc tiếp theo: ", "- Việc tiếp theo: " + "lịch sử chạy " * 150, 1))
+    r = q("lessons")
+    check("chưa mở đầu bằng **tiêu đề**" in r.stdout and "`Việc tiếp theo` dài" in r.stdout,
+          "lessons: nhắc bài dài thiếu tiêu đề + dòng QA.md thành nhật ký", r.stdout)
+    check("`Việc tiếp theo` dài" in q("status").stdout, "status: cùng nhắc dòng QA.md quá dài", "")
+    qa_md.write_text(qa0)
+    les.write_text(les0)
     stx = json.loads((vp / ".claude/settings.json").read_text())
     stx["hooks"]["UserPromptSubmit"] = []
     (vp / ".claude/settings.json").write_text(json.dumps(stx))

@@ -6,7 +6,7 @@ argument-hint: <tính năng | REQ-… | "review">
 Việc: $ARGUMENTS
 
 1. Nạp skill `qa-testcase-design` (luôn) — chọn kỹ thuật theo bảng §1, mở file `qa-testcase-design/ky-thuat/…` tương ứng; `qa-knowledge` (bug-patterns + checklist hợp đối tượng/target),
-   `qa-targets/<loại>.md` của target liên quan. Đọc `qa/LESSONS.md` — mỗi bài học áp dụng được phải có TC.
+   `qa-targets/<loại>.md` của target liên quan. Bài học: `python3 .claude/qa-scripts/qa_check.py lessons --for <target> <tính năng>` — mỗi bài học áp dụng được phải có TC.
 2. Đọc REQ liên quan trong `qa/ANALYSIS.md`, phạm vi trong `qa/SCOPE.md` và **quan điểm test đã duyệt** ở
    `qa/viewpoints/<tính-năng>.md` — TC chỉ viết cho quan điểm `duyệt`, trỏ về bằng `VP:`. Chưa có quan điểm → đề xuất
    `/qa-viewpoint` trước; người dùng muốn bỏ qua lớp này → ghi DECISIONS rồi mới viết. Mở lại tài liệu nguồn của quan

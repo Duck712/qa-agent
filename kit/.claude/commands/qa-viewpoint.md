@@ -6,7 +6,7 @@ argument-hint: <tính năng | REQ-… | "review">
 Việc: $ARGUMENTS
 
 1. Nạp skill `qa`, `qa-testcase-design` — làm theo **`qa-testcase-design/ky-thuat/quan-diem.md`**; `qa-knowledge`
-   (checklist hợp đối tượng — chỉ để gợi ý góc nhìn). Đọc `qa/LESSONS.md` (bài học loại `lỗ quan điểm` của tính năng này).
+   (checklist hợp đối tượng — chỉ để gợi ý góc nhìn). Bài học: `python3 .claude/qa-scripts/qa_check.py lessons --for "quan điểm" <tính năng>` (chú ý loại `lỗ quan điểm` của tính năng này).
 2. Đọc REQ liên quan ở `qa/ANALYSIS.md` (§3 + mô hình §2/§4 + câu trả lời §5) và **mở lại tài liệu nguồn** của từng REQ
    (cột Nguồn) — quan điểm phải trích từ tài liệu gốc, không trích lại từ Mô tả của REQ. Không mở được nguồn → hỏi
    người dùng, không viết từ trí nhớ. REQ còn `(chờ trả lời #n)` → quan điểm của nó cũng mang nhãn đó.

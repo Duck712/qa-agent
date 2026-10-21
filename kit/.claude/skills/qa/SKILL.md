@@ -152,7 +152,7 @@ qa/
 ├── testdata/<TC-ID>/  bộ dữ liệu cố định của TC (input/, expected/) — commit, không chứa dữ liệu thật
 ├── runs/<run-id>/     RUNLOG.md + REPORT.md  (run-id: <ngày>-<loại>, vd 2026-09-23-smoke)
 ├── BUGS.md · DECISIONS.md (chỉ điều người dùng đã quyết)
-├── LESSONS.md         bài học của dự án — hook nạp đầu phiên (LESSONS-archive.md: dòng đã xong)
+├── LESSONS.md         bài học của dự án — hook nạp đầu phiên (LESSONS-archive.md: dòng đã xong; có QA.md §Quy trình bắt buộc → chỉ tiêu đề)
 ├── export/            CSV xuất cho Excel (`qa_check.py export`)
 ├── TRACE.md           ma trận truy vết (sinh bởi `qa_check.py trace --write`, không sửa tay)
 ├── API-SURFACE.md     (tuỳ chọn) bề mặt API quan sát được, để so khi có bản mới
@@ -194,9 +194,19 @@ Hai tầng, để kinh nghiệm không mất khi hết phiên:
 - **Khi nào ghi**: ngay lúc gặp — sau mỗi bug có kiểu lỗi mới, mỗi sự cố làm chậm việc, mỗi lần người dùng sửa
   cách làm. Cuối run rà lại một lượt (`/qa-report` bước 4).
 - **Khi nào đọc**: hook `hook_session` nạp bài học đang hiệu lực vào **mọi phiên** (kể cả chat không gõ lệnh, sau khi
-  nén ngữ cảnh); các lệnh `/qa…` đọc lại đầu mỗi việc. Bài học áp dụng được → dùng (vd thêm quan điểm/TC cho kiểu lỗi
-  đó, tránh sự cố đó), và nói ra là đang áp bài học nào. Subagent không tự thấy bài học của phiên → phiên chính dán
-  `qa_check.py lessons --for …` vào prompt giao việc.
+  nén ngữ cảnh). Dự án có `QA.md §Quy trình bắt buộc` → hook nạp toàn văn quy trình đó, bài học **chỉ tiêu đề**: trước
+  khi làm việc thuộc phạm vi một bài, chạy `qa_check.py lessons --for <công đoạn / target>` đọc toàn văn. Các lệnh
+  `/qa…` cũng chạy `lessons --for` đầu mỗi việc (không đọc cả `LESSONS.md`). Bài học áp dụng được → dùng (vd thêm quan
+  điểm/TC cho kiểu lỗi đó, tránh sự cố đó), và nói ra là đang áp bài học nào. Subagent không tự thấy bài học của phiên →
+  phiên chính dán `qa_check.py lessons --for …` vào prompt giao việc.
+- **Quy trình bắt buộc**: công đoạn lặp lại nhiều lần (mỗi màn, mỗi run, mỗi lô) mà người dùng đã chốt các bước → đề
+  xuất gom các bước + luật an toàn môi trường vào `QA.md §Quy trình bắt buộc` (danh sách đánh số theo thứ tự làm, mỗi
+  bước kèm nguồn ngắn), người dùng duyệt rồi mới ghi. Bài học gốc giữ lại làm căn cứ + chi tiết. Một luật chỉ viết đầy
+  đủ ở **một** chỗ: quy trình ghi việc phải làm, bài học ghi chi tiết / cách xử; không chép lại nhau. Quyết định người
+  dùng (DECISIONS) đổi cách làm lâu dài → đưa vào quy trình hoặc bài học, vì DECISIONS không được nạp đầu phiên.
+- **Viết bài học**: bài dài mở đầu bằng **tiêu đề in đậm ngắn** (hook hiện tiêu đề này); viết thành việc cần làm, lời
+  trích người dùng để ở cột Nguồn. `qa_check.py lessons` / `status` nhắc khi bài dài thiếu tiêu đề, quy trình quá dài,
+  hoặc dòng QA.md thành nhật ký.
 - **Nhắc ghi**: hook `hook_prompt` thấy tin nhắn giống sửa lưng ("lần sau", "đừng", "sao lại tự…") → nhắc ghi
   `LESSONS.md` ngay trong lượt. Hook chỉ nhắc — tự xét có phải sửa lưng không.
 - **Rà bài giống trước khi thêm**: mỗi bài học mới (sửa lưng, sự cố, kiểu lỗi) → `qa_check.py lessons --like "<ý chính>"`.

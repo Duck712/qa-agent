@@ -19,7 +19,7 @@
                                                                   ngôn ngữ bàn giao (QA.md) — nội dung ô không tự dịch
     python3 .claude/qa-scripts/qa_check.py import <tc|vp> <file.csv> --feature <tính-năng>
                                                                   nhập CSV (Excel "Lưu thành CSV UTF-8") thành markdown để soát/review
-    python3 .claude/qa-scripts/qa_check.py lessons [--brief] [--for <từ khoá>] [--like "<bài định thêm>"] [--archive]
+    python3 .claude/qa-scripts/qa_check.py lessons [--brief [--full]] [--for <từ khoá> [--kind <loại>]] [--like "<bài định thêm>"] [--archive]
                                                                   bài học: liệt kê · bản ngắn đầu phiên · lọc cho tester · cất dòng đã xong
 
 Không phải cổng chặn — chỉ báo. Không tự đặt con số nào: tiêu chí đạt, mức rủi ro, N lần chạy AI lấy từ SCOPE do
@@ -1757,15 +1757,75 @@ def lessons_like(query: str, rows: list[dict] | None = None, top: int = 5) -> li
     return sorted(out, key=lambda x: -x[0])[:top]
 
 
-def lessons_brief(limit: int = LESSON_BRIEF_LIMIT) -> str:
+PROC_SECTION = "Quy trình bắt buộc"   # QA.md: các bước công đoạn lặp lại — hook nạp toàn văn mỗi phiên
+PROC_WARN = 8000            # ký tự — quy trình bắt buộc dài hơn thì nhắc rút gọn (nạp mỗi phiên + sau mỗi lần nén)
+LESSON_TITLE_MAX = 160      # tiêu đề bài học hook hiện khi dự án đã có quy trình bắt buộc
+LESSON_LONG = 600           # bài dài hơn mà không mở đầu bằng **tiêu đề** → nhắc thêm tiêu đề
+FIELD_LONG = 1500           # dòng `- Khoá: …` của QA.md dài hơn → nhắc chuyển lịch sử sang RUNLOG / DECISIONS
+
+
+def procedure_block(text: str | None = None) -> str:
+    """Nội dung `QA.md §Quy trình bắt buộc` (bỏ chú thích, bỏ dòng trống) — rỗng nếu dự án chưa khai."""
+    text = read(QA / "QA.md") if text is None else text
+    body = re.sub(r"<!--.*?-->", "", section(text, PROC_SECTION), flags=re.S)
+    return "\n".join(l.rstrip() for l in body.splitlines() if l.strip())
+
+
+def lesson_title(text: str) -> str:
+    """Tiêu đề bài học: phần **in đậm** ở đầu; không có thì câu đầu (cắt ở `.` `:` `;` ` — ` ` → `), tối đa LESSON_TITLE_MAX."""
+    t = (text or "").strip()
+    m = re.match(r"\*\*(.+?)\*\*", t)
+    s = re.sub(r"\*\*|`", "", m.group(1) if m else t).strip()     # giữ `_` (tên lệnh, tên file)
+    if not m:
+        depth = [0] * (len(s) + 1)                                  # không cắt giữa ngoặc
+        for i, ch in enumerate(s):
+            depth[i + 1] = max(0, depth[i] + (ch in "(（「[") - (ch in ")）」]"))
+        cut = [c.start() for c in re.finditer(r"[.;:](?=\s)| — | → ", s) if c.start() >= 25 and depth[c.start()] == 0]
+        if cut:
+            s = s[:cut[0]]
+    return s if len(s) <= LESSON_TITLE_MAX else s[:LESSON_TITLE_MAX - 1].rstrip() + "…"
+
+
+def lessons_brief(limit: int = LESSON_BRIEF_LIMIT, full: bool | None = None) -> str:
+    """Bài học đang hiệu lực cho đầu phiên. `full` None: dự án đã có §Quy trình bắt buộc → chỉ tiêu đề (toàn văn qua
+    `lessons --for`); chưa có → toàn văn như trước, để dự án chưa chuyển không mất gì."""
+    if full is None:
+        full = not procedure_block()
     rows = [r for r in lesson_rows() if not r["state"].startswith(LESSON_DONE)]
     warn = orphan_warning()
     if not rows:
         return warn
     rows = sorted(rows, key=lambda r: r["day"], reverse=True)
-    lines = [f"- [{r['kind'] or '?'}{' · ' + r['scope'] if r['scope'] else ''}] {r['text']} ({r['state'] or '?'})" for r in rows[:limit]]
+    short = lambda st: re.split(r"\s*[·(]", st or "?")[0][:30]
+    lines = [f"- [{r['kind'] or '?'}{' · ' + r['scope'] if r['scope'] else ''}] "
+             + (f"{r['text']} ({r['state'] or '?'})" if full else f"{lesson_title(r['text'])} ({short(r['state'])})")
+             for r in rows[:limit]]
     more = f"\n… còn {len(rows) - limit} bài học cũ hơn — `qa_check.py lessons` để xem hết" if len(rows) > limit else ""
     return (warn + "\n" if warn else "") + "\n".join(lines) + more
+
+
+def size_warnings() -> list[str]:
+    """Nhắc giữ gọn những gì hook nạp mỗi phiên: quy trình bắt buộc quá dài, bài học dài không có tiêu đề, dòng QA.md
+    biến thành nhật ký."""
+    out, proc = [], procedure_block()
+    if len(proc) > PROC_WARN:
+        out.append(f"QA.md §{PROC_SECTION} dài {len(proc)} ký tự (> {PROC_WARN}) — nạp toàn văn mỗi phiên; rút gọn, chi tiết "
+                   "để ở bài học (toàn văn qua `lessons --for`)")
+    active = [r for r in lesson_rows() if not r["state"].startswith(LESSON_DONE)]
+    longs = [r for r in active if len(plain(r["text"])) > LESSON_LONG and not r["text"].lstrip().startswith("**")]
+    if longs:
+        out.append(f"{len(longs)} bài học dài > {LESSON_LONG} ký tự chưa mở đầu bằng **tiêu đề** ({', '.join(r['day'] for r in longs[:6])}"
+                   f"{'…' if len(longs) > 6 else ''}) — thêm tiêu đề in đậm ngắn để đầu phiên hiện đúng ý")
+    total = sum(len(r["text"]) for r in active)
+    if not proc and total > 20000:
+        out.append(f"bài học đang hiệu lực nạp toàn văn ~{total // 1000}KB mỗi phiên — gom các bước bắt buộc của công đoạn "
+                   f"lặp lại vào QA.md §{PROC_SECTION} (hỏi người dùng), đầu phiên chỉ còn tiêu đề bài học")
+    for line in read(QA / "QA.md").splitlines():
+        m = re.match(r"[ \t]*-[ \t]*\*{0,2}([^:*]{2,40})\*{0,2}[ \t]*:", line)
+        if m and len(line) > FIELD_LONG:
+            out.append(f"QA.md dòng `{m.group(1).strip()}` dài {len(line)} ký tự — chỉ giữ trạng thái hiện tại, lịch sử chuyển sang "
+                       "RUNLOG / DECISIONS")
+    return out
 
 
 def cmd_lessons(args: list[str]) -> int:
@@ -1774,16 +1834,23 @@ def cmd_lessons(args: list[str]) -> int:
         print("chưa có qa/LESSONS.md", file=sys.stderr)
         return 1
     if "--brief" in args:
-        b = lessons_brief()
+        b = lessons_brief(full=True if "--full" in args else None)
         print(b or "(chưa có bài học đang hiệu lực)")
         return 0
     rows = lesson_rows()
+    kinds: list[str] = []
+    if "--kind" in args:                       # --kind "sự cố" [--kind lỗi] — chỉ lấy các loại này (vd bài công cụ / sự cố)
+        while "--kind" in args:
+            i = args.index("--kind")
+            kinds += [fold_key(k) for k in args[i + 1:i + 2]]
+            args = args[:i] + args[i + 2:]
     if "--for" in args:
         i = args.index("--for")
         keys = [fold_key(k) for k in args[i + 1:] if not k.startswith("--")]
         sel = [r for r in rows if not r["state"].startswith(LESSON_DONE)
+               and (not kinds or fold_key(r["kind"]) in kinds)
                and (not plain(r["scope"]) or any(k and k in fold_key(r["scope"] + " " + r["text"]) for k in keys))]
-        print(f"# bài học áp cho {' '.join(keys) or '(chung)'}: {len(sel)} — dán vào prompt tester")
+        print(f"# bài học áp cho {' '.join(keys) or '(chung)'}{' · loại ' + ', '.join(kinds) if kinds else ''}: {len(sel)} — dán vào prompt tester")
         for r in sel:
             print(f"- [{r['kind']}] {r['text']} (nguồn: {plain(r['src']) or '—'})")
         return 0
@@ -1836,6 +1903,8 @@ def cmd_lessons(args: list[str]) -> int:
     if len(active) > LESSON_WARN:
         print(f"  ⚠ {len(active)} bài học đang hiệu lực (đầu phiên chỉ nạp {LESSON_BRIEF_LIMIT} bài mới nhất) — đề xuất gộp bài "
               "na ná cho người dùng duyệt, đánh `bỏ` bài hết hiệu lực, rồi `lessons --archive`")
+    for w in size_warnings():
+        print(f"  ⚠ {w}")
     for r in active:
         print(f"  - {r['day']} [{r['kind']}] {r['text'][:100]} ({r['state']})")
     return 0
@@ -1852,6 +1921,8 @@ def cmd_status() -> int:
     qa_md = read(QA / "QA.md")
     print(f"Workspace: {QA}")
     print(f"Quy trình: {field(qa_md, 'Quy trình') or '(chưa ghi)'} · Việc tiếp theo: {field(qa_md, 'Việc tiếp theo') or '(chưa ghi)'}")
+    for w in size_warnings():
+        print(f"  ⚠ {w}")
     print(f"Target: {', '.join(target_types()) or '(chưa khai)'}")
     qs = open_questions()
     print(f"Phân tích: {len(analysis_reqs())} REQ · câu hỏi chờ trả lời: {len(qs)}")

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""hook_session.py — hook SessionStart: nạp luật cốt lõi + bài học đang hiệu lực + câu hỏi còn chờ vào đầu mỗi phiên.
+"""hook_session.py — hook SessionStart: nạp luật cốt lõi + quy trình bắt buộc (QA.md) + bài học đang hiệu lực + câu hỏi
+còn chờ vào đầu mỗi phiên. Dự án có `QA.md §Quy trình bắt buộc` → quy trình nạp toàn văn, bài học chỉ tiêu đề (toàn văn qua
+`lessons --for`); chưa có → bài học toàn văn như cũ.
 
 Vì sao: bài học chỉ có ích khi được đọc lại. Slash command có bước đọc `qa/LESSONS.md`, nhưng người dùng chat tự do
 (không gõ lệnh) hoặc phiên vừa được nén (compact) thì không — hook này bảo đảm mọi phiên đều thấy.
@@ -24,9 +26,15 @@ def main() -> int:
            "điều đặc tả không nói → điểm hỏi hoặc `ngoài đặc tả` chờ người dùng duyệt.",
            "· Người dùng sửa cách làm → ghi một dòng qa/LESSONS.md (skill qa §6); trước khi ghi chạy `qa_check.py lessons --like` — có bài giống thì báo người dùng quyết thêm mới hay gộp. Bài học nghề QA ghi ở "
            "LESSONS.md, không ghi vào bộ nhớ riêng của Claude."]
-    b = q.lessons_brief()
+    proc = q.procedure_block()
+    if proc:
+        out += ["", f"Quy trình bắt buộc của dự án (QA.md §{q.PROC_SECTION}) — làm đủ từng bước, không bỏ bước; tóm tắt / "
+                    "bàn giao quy trình cũng nêu đủ:", proc]
+    b = q.lessons_brief(full=not proc)
     if b:
-        out += ["", "Bài học đang hiệu lực của dự án (áp dụng khi liên quan, nói ra đang áp bài nào):", b]
+        out += ["", "Bài học đang hiệu lực của dự án (áp dụng khi liên quan, nói ra đang áp bài nào):" if not proc else
+                "Bài học đang hiệu lực — chỉ tiêu đề. Trước khi làm việc thuộc phạm vi bài nào: chạy "
+                "`qa_check.py lessons --for <công đoạn / target>` đọc toàn văn rồi mới làm; nói ra đang áp bài nào:", b]
     qs = q.open_questions()
     if qs:
         out += ["", f"Câu hỏi còn chờ người dùng trả lời (ANALYSIS §5): {len(qs)} — " + "; ".join(qs[:5])

@@ -10,6 +10,13 @@
 - Ngôn ngữ bàn giao: vi <!-- vi · en · ja — tiêu đề cột khi `qa_check.py export`; nội dung tài liệu bàn giao agent dịch khi được nhờ (skill qa §1.8). File trong qa/ luôn tiếng Việt -->
 - Người chạy TC thủ công: <!-- ai nhận TC `Thực hiện: người` (vai/nhóm), gửi bằng chứng qua đâu — skill qa §7 -->
 
+## Quy trình bắt buộc
+<!-- Các bước PHẢI làm mỗi lần của công đoạn lặp lại (vd mỗi màn / mỗi run) + luật an toàn môi trường, người dùng đã chốt.
+     Hook nạp TOÀN VĂN phần này đầu mỗi phiên và sau mỗi lần nén; có phần này thì bài học chỉ còn hiện tiêu đề (skill qa §6).
+     Danh sách đánh số theo thứ tự làm, mỗi bước ghi nguồn ngắn (LESSONS ngày / DECISIONS #). Chỉ ghi luật hiện hành, gọn
+     (qa_check nhắc khi > 8000 ký tự); chi tiết, cách xử sự cố, công cụ → bài học (toàn văn qua `lessons --for`).
+     Trạng thái, lịch sử chạy → `Việc tiếp theo` / RUNLOG, không ghi ở đây. Trống = chưa dùng. -->
+
 ## Nguồn tài liệu
 <!-- Mọi thứ mô tả sản phẩm cần test: PRD, user story, ticket, release note, API doc (OpenAPI), thiết kế, README... -->
 <!-- và code của sản phẩm (repo, thư mục route/handler, schema, config, test sẵn có) — đọc để phân tích và biết cách gọi. -->

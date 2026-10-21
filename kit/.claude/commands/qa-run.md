@@ -5,7 +5,7 @@ argument-hint: <"all" | "smoke" | "regression" | "retest BUG-012" | "explore <ch
 
 Phạm vi: $ARGUMENTS
 
-1. Nạp skill `qa`, `qa-evidence`, `qa-targets` (+ `<loại>.md` của từng target trong phạm vi). Đọc `qa/LESSONS.md`.
+1. Nạp skill `qa`, `qa-evidence`, `qa-targets` (+ `<loại>.md` của từng target trong phạm vi). Bài học: `python3 .claude/qa-scripts/qa_check.py lessons --for <target> <tính năng> <góc nhìn>`.
 2. **Chọn TC** (`python3 .claude/qa-scripts/qa_check.py select <phạm vi>` in danh sách):
    `all` = mọi TC của REQ trong SCOPE · `smoke` = TC có `Tag: smoke` (không có → script đề xuất TC R1 normal, người
    dùng xác nhận) · `regression` = TC `Regression: có` + TC vùng bị ảnh hưởng (truyền rõ: `new-run reg TC-… TC-…`) ·

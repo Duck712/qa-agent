@@ -8,7 +8,7 @@ argument-hint: [tên đợt, vd "sprint 12" | "release 2.3"]
 
 1. Nạp skill `qa`, `qa-targets` (bảng loại test §2, an toàn §3), `qa-knowledge/analysis-review.md` (§7 rủi ro,
    §8 ảnh hưởng), `qa-knowledge/techniques-judgement.md §4`.
-   Đọc `qa/LESSONS.md` — bài học cũ có ảnh hưởng phạm vi/rủi ro thì nêu ra.
+   Bài học: `python3 .claude/qa-scripts/qa_check.py lessons --for "kế hoạch" <target>` — bài học cũ có ảnh hưởng phạm vi/rủi ro thì nêu ra.
 2. Đọc `qa/ANALYSIS.md` (chưa có → hỏi người dùng: phân tích tài liệu trước, hay lập scope từ mô tả của họ) và
    `qa/viewpoints/` nếu đã có — phạm vi REQ khớp bộ quan điểm; REQ trong phạm vi chưa có quan điểm → ghi vào việc cần làm.
 3. Soạn SCOPE (khuôn `qa/SCOPE.md`): §2 REQ trong phạm vi + mức R1/R2/R3 (từ bảng rủi ro ANALYSIS §6 — người dùng

@@ -5,7 +5,7 @@ argument-hint: <vp | tc | scope | all> [tính năng | REQ-… | file.csv]
 
 Review: $ARGUMENTS (trống → `all`)
 
-1. Nạp skill `qa`, `qa-testcase-design`, `qa-knowledge`. Đọc `qa/LESSONS.md`. Review là **báo**, không sửa nội dung: mọi
+1. Nạp skill `qa`, `qa-testcase-design`, `qa-knowledge`. Bài học: `python3 .claude/qa-scripts/qa_check.py lessons --for review <loại tài liệu>`. Review là **báo**, không sửa nội dung: mọi
    thay đổi vào quan điểm/TC/SCOPE chỉ làm khi người dùng đồng ý (tài liệu người khác viết lại càng phải hỏi). Ngoại lệ
    duy nhất là bước 2 — chép định dạng file Excel vào `qa/` để máy soát được, nội dung giữ nguyên.
 2. Tài liệu đưa vào dạng Excel/Sheets → người dùng lưu CSV UTF-8 → `python3 .claude/qa-scripts/qa_check.py import <tc|vp> <file.csv> --feature <tên>`

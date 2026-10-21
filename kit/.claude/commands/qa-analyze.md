@@ -7,7 +7,7 @@ Nguồn: $ARGUMENTS (trống → dùng `qa/QA.md §Nguồn tài liệu`) — tà
 
 1. Nạp skill `qa` và `qa-knowledge` — làm theo **`qa-knowledge/analysis-review.md`** (quy trình §1: đọc lướt → đọc theo góc
    nhìn → chấm tiêu chí chất lượng từng yêu cầu → yêu cầu ngầm ISO 25010 → mô hình hoá → đối chiếu code → rủi ro).
-   Cộng `qa-knowledge/bug-patterns.md`. Đọc `qa/LESSONS.md`.
+   Cộng `qa-knowledge/bug-patterns.md`. Bài học: `python3 .claude/qa-scripts/qa_check.py lessons --for "phân tích" <tính năng>`.
 2. Đọc nguồn — chỉ phần liên quan; lớn thì đọc mục lục/cấu trúc trước. Nguồn chỉ đọc: không sửa.
    - **Tài liệu** cho biết sản phẩm *phải* làm gì → nguồn chính của REQ.
    - **Code** (route/endpoint, handler, validate, model/schema, config, quyền, test sẵn có, git diff của bản đang kiểm)
