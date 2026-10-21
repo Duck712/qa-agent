@@ -943,6 +943,13 @@ def main() -> int:
           "có §Quy trình bắt buộc → bài học chỉ hiện tiêu đề in đậm, kèm nhắc `lessons --for`", hs.stdout)
     r = q("lessons", "--for", "web")
     check("chi tiết riêng chỉ có ở bài học" in r.stdout, "lessons --for vẫn trả toàn văn bài học", r.stdout)
+    les.write_text(les.read_text().rstrip("\n") + "\n| 2026-09-07 | cách làm | **Bảo mật thông tin dự án** — không publish | lời người dùng | mới | mọi việc |\n")
+    r = q("lessons", "--for", "web")
+    check("Bảo mật thông tin dự án" in r.stdout, "lessons --for: bài phạm vi `mọi việc` luôn được lấy như bài phạm vi trống", r.stdout)
+    r = run([sys.executable, "-c", "import sys; sys.path.insert(0, '.claude/qa-scripts'); import qa_check as q; print(q.field("
+             "'## Quy trình bắt buộc\\n- Môi trường: giả\\n### A\\n## Môi trường\\n- Môi trường: thật\\n', 'Môi trường'))"],
+            vp, {"CLAUDE_PROJECT_DIR": str(vp)})
+    check(r.stdout.strip() == "thật", "field(): dòng `- Khoá:` trong §Quy trình bắt buộc không thay giá trị khoá thật", r.stdout + r.stderr)
     r = q("lessons", "--for", "web", "--kind", "sự cố")
     check("Staging hết phiên" in r.stdout and "chi tiết riêng" not in r.stdout and "sự cố" not in r.stdout.splitlines()[0].split("·")[0],
           "lessons --for … --kind: chỉ lấy đúng loại, giá trị --kind không bị coi là từ khoá", r.stdout)

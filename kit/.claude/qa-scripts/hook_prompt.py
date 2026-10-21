@@ -34,8 +34,8 @@ def main() -> int:
     if not hits:
         return 0
     print("[qa-agent] Tin nhắn này có thể là người dùng sửa cách làm hoặc nhắc luật. Nếu đúng vậy: làm theo, và ngay "
-          "trong lượt này thêm một dòng `qa/LESSONS.md` (Loại `cách làm`, Bài học viết thành việc cần làm khác đi, "
-          "Nguồn: trích lời người dùng, Phạm vi áp nếu chỉ đúng cho một target/công đoạn, Trạng thái `mới`), rồi nói ra "
+          "trong lượt này thêm một dòng `qa/LESSONS.md` (Loại `cách làm`, Bài học mở đầu bằng **tiêu đề ngắn in đậm** rồi viết "
+          "thành việc cần làm khác đi, Nguồn: trích lời người dùng, Phạm vi áp nếu chỉ đúng cho một target/công đoạn, Trạng thái `mới`), rồi nói ra "
           "đã ghi. TRƯỚC khi ghi: chạy `qa_check.py lessons --like \"<ý chính>\"` — có bài giống / gần giống thì KHÔNG tự "
           "thêm hay gộp: báo người dùng bài định thêm + các bài cũ giống + đề xuất (thêm mới / gộp vào bài nào / chỉ là vi "
           "phạm bài cũ) rồi chờ quyết; không có bài giống → ghi ngay. Không phải sửa lưng → bỏ qua nhắc này.")

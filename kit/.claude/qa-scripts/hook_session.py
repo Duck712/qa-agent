@@ -34,7 +34,8 @@ def main() -> int:
     if b:
         out += ["", "Bài học đang hiệu lực của dự án (áp dụng khi liên quan, nói ra đang áp bài nào):" if not proc else
                 "Bài học đang hiệu lực — chỉ tiêu đề. Trước khi làm việc thuộc phạm vi bài nào: chạy "
-                "`qa_check.py lessons --for <công đoạn / target>` đọc toàn văn rồi mới làm; nói ra đang áp bài nào:", b]
+                "`python3 .claude/qa-scripts/qa_check.py lessons --for <công đoạn / target>` đọc toàn văn rồi mới làm; "
+                "nói ra đang áp bài nào:", b]
     qs = q.open_questions()
     if qs:
         out += ["", f"Câu hỏi còn chờ người dùng trả lời (ANALYSIS §5): {len(qs)} — " + "; ".join(qs[:5])

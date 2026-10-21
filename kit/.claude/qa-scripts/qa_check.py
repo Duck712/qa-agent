@@ -159,7 +159,9 @@ def table_rows(text: str) -> list[list[str]]:
 
 
 def field(text: str, key: str) -> str:
-    """Giá trị của dòng `- Khoá: giá trị` (chấp nhận khoá in đậm `- **Khoá**:`)."""
+    """Giá trị của dòng `- Khoá: giá trị` (chấp nhận khoá in đậm `- **Khoá**:`). Bỏ qua QA.md §Quy trình bắt buộc — dòng
+    `- Khoá:` viết trong quy trình không được thay giá trị khoá thật ở mục khác."""
+    text = re.sub(r"^##[ \t]+Quy trình bắt buộc.*?(?=^##\s|\Z)", "", text, flags=re.M | re.S)
     m = re.search(rf"^[ \t]*-[ \t]*\*{{0,2}}{re.escape(key)}\*{{0,2}}[ \t]*:\*{{0,2}}[ \t]*(.*)$", text, re.M)
     if not m:
         return ""
@@ -1771,6 +1773,15 @@ def procedure_block(text: str | None = None) -> str:
     return "\n".join(l.rstrip() for l in body.splitlines() if l.strip())
 
 
+LESSON_GENERAL = ("mọi việc", "mọi công đoạn", "chung", "tất cả", "toàn dự án")
+
+
+def lesson_general(scope: str) -> bool:
+    """Bài áp cho mọi việc: phạm vi trống, hoặc một phần phạm vi là `mọi việc` / `chung`… — `lessons --for` luôn lấy."""
+    parts = [fold_key(p) for p in re.split(r"[,;·]", plain(scope))]
+    return not any(parts) or any(p in LESSON_GENERAL for p in parts)
+
+
 def lesson_title(text: str) -> str:
     """Tiêu đề bài học: phần **in đậm** ở đầu; không có thì câu đầu (cắt ở `.` `:` `;` ` — ` ` → `), tối đa LESSON_TITLE_MAX."""
     t = (text or "").strip()
@@ -1849,7 +1860,7 @@ def cmd_lessons(args: list[str]) -> int:
         keys = [fold_key(k) for k in args[i + 1:] if not k.startswith("--")]
         sel = [r for r in rows if not r["state"].startswith(LESSON_DONE)
                and (not kinds or fold_key(r["kind"]) in kinds)
-               and (not plain(r["scope"]) or any(k and k in fold_key(r["scope"] + " " + r["text"]) for k in keys))]
+               and (lesson_general(r["scope"]) or any(k and k in fold_key(r["scope"] + " " + r["text"]) for k in keys))]
         print(f"# bài học áp cho {' '.join(keys) or '(chung)'}{' · loại ' + ', '.join(kinds) if kinds else ''}: {len(sel)} — dán vào prompt tester")
         for r in sel:
             print(f"- [{r['kind']}] {r['text']} (nguồn: {plain(r['src']) or '—'})")
