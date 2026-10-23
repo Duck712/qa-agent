@@ -21,6 +21,8 @@
                                                                   nhập CSV (Excel "Lưu thành CSV UTF-8") thành markdown để soát/review
     python3 .claude/qa-scripts/qa_check.py lessons [--brief [--full]] [--for <từ khoá> [--kind <loại>]] [--like "<bài định thêm>"] [--archive]
                                                                   bài học: liệt kê · bản ngắn đầu phiên · lọc cho tester · cất dòng đã xong
+    python3 .claude/qa-scripts/qa_check.py decisions [<số dòng> …] [--for <từ khoá…>]
+                                                                  tra quyết định (kèm dòng sau trỏ về) — thay cho đọc cả DECISIONS.md
 
 Không phải cổng chặn — chỉ báo. Không tự đặt con số nào: tiêu chí đạt, mức rủi ro, N lần chạy AI lấy từ SCOPE do
 người dùng chốt; thiếu hoặc không đọc được thì báo "chưa chốt", không dùng mặc định. Exit 0 sạch · 1 có lỗi · 2 sai cách gọi.
@@ -1761,6 +1763,8 @@ def lessons_like(query: str, rows: list[dict] | None = None, top: int = 5) -> li
 
 PROC_SECTION = "Quy trình bắt buộc"   # QA.md: các bước công đoạn lặp lại — hook nạp toàn văn mỗi phiên
 PROC_WARN = 8000            # ký tự — quy trình bắt buộc dài hơn thì nhắc rút gọn (nạp mỗi phiên + sau mỗi lần nén)
+HOOK_BUDGET = 9600         # ký tự — trần đầu ra hook_session: Claude Code cắt đầu ra hook > 10.000 ký tự, chỉ đưa ~2KB đầu
+                            # vào phiên (phần sau nằm trong file, agent không tự đọc) → hook tự xếp cho vừa
 LESSON_TITLE_MAX = 160      # tiêu đề bài học hook hiện khi dự án đã có quy trình bắt buộc
 LESSON_LONG = 600           # bài dài hơn mà không mở đầu bằng **tiêu đề** → nhắc thêm tiêu đề
 FIELD_LONG = 1500           # dòng `- Khoá: …` của QA.md dài hơn → nhắc chuyển lịch sử sang RUNLOG / DECISIONS
@@ -1797,22 +1801,57 @@ def lesson_title(text: str) -> str:
     return s if len(s) <= LESSON_TITLE_MAX else s[:LESSON_TITLE_MAX - 1].rstrip() + "…"
 
 
-def lessons_brief(limit: int = LESSON_BRIEF_LIMIT, full: bool | None = None) -> str:
+def lessons_brief(limit: int = LESSON_BRIEF_LIMIT, full: bool | None = None, budget: int | None = None) -> str:
     """Bài học đang hiệu lực cho đầu phiên. `full` None: dự án đã có §Quy trình bắt buộc → chỉ tiêu đề (toàn văn qua
-    `lessons --for`); chưa có → toàn văn như trước, để dự án chưa chuyển không mất gì."""
+    `lessons --for`); chưa có → toàn văn như trước, để dự án chưa chuyển không mất gì.
+    `budget` (ký tự, hook dùng — Claude Code cắt đầu ra hook quá dài, xem HOOK_BUDGET): mọi tiêu đề vừa chỗ → in hết tiêu đề,
+    bài mới nhất được toàn văn khi vẫn còn chỗ cho tiêu đề mọi bài cũ hơn; không vừa → danh mục phạm vi của mọi bài (để biết
+    gõ `--for` gì) + tiêu đề bài mới nhất tới khi hết chỗ; chỗ quá ít → chỉ một dòng đếm."""
     if full is None:
         full = not procedure_block()
     rows = [r for r in lesson_rows() if not r["state"].startswith(LESSON_DONE)]
     warn = orphan_warning()
     if not rows:
         return warn
-    rows = sorted(rows, key=lambda r: r["day"], reverse=True)
+    total = len(rows)
+    rows = sorted(rows, key=lambda r: r["day"], reverse=True)[:limit]
     short = lambda st: re.split(r"\s*[·(]", st or "?")[0][:30]
-    lines = [f"- [{r['kind'] or '?'}{' · ' + r['scope'] if r['scope'] else ''}] "
-             + (f"{r['text']} ({r['state'] or '?'})" if full else f"{lesson_title(r['text'])} ({short(r['state'])})")
-             for r in rows[:limit]]
-    more = f"\n… còn {len(rows) - limit} bài học cũ hơn — `qa_check.py lessons` để xem hết" if len(rows) > limit else ""
-    return (warn + "\n" if warn else "") + "\n".join(lines) + more
+    head = lambda r: f"- [{r['kind'] or '?'}{' · ' + r['scope'] if r['scope'] else ''}] "
+    titles = [f"{head(r)}{lesson_title(r['text'])} ({short(r['state'])})" for r in rows]
+    fulls = [f"{head(r)}{r['text']} ({r['state'] or '?'})" for r in rows]
+    tail = lambda n: (f"… còn {total - n} bài học không hiện ở đây — `qa_check.py lessons --for <phạm vi>` để đọc toàn văn"
+                      if n < total else "")
+    pre = warn + "\n" if warn else ""
+    if budget is None:
+        lines = fulls if full else titles
+    else:
+        room = budget - len(pre) - len(tail(0)) - 1
+        rest = [0] * (len(rows) + 1)                     # rest[i] = độ dài tiêu đề các bài từ i trở đi
+        for i in range(len(rows) - 1, -1, -1):
+            rest[i] = rest[i + 1] + len(titles[i]) + 1
+        lines = []
+        if rest[0] <= room:                              # mọi tiêu đề vừa → nâng bài mới nhất lên toàn văn khi còn chỗ
+            for i in range(len(rows)):
+                pick = fulls[i] if full and len(fulls[i]) + 1 + rest[i + 1] <= room else titles[i]
+                lines.append(pick)
+                room -= len(pick) + 1
+        elif room >= 300:                                # không vừa → danh mục phạm vi + tiêu đề tới khi hết chỗ
+            by: dict[str, int] = {}
+            for r in rows:
+                for p in {p.strip() for p in re.split(r"[,;·]", re.sub(r"[`*]", "", r["scope"] or "") or "chung") if p.strip()}:
+                    by[p] = by.get(p, 0) + 1
+            index = "Phạm vi các bài (số bài): " + ", ".join(f"{k} ({n})" for k, n in sorted(by.items(), key=lambda x: (-x[1], x[0])))
+            if len(index) > room // 2:
+                index = index[:room // 2].rsplit(", ", 1)[0] + " …"
+            lines.append(index)
+            room -= len(index) + 1
+            for t in titles:
+                if len(t) + 1 > room:
+                    break
+                lines.append(t)
+                room -= len(t) + 1
+    shown = len(lines) - (1 if lines and lines[0].startswith("Phạm vi các bài") else 0)
+    return pre + "\n".join(x for x in lines + [tail(shown)] if x)
 
 
 def size_warnings() -> list[str]:
@@ -1920,6 +1959,48 @@ def cmd_lessons(args: list[str]) -> int:
         print(f"  - {r['day']} [{r['kind']}] {r['text'][:100]} ({r['state']})")
     return 0
 
+# ---------------------------------------------------------------- lệnh: decisions
+
+def cmd_decisions(args: list[str]) -> int:
+    """Tra DECISIONS.md theo từ khoá / số dòng thay cho đọc cả file (file chỉ thêm dòng nên lớn dần). Kèm mọi dòng SAU
+    trỏ về dòng đã khớp (`#n` — người dùng đổi ý thì thêm dòng mới trỏ về dòng cũ) để không áp quyết định đã bị thay."""
+    path = QA / "DECISIONS.md"
+    if not path.is_file():
+        print("chưa có qa/DECISIONS.md", file=sys.stderr)
+        return 1
+    rows = [r for r in table_dicts(read(path), "#") if re.fullmatch(r"\d+", plain(r.get("#", "")))]
+    num = lambda r: int(plain(r["#"]))
+    body = lambda r: " · ".join(v for k, v in r.items() if k != "#" and v)
+    nums = [num(r) for r in rows]
+    dups = sorted({n for n in nums if nums.count(n) > 1})
+    if dups:                                     # `#n` trỏ về số trùng là mơ hồ — báo, không tự đánh số lại
+        print(f"⚠ DECISIONS.md có số dòng trùng: {', '.join(f'#{n}' for n in dups)} — dòng trỏ `#n` tới số này không rõ "
+              "là dòng nào; báo người dùng")
+    cut = args.index("--for") if "--for" in args else len(args)
+    ids = {int(a.lstrip("#")) for a in args[:cut] if re.fullmatch(r"#?\d+", a)}   # số trần: `#` trong shell là chú thích
+    keys = [fold_key(k) for k in args[cut + 1:] if not k.startswith("--")]
+    if not ids and not keys:
+        print(f"Quyết định: {len(rows)} dòng — tra: `decisions --for <từ khoá…>` · `decisions 12 15` (số dòng)")
+        for r in rows[-10:]:
+            print(f"  - #{num(r)} {body(r)[:140]}")
+        return 0
+    hit = {num(r) for r in rows if num(r) in ids or any(k and k in fold_key(body(r)) for k in keys)}
+    seen, later = set(hit), set()
+    while True:                                  # dòng sau trỏ về dòng đã lấy — lặp tới khi hết (chuỗi đổi ý nhiều lần)
+        new = {num(r) for r in rows if num(r) not in seen
+               and any(num(r) > n and re.search(rf"#{n}(?!\d)", body(r)) for n in seen)}
+        if not new:
+            break
+        seen |= new
+        later |= new
+    show = [r for r in rows if num(r) in seen]
+    n_later = sum(num(r) in later for r in show)
+    print(f"# quyết định khớp {' '.join(keys)}{' ' if keys and ids else ''}{' '.join(f'#{i}' for i in sorted(ids))}: "
+          f"{len(show) - n_later}" + (f" + {n_later} dòng sau trỏ về (có thể thay quyết định cũ — đọc cả hai)" if n_later else ""))
+    for r in show:
+        print(f"- #{num(r)}{' (trỏ về dòng trước)' if num(r) in later else ''} {body(r)}")
+    return 0
+
 # ---------------------------------------------------------------- lệnh: status
 
 def cmd_status() -> int:
@@ -2008,6 +2089,8 @@ def main(argv: list[str]) -> int:
         return cmd_import(args)
     if cmd == "lessons":
         return cmd_lessons(args)
+    if cmd == "decisions":
+        return cmd_decisions(args)
     print(f"lệnh lạ `{cmd}`\n{__doc__}", file=sys.stderr)
     return 2
 

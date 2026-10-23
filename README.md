@@ -314,7 +314,9 @@ bằng chứng, FAIL không có bug, và tính **kết luận ĐẠT / KHÔNG Đ
 Hai hook nhẹ chặn thật: `guard_evidence` (ảnh/video phải nằm trong `qa/evidence/`) và `guard_readonly` (không ghi vào
 đường dẫn khai ở `qa/QA.md §Nguồn chỉ đọc`). Hai hook nhắc (không chặn): `hook_session` (đầu phiên nạp luật + bài học +
 câu hỏi chờ; dự án có `QA.md §Quy trình bắt buộc` → nạp toàn văn quy trình đó, bài học chỉ hiện tiêu đề, toàn văn lấy
-bằng `qa_check.py lessons --for <công đoạn>`) và `hook_prompt` (người dùng sửa lưng → nhắc ghi `LESSONS.md`).
+bằng `qa_check.py lessons --for <công đoạn>`; đầu ra giữ dưới trần 10.000 ký tự của Claude Code — không vừa thì hiện danh
+mục phạm vi bài học thay cho tiêu đề) và `hook_prompt` (người dùng sửa lưng → nhắc ghi `LESSONS.md`).
+Quyết định đã chốt tra bằng `qa_check.py decisions --for <từ khoá>` (kèm các dòng sau trỏ về), không đọc cả `DECISIONS.md`.
 `qa_check.py` cũng báo: REQ/quan điểm thiếu nguồn hoặc trích dẫn không có trong file nguồn, quan điểm ngoài đặc tả chưa
 được duyệt, TC trỏ quan điểm chưa duyệt (run tự bỏ TC đó).
 

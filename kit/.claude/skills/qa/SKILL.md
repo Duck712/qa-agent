@@ -50,7 +50,8 @@ Bốn thứ **luôn đúng** dù làm việc gì: không bịa · chưa rõ thì
    chặn nhau thì gom một lượt; phần việc không phụ thuộc câu hỏi thì làm tiếp, phần phụ thuộc để `BLOCKED`/`(chờ trả lời)`.
    **Một nơi ghi câu trả lời**: câu hỏi về yêu cầu → cột `Trả lời` ở `ANALYSIS §5` (gỡ nhãn `(chờ trả lời #n)` ở REQ/TC
    liên quan); quyết định về cách làm/phạm vi/tiêu chí/quyền/trạng thái bug → một dòng `DECISIONS.md` trích nguyên văn.
-   SCOPE §8 chỉ trỏ tới hai nơi này. Lần sau đọc lại trước khi hỏi — không hỏi lại điều đã chốt.
+   SCOPE §8 chỉ trỏ tới hai nơi này. Lần sau đọc lại trước khi hỏi — không hỏi lại điều đã chốt; DECISIONS tra bằng
+   `qa_check.py decisions --for <từ khoá>` (kèm các dòng sau trỏ về), không đọc cả file.
    Tuyệt đối không tự điền câu trả lời, không chọn cách hiểu thay người dùng, không sửa kỳ vọng cho khớp kết quả.
    Người dùng bảo "chạy luôn, không cần hỏi" nghĩa là không hỏi lại **điều đã nói** (phạm vi, thứ tự) — điểm mơ hồ
    **mới** phát sinh vẫn phải hỏi: TC phụ thuộc nó để `BLOCKED (chờ trả lời)`, chạy tiếp phần còn lại, gom câu hỏi

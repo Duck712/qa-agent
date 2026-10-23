@@ -24,7 +24,7 @@ RUNTIME = {"qa/TRACE.md", "TRACE.md", "qa/.env", "qa/API-SURFACE.md", "cham.md",
 WORKSPACE = {"QA.md", "ANALYSIS.md", "SCOPE.md", "BUGS.md", "DECISIONS.md", "LESSONS.md", "TRACE.md"}
 SCRIPTS = {"qa_check.py", "pairwise.py", "gen_matrix_tc.py", "guard_evidence.py", "guard_readonly.py", "hook_session.py",
            "hook_prompt.py"}
-QA_CHECK_CMDS = {"status", "tc", "select", "new-run", "run", "trace", "release", "vp", "src", "export", "import", "lessons"}
+QA_CHECK_CMDS = {"status", "tc", "select", "new-run", "run", "trace", "release", "vp", "src", "export", "import", "lessons", "decisions"}
 
 
 def sections(path: Path) -> set[str]:

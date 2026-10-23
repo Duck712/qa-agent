@@ -921,6 +921,27 @@ def main() -> int:
     r = q("lessons", "--archive")
     check("Đã cất 1" in r.stdout and "kho chung" not in les.read_text() and "kho chung" in (vp / "qa/LESSONS-archive.md").read_text(),
           "lessons --archive: cất dòng đã nâng sang LESSONS-archive.md", r.stdout)
+    dec = vp / "qa/DECISIONS.md"
+    dec0 = dec.read_text()
+    dec.write_text(dec0.rstrip("\n") + "\n| 1 | 2026-09-01 | run 1 | Được gửi mail thật? | \"không gửi mail\" | người dùng |\n"
+                   "| 2 | 2026-09-02 | Upload | Giới hạn file? | \"10MB\" | người dùng |\n"
+                   "| 3 | 2026-09-03 | run 2 | Đổi ý (thay #1) | \"gửi tới hộp test được\" | người dùng |\n"
+                   "| 4 | 2026-09-04 | run 3 | Đổi ý lần nữa (thay #3) | \"chỉ hộp Mailpit\" | người dùng |\n"
+                   "| 10 | 2026-09-05 | Upload | Định dạng? | \"chỉ PNG\" | người dùng |\n")
+    r = q("decisions", "--for", "không GỬI")
+    check("#1 " in r.stdout and "#3 (trỏ về" in r.stdout and "#4 (trỏ về" in r.stdout and "10MB" not in r.stdout,
+          "decisions --for: lọc theo từ khoá (không phân biệt hoa thường), kèm chuỗi dòng sau trỏ về (#1 ← #3 ← #4)", r.stdout)
+    r = q("decisions", "2")
+    check("10MB" in r.stdout and "không gửi" not in r.stdout, "decisions <số>: lấy đúng dòng (số trần — `#` là chú thích trong shell)",
+          r.stdout)
+    r = q("decisions", "--for", "10")
+    check("10MB" in r.stdout and "chỉ PNG" not in r.stdout, "decisions --for 10: số sau --for là từ khoá, không phải số dòng",
+          r.stdout)
+    dec.write_text(dec.read_text() + "| 2 | 2026-09-06 | run 4 | Số trùng | \"ok\" | người dùng |\n")
+    r = q("decisions", "2")
+    check("số dòng trùng: #2" in r.stdout and "10MB" in r.stdout and "Số trùng" in r.stdout and "khớp #2: 2" in r.stdout,
+          "decisions: số dòng trùng → cảnh báo, hiện đủ cả hai dòng, đếm đúng", r.stdout)
+    dec.write_text(dec0)
     hs2 = run([sys.executable, str(tmp / "inst5/.claude/qa-scripts/hook_session.py")], tmp, {"CLAUDE_PROJECT_DIR": str(tmp / "khong-co")}, "{}")
     check(hs2.returncode == 0, "hook_session: không có qa/ → không làm hỏng phiên", hs2.stderr)
 
@@ -943,6 +964,49 @@ def main() -> int:
           "có §Quy trình bắt buộc → bài học chỉ hiện tiêu đề in đậm, kèm nhắc `lessons --for`", hs.stdout)
     r = q("lessons", "--for", "web")
     check("chi tiết riêng chỉ có ở bài học" in r.stdout, "lessons --for vẫn trả toàn văn bài học", r.stdout)
+    # Claude Code cắt đầu ra hook > 10.000 ký tự (chỉ còn ~2KB đầu) → quy trình dài + nhiều bài học vẫn phải vừa trần
+    les_big = les.read_text() + "".join(f"| 2026-08-{i % 28 + 1:02d} | cách làm | **Bài dài số {i}** — {'chi tiết ' * 40} | x | mới | "
+                                        f"phạm vi-{i % 7} |\n" for i in range(60))
+    les.write_text(les_big)
+    ana = vp / "qa/ANALYSIS.md"
+    ana0 = ana.read_text()
+    ana.write_text("# ANALYSIS\n\n## 5. Điểm mơ hồ\n| # | Điểm chưa rõ | Đề xuất | Rủi ro nếu sai | Trả lời |\n|---|---|---|---|---|\n"
+                   + "".join(f"| {i} | Câu hỏi dài số {i} {'chưa rõ ' * 80} | x | y | |\n" for i in range(1, 8)) + "\n## 6. Rủi ro\n")
+    hook_out = lambda: run([sys.executable, str(vp / ".claude/qa-scripts/hook_session.py")], vp, {"CLAUDE_PROJECT_DIR": str(vp)}, "{}")
+    qa_md.write_text(qa0.replace("\n## Nguồn tài liệu", "".join(f"{i}. Bước bắt buộc số {i} — {'nội dung ' * 12}\n"
+                                                              for i in range(1, 50)) + "BƯỚC-CUỐI-PHẢI-CÓ\n\n## Nguồn tài liệu", 1))
+    hs = hook_out()
+    check(hs.returncode == 0 and len(hs.stdout) < 10000 and "BƯỚC-CUỐI-PHẢI-CÓ" in hs.stdout and "Phạm vi các bài" in hs.stdout
+          and "phạm vi-3" in hs.stdout and "lessons --for" in hs.stdout and "Câu hỏi dài số 5" in hs.stdout,
+          "quy trình dài + 61 bài học + 7 câu hỏi chờ dài → hook vừa trần 10.000 ký tự, quy trình đủ, có danh mục phạm vi bài học",
+          f"{len(hs.stdout)} ký tự")
+    qa_md.write_text(qa0.replace("\n## Nguồn tài liệu", "".join(f"{i}. {'rất dài ' * 30}\n" for i in range(1, 80))
+                                 + "\n## Nguồn tài liệu", 1))
+    hs = hook_out()
+    check(len(hs.stdout) < 10000 and "ĐỌC NGAY" in hs.stdout and "trích NGUYÊN VĂN" in hs.stdout and "Câu hỏi dài số 1" in hs.stdout
+          and "Phạm vi các bài" not in hs.stdout and re.search(r"còn \d+ bài học không hiện", hs.stdout),
+          "quy trình quá trần → tự cắt ở cuối dòng + bảo đọc QA.md; luật, câu hỏi chờ, dòng đếm bài học vẫn còn",
+          f"{len(hs.stdout)} ký tự\n{hs.stdout[-400:]}")
+    ana.write_text(ana0)
+    qa_md.write_text(qa0)                                   # chưa có quy trình → bài học toàn văn, không vừa thì hạ tiêu đề
+    les.write_text(les0.rstrip("\n") + "\n" + "".join(f"| 2026-08-{i % 28 + 1:02d} | cách làm | **Bài số {i}** — {'chi tiết ' * 40} "
+                                                       f"| x | mới | |\n" for i in range(40)))
+    hs = hook_out()
+    check(len(hs.stdout) < 10000 and all(f"Bài số {i}**" in hs.stdout or f"Bài số {i} (" in hs.stdout for i in range(40))
+          and "chi tiết chi tiết" in hs.stdout and "Phạm vi các bài" not in hs.stdout,
+          "chưa có quy trình, bài học toàn văn quá trần → bài mới nhất toàn văn, mọi bài còn lại vẫn có tiêu đề",
+          f"{len(hs.stdout)} ký tự")
+    r = run([sys.executable, "-c", "import sys; sys.path.insert(0, '.claude/qa-scripts'); import qa_check as q; "
+             "print(q.lessons_brief(limit=3, full=False))"], vp, {"CLAUDE_PROJECT_DIR": str(vp)})
+    check(r.stdout.count("\n- [") == 2 and "bài học không hiện ở đây" in r.stdout,
+          "lessons --brief quá giới hạn số bài → vẫn báo còn bài không hiện", r.stdout)
+    les.write_text(les0.rstrip("\n") + "\n| 2026-09-05 | cách làm | **Gõ ô số chờ focus** — bấm vào ô, chờ 300 ms rồi mới gõ; "
+                   "chi tiết riêng chỉ có ở bài học | lời người dùng | mới | web |\n")
+    qa_md.write_text(qa0.replace("\n## Nguồn tài liệu", "1. Mỗi màn: chạy normal + abnormal mọi ô (LESSONS 2026-09-05)\n\n"
+                                 "2. Xong màn: review rồi mới báo\n\n## Nguồn tài liệu", 1))
+    hs = run([sys.executable, str(vp / ".claude/qa-scripts/hook_session.py")], vp, {"CLAUDE_PROJECT_DIR": str(vp)}, "{}")
+    check("Phạm vi các bài" not in hs.stdout and "Gõ ô số chờ focus" in hs.stdout and "2. Xong màn: review" in hs.stdout,
+          "đủ chỗ → hook in như cũ (không danh mục phạm vi, không cắt)", hs.stdout[-500:])
     les.write_text(les.read_text().rstrip("\n") + "\n| 2026-09-07 | cách làm | **Bảo mật thông tin dự án** — không publish | lời người dùng | mới | mọi việc |\n")
     r = q("lessons", "--for", "web")
     check("Bảo mật thông tin dự án" in r.stdout, "lessons --for: bài phạm vi `mọi việc` luôn được lấy như bài phạm vi trống", r.stdout)
