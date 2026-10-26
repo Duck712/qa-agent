@@ -6,7 +6,8 @@ description: >
   tích ảnh hưởng), checklist theo đối tượng (form, đăng nhập/phân quyền/MFA/SSO, dữ liệu cá nhân, a11y WCAG 2.2,
   upload, API, ca bất thường, thanh toán, thông báo, realtime/chat/gọi, tìm kiếm/danh sách/export, ngày giờ/
   lịch), checklist theo loại target (CLI, job/pipeline dữ liệu, AI/LLM), danh sách lỗi dev hay mắc
-  (bug-patterns) và mẹo nghề (khám phá có kỷ luật, viết bug, soi yêu cầu mơ hồ, cắt phạm vi, viết báo cáo).
+  (bug-patterns), mẹo nghề (khám phá có kỷ luật, viết bug, soi yêu cầu mơ hồ, cắt phạm vi, viết báo cáo) và
+  bảng thuật ngữ Việt – Anh (ISTQB) – Nhật (JSTQB) cho tài liệu gửi khách.
   Nạp skill này khi phân tích tài liệu tìm lỗ hổng, khi viết/review test case, khi đóng vai qa-tester để
   biết chỗ nào đáng đào, và khi rút bài học sau một lượt test (chỉ sửa skill khi người dùng đã duyệt).
 ---
@@ -40,6 +41,7 @@ description: >
 | `deliverable-review.md` | **Bắt buộc** mỗi lần chạy xong / sửa xong file giao: độ phủ normal + abnormal, review toàn bộ file (số đếm, câu kết quả, công thức, trình bày) + từng evidence |
 | `scope-review.md` | **Review kế hoạch / SCOPE** — phạm vi, chạy được, kết luận được |
 | `techniques-judgement.md` | Khám phá có kỷ luật · viết bug · soi yêu cầu mơ hồ · cắt phạm vi · viết báo cáo · **chọn mức effort trước mỗi đơn vị test** (§6) |
+| `thuat-ngu.md` | Viết Test Plan / báo cáo / Q&A / file gửi khách: thuật ngữ Việt – Anh (ISTQB) – Nhật (JSTQB); mẫu của khách dùng chữ nào thì giữ chữ đó |
 
 Bảo mật chuyên sâu (OWASP, CVE, secret) thuộc agent `qa-security`. Ở đây chỉ giữ ca bảo mật cơ bản ai cũng
 phải thử (`auth-login §3`, `form-input §2`, `api-common`).
