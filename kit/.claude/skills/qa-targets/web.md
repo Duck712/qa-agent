@@ -63,6 +63,14 @@ kèm n. Ngưỡng do tài liệu/người dùng cho.
 | Lần đầu rất lâu | Đang tải Chromium (`npx playwright install chromium`) |
 | Ảnh không thấy trong `qa/evidence/_inbox` | `.mcp.json` còn đường dẫn tương đối — chạy lại `python3 <source>/install.py . --update` (`source` ghi trong `.claude/qa-agent.json`) |
 
+## Bẫy khi điều khiển trình duyệt (bài học từ dự án)
+- Nút đóng màn gọi `window.close`: trình duyệt chỉ cho đóng cửa sổ do script mở. Mở thẳng bằng địa chỉ thì bấm không có tác
+  dụng, kết quả "không đổi" là giả → mở đúng như người dùng thật (dò cách menu mở: `window.open` nào, địa chỉ, kích thước).
+- Clipboard là của cả máy: nhiều phiên cùng dán có thể dán nhầm → đọc lại clipboard sau khi dán, khác thì dán lại; chạy ca dán
+  làm mất nội dung người dùng đang copy.
+- Máy soát độ phủ: kiểm kê đối tượng trên màn (ô, loại ô, độ dài tối đa, nút, phím) rồi so với danh sách bước đã viết, báo chỗ
+  chưa có bước — chỉ là một lớp kiểm, không thay việc tự soát; ô chỉ hiện sau một thao tác thì phải khai thêm.
+
 ## Nhiều vai cùng lúc
 Mỗi trình duyệt `--isolated` là **một** browser context — các tab dùng chung cookie. Hai vai cùng lúc **không** dùng
 `browser_tabs`. Dùng `browser_run_code_unsafe`:

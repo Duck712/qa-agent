@@ -89,6 +89,14 @@ Bốn thứ **luôn đúng** dù làm việc gì: không bịa · chưa rõ thì
    bằng chứng** theo `qa-knowledge/deliverable-review.md` (máy soát, số đếm, từng câu kết quả, **công thức**, evidence
    đúng / đủ / rõ đạt-lỗi, trình bày, quét ngang các file cùng loại) rồi mới báo, báo kèm kết quả review. Thiếu một
    bước → chưa được báo xong. Tóm tắt / bàn giao quy trình cũng phải nêu đủ hai bước này.
+11. **Người dùng đổi một luật → sửa ở mọi chỗ còn nói luật cũ**: tìm trong `QA.md`, file quy trình của công đoạn,
+   `LESSONS.md` (và tờ hướng dẫn / chú thích công cụ nếu liên quan), sửa hoặc thêm câu 「Cập nhật <ngày>: …」, ghi DECISIONS,
+   báo người dùng đã sửa ở đâu. Luật cũ còn sót trong bài học vẫn được đọc mỗi phiên → agent làm theo luật sai.
+12. **Nhiều phiên cùng chạy trên một dự án** (chỉ áp khi có): số DECISIONS / BUGS = số lớn nhất + 1, **đọc ngay lúc ghi**;
+   file chung chỉ thêm / thay đúng đoạn của mình, giữ kiểu xuống dòng, không ghi đè cả file. Đăng ký vào bảng 「Phiên đang
+   chạy」 của `qa/TRANG-THAI.md` (phiên · việc · đối tượng · file đang sửa · giờ), xong thì xoá dòng; không nhận đối tượng /
+   file phiên khác đang giữ. Việc **ghi dữ liệu** trên môi trường dùng chung chạy một mình trên môi trường đó, phiên khác chờ —
+   dữ liệu đang đổi làm kết quả so sánh của phiên khác sai. Mỗi phiên chỉ xoá file tạm của mình; file tổng hợp một phiên một lúc.
 
 ## 2. Danh mục việc QA
 
@@ -146,6 +154,7 @@ Ghi quy trình đã thống nhất vào `QA.md §Quy trình` — phiên sau đ�
 ```
 qa/
 ├── QA.md              hồ sơ: quy trình, nguồn tài liệu, target, môi trường, tài khoản
+├── TRANG-THAI.md      việc còn chờ, dữ liệu test còn lại, bảng phiên đang chạy — `Việc tiếp theo` của QA.md chỉ giữ việc kế tiếp
 ├── ANALYSIS.md        yêu cầu REQ-…, vai, luồng, điểm mơ hồ
 ├── SCOPE.md           kế hoạch: phạm vi + tiêu chí đạt + vào/ra + lịch + bàn giao của đợt (đợt cũ → SCOPE-<đợt>.md)
 ├── viewpoints/*.md    quan điểm test theo tính năng — trích nguyên văn đặc tả, người dùng duyệt
@@ -192,6 +201,10 @@ Chi tiết (hai tầng dự án / kho chung, khi nào ghi / đọc, quy trình b
 - Đọc: hook nạp bài học đầu mọi phiên; dự án có `QA.md §Quy trình bắt buộc` → bài học chỉ tiêu đề, chạy
   `qa_check.py lessons --for <công đoạn / target>` đọc toàn văn trước khi làm việc thuộc phạm vi bài. Nói ra đang áp bài
   nào. Subagent không tự thấy bài học → phiên chính dán `lessons --for …` vào prompt giao việc.
+- Giữ gọn phần nạp đầu phiên: hook có trần ký tự, quy trình dài quá thì **các bước cuối bị cắt**, agent không thấy. Quy trình
+  bắt buộc của công đoạn dài → `QA.md` giữ luật an toàn toàn văn + 1 câu luật mỗi bước, toàn văn sang file riêng (vd
+  `qa/QUY-TRINH-<công đoạn>.md`), bước đầu công đoạn bắt đọc toàn văn trước mọi việc thuộc công đoạn; giữ nguyên số bước.
+  Trước khi rút gọn, đối chiếu từng ý cũ → nằm ở đâu sau khi sửa; người dùng duyệt rồi mới ghi.
 - Một nơi ghi: bài học của dự án chỉ ở `qa/LESSONS.md`, không ghi vào bộ nhớ riêng của Claude. Chỉ bài học **đã tổng
   quát hoá** (không tên dự án / khách, URL, tài khoản, dữ liệu, trích tài liệu, ảnh) mới được đưa vào repo qa-agent, khi
   người dùng đồng ý; mọi thứ riêng của dự án chỉ để local, không push, không publish.
@@ -207,3 +220,6 @@ tự động (việc 12), giao hoặc nhận kết quả TC `Thực hiện: ngư
   sau khi người dùng đồng ý; không đổi kỳ vọng của TC khi viết script.
 - TC `Thực hiện: người`: người dùng quyết; agent không tự chấm thay — ghi đúng kết quả người làm báo, thiếu bằng chứng
   thì hỏi lại hoặc `BLOCKED`.
+- Công cụ tự viết cho dự án: dài (vài trăm dòng trở lên) → có tờ tra lệnh ngắn (lệnh, khuôn file đầu vào) để đọc thay mã
+  nguồn; sửa công cụ thì sửa tờ cùng lúc. Sửa công cụ đang dùng hằng ngày → chạy kiểm hồi quy đủ các loại bước trên
+  đối tượng chỉ xem trước khi dùng lại.

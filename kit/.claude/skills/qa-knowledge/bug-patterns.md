@@ -28,3 +28,4 @@
 22. **Đích tới bị xoá/vô hiệu nhưng hành động vẫn nhận** (gọi/mời/giao việc cho người đã rời tổ chức).
 23. **Thông báo/sự kiện nhân đôi** cho một hành động (hai webhook, hai thông báo cùng phút).
 24. **Tài liệu tự mâu thuẫn**: AC, design, API doc nói ba kiểu → ghi thành điểm mơ hồ trước khi viết TC, đừng chọn đại.
+25. **Âm thầm đổi hoặc bỏ giá trị người dùng nhập**, không báo lỗi → so giá trị nhập với giá trị hiển thị ở từng ca normal, không chỉ xem có lỗi hay không. Khi so 2 bản (trước / sau nâng cấp), hai bản giống nhau chưa có nghĩa là đúng: lỗi cũ có sẵn ở cả hai vẫn lọt nếu tiêu chí chỉ là "giống nhau". (bài học từ dự án)

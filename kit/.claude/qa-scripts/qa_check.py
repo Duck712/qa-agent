@@ -1859,8 +1859,8 @@ def size_warnings() -> list[str]:
     biến thành nhật ký."""
     out, proc = [], procedure_block()
     if len(proc) > PROC_WARN:
-        out.append(f"QA.md §{PROC_SECTION} dài {len(proc)} ký tự (> {PROC_WARN}) — nạp toàn văn mỗi phiên; rút gọn, chi tiết "
-                   "để ở bài học (toàn văn qua `lessons --for`)")
+        out.append(f"QA.md §{PROC_SECTION} dài {len(proc)} ký tự (> {PROC_WARN}) — nạp toàn văn mỗi phiên, vượt trần hook thì các bước "
+                   "cuối bị cắt; rút gọn: 1 câu luật mỗi bước, toàn văn sang file riêng / bài học (`lessons --for`)")
     active = [r for r in lesson_rows() if not r["state"].startswith(LESSON_DONE)]
     longs = [r for r in active if len(plain(r["text"])) > LESSON_LONG and not r["text"].lstrip().startswith("**")]
     if longs:
@@ -1874,7 +1874,16 @@ def size_warnings() -> list[str]:
         m = re.match(r"[ \t]*-[ \t]*\*{0,2}([^:*]{2,40})\*{0,2}[ \t]*:", line)
         if m and len(line) > FIELD_LONG:
             out.append(f"QA.md dòng `{m.group(1).strip()}` dài {len(line)} ký tự — chỉ giữ trạng thái hiện tại, lịch sử chuyển sang "
-                       "RUNLOG / DECISIONS")
+                       "RUNLOG / DECISIONS / TRANG-THAI.md")
+    # số trùng ở DECISIONS (dòng bảng "| n |") và BUGS ("## BUG-n") — nhiều phiên ghi song song
+    for fname, pat, lab in (("DECISIONS.md", r"^\|\s*(\d+)\s*\|", "DECISIONS #"), ("BUGS.md", r"^##\s+BUG-(\d+)\b", "BUG-")):
+        nums = [int(m.group(1)) for line in read(QA / fname).splitlines()
+                if not (fname == "BUGS.md" and "—" in line and "<" in line.split("—", 1)[1][:3])   # bỏ dòng khuôn mẫu "## BUG-001 — <…>"
+                for m in [re.match(pat, line)] if m]
+        dup = sorted({n for n in nums if nums.count(n) > 1})
+        if dup:
+            out.append(f"{fname} có số trùng: {', '.join(lab + str(n) for n in dup)} — đổi số dòng mới ghi sau sang số chưa dùng "
+                       f"(số lớn nhất hiện tại {max(nums)}), sửa mọi chỗ trỏ tới nó, thêm dòng ghi chú số cũ → số mới")
     return out
 
 

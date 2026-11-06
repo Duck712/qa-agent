@@ -40,3 +40,5 @@
 - [ ] 6.1 Trường bắt buộc có điều kiện (bắt buộc khi chọn X) → đổi lựa chọn qua lại
 - [ ] 6.2 Gửi qua API giá trị dropdown ngoài danh sách → server từ chối
 - [ ] 6.3 Rời trang khi có thay đổi chưa lưu → cảnh báo (theo tài liệu)
+- [ ] 6.4 Dán (Ctrl+V) thay vì gõ từng ký tự: kết quả có như gõ không; độ dài tối đa, ký tự bị lọc (bài học từ dự án)
+- [ ] 6.5 Ô đang có giá trị: bấm vào sửa một phần — phần còn lại có được giữ không (bài học từ dự án)

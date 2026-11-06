@@ -37,6 +37,9 @@ Hai tầng, để kinh nghiệm không mất khi hết phiên:
   `qa_check.py lessons` báo trùng và báo khi đang hiệu lực quá nhiều (đầu phiên nạp tối đa 80 bài mới nhất).
 - **Một nơi ghi**: bài học nghề QA của dự án ghi ở `qa/LESSONS.md` — không ghi vào bộ nhớ riêng của Claude (auto-memory),
   để mọi người/phiên/tester cùng thấy và không có hai bản lệch nhau.
+- **Cải tiến agent / quy trình**: mục tiêu là chất lượng kiểm thử (không bỏ sót lỗi, không test ẩu), không phải tiết kiệm.
+  Mỗi đề xuất nêu ảnh hưởng tới chất lượng (tốt hơn / như cũ / rủi ro + cách chặn); có thể làm giảm chất lượng thì không làm;
+  người dùng duyệt nội dung cụ thể trước khi ghi. (bài học từ dự án)
 - **Nâng lên kho chung**: bài học dùng được cho dự án khác → viết lại cho tổng quát, hỏi người dùng; đồng ý → sửa
   `kit/.claude/skills/qa-knowledge/…` trong repo qa-agent (ghi `(bài học từ dự án)`) và bản trong dự án, đánh dấu dòng
   LESSONS `đã nâng`. Các dự án khác nhận bài học khi chạy `python3 <repo qa-agent>/install.py <dự án> --update`.

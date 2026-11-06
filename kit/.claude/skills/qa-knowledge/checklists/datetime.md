@@ -16,3 +16,4 @@
 - [ ] 2.1 Lặp hằng tháng vào ngày 31 / 29–30 → tháng thiếu ngày xử lý thế nào (theo tài liệu)
 - [ ] 2.2 Lặp hằng tuần qua mốc đổi giờ mùa hè → giữ đúng giờ địa phương
 - [ ] 2.3 Nhập/hiển thị dd/mm và mm/dd theo locale — 03/04 không bị hiểu nhầm
+- [ ] 2.4 Ô ngày: gõ đủ năm / tháng / ngày có dấu phân cách (`/`, `-`), gõ liền số, dán, sửa một phần ngày đang hiện — giá trị sau khi rời ô có đúng ngày đã nhập không, hay bị đổi sang tháng / năm hiện tại mà không báo (bài học từ dự án)
