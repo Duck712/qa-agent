@@ -182,6 +182,9 @@ Không đọc cả `qa/` một lượt — chỉ phần liên quan việc đang 
   quả + bằng chứng. Số tester song song theo `QA.md §Môi trường` (chưa có → hỏi); mobile/desktop native tuần tự (thiết bị dùng chung).
 - `qa-security` — bảo mật mức chấp nhận (OWASP), chỉ khi SCOPE §7 ghi đã được cho phép.
 - `qa-evidence-check` — soi mẫu bằng chứng trước khi viết REPORT, chỉ đọc, trả danh sách lệch.
+- `qa-deliverable-check` — review độc lập một đơn vị việc xong (màn / nhóm TC / file kết quả) trước khi báo: ngữ cảnh mới, chỉ đọc,
+  đối chiếu từng câu với kết quả thật, mở từng bằng chứng. Prompt chỉ đưa đơn vị việc + đường dẫn, không đưa nhận định của người
+  làm. Mỗi lệch nó báo → phiên chính **tự kiểm lại bằng dữ liệu** rồi mới sửa; không đồng ý thì nêu lý do trong báo cáo.
 - `qa-source-check` — soi mẫu REQ / quan điểm test / TC, mở tài liệu gốc đối chiếu trích dẫn và kỳ vọng — bắt chỗ "tự
   nghĩ ra". Chạy sau khi viết/nhập bộ quan điểm hoặc TC, và khi `qa_check.py src` báo nguồn máy không mở được.
 
@@ -201,6 +204,11 @@ Chi tiết (hai tầng dự án / kho chung, khi nào ghi / đọc, quy trình b
 - Đọc: hook nạp bài học đầu mọi phiên; dự án có `QA.md §Quy trình bắt buộc` → bài học chỉ tiêu đề, chạy
   `qa_check.py lessons --for <công đoạn / target>` đọc toàn văn trước khi làm việc thuộc phạm vi bài. Nói ra đang áp bài
   nào. Subagent không tự thấy bài học → phiên chính dán `lessons --for …` vào prompt giao việc.
+- Việc lặp dài (nhiều màn / nhiều nhóm TC trong một lượt): phiên chạy lâu thì ngữ cảnh đầy, bị nén, chi tiết đã bàn và luật đã đọc
+  có thể mất → cuối lượt dễ làm ẩu. Xong mỗi đơn vị (hỏi người dùng độ lớn đơn vị một lần, ghi DECISIONS): ghi mục 「Lượt đang
+  chạy」 của `qa/TRANG-THAI.md` (đơn vị đã xong + kết quả, chỗ cần người dùng xem, đơn vị tiếp, câu hỏi chờ, lời dặn chưa thành
+  luật, việc dở); soát mọi điều người dùng quyết trong chat đã vào DECISIONS, bug đã vào BUGS; nhắn người dùng gõ `/clear` rồi
+  bảo chạy tiếp (agent không tự xoá được). Phiên mới đọc mục đó + luật của công đoạn trước khi làm tiếp.
 - Giữ gọn phần nạp đầu phiên: hook có trần ký tự, quy trình dài quá thì **các bước cuối bị cắt**, agent không thấy. Quy trình
   bắt buộc của công đoạn dài → `QA.md` giữ luật an toàn toàn văn + 1 câu luật mỗi bước, toàn văn sang file riêng (vd
   `qa/QUY-TRINH-<công đoạn>.md`), bước đầu công đoạn bắt đọc toàn văn trước mọi việc thuộc công đoạn; giữ nguyên số bước.

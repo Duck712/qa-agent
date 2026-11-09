@@ -430,7 +430,7 @@ tests/refcheck.py           kiểm mọi tham chiếu file/skill/lệnh/§ trong
 kit/
 ├── .claude/
 │   ├── commands/           /qa (nhận mọi việc) + 9 lệnh tắt
-│   ├── agents/             qa-tester (1 target × 1 góc nhìn) · qa-security · qa-evidence-check · qa-source-check
+│   ├── agents/             qa-tester (1 target × 1 góc nhìn) · qa-security · qa-evidence-check · qa-source-check · qa-deliverable-check
 │   ├── skills/
 │   │   ├── qa/                  danh mục 19 việc QA, luật chung, ghép theo quy trình, lưu bài học
 │   │   ├── qa-targets/          web · mobile · api · desktop · cli · batch · ai · library · khác + an toàn

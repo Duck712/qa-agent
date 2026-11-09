@@ -8,4 +8,7 @@
 | Phiên | Việc | Đối tượng / môi trường | File đang sửa | Bắt đầu |
 |---|---|---|---|---|
 
+## Lượt đang chạy
+<!-- Việc lặp dài (skill qa §6): ghi sau mỗi đơn vị. Nhiều phiên: mỗi phiên một tiểu mục `### <phiên>`. Xong lượt → thay bằng 1 dòng ở phần dưới. -->
+
 ## Trạng thái chung

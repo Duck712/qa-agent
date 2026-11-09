@@ -10,7 +10,7 @@ file để ghi, `$(…)`/`…`, biến gán/export trước, glob. Tiền tố e
 `&`, thân heredoc (bỏ qua — là dữ liệu). Đọc thuần, cp LẤY từ đó, git chỉ liệt kê đi qua. Thư mục qa/ LUÔN ghi được.
 Lệnh PowerShell (Windows) được đổi về dạng bash tương đương trước khi soi — xem `_root.ps_commands`.
 
-Agent soi chỉ đọc (`qa-evidence-check`, `qa-source-check` — nhận ra qua trường `agent_type` của payload hook): chặn
+Agent soi chỉ đọc (`qa-evidence-check`, `qa-source-check`, `qa-deliverable-check` — nhận ra qua trường `agent_type` của payload hook): chặn
 ghi vào MỌI chỗ trong thư mục dự án, kể cả qa/ (không được sửa RUNLOG/evidence mình đang soi); ngoài dự án (thư mục
 tạm) vẫn ghi được.
 
@@ -34,7 +34,7 @@ from _root import (SUB_CLOSE, SUB_OPEN, drop_inputs, expand, is_redir, opt_value
 ROOT = project_root().resolve()
 QA_DIR = ROOT / "qa"
 PARTIAL = "\x01partial"                              # tên giả cho phần đường dẫn tính lúc chạy
-READONLY_AGENTS = {"qa-evidence-check", "qa-source-check"}
+READONLY_AGENTS = {"qa-evidence-check", "qa-source-check", "qa-deliverable-check"}
 STRICT = False                                       # đang chạy trong agent soi chỉ đọc → qa/ cũng không được ghi
 
 

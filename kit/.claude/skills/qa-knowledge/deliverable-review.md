@@ -5,6 +5,9 @@
 > đây rồi mới báo xong. Lỗi lặt vặt (sai số đếm, công thức hỏng, chữ lệch, ảnh không khớp) làm người đọc mất niềm tin
 > vào cả kết quả test — người dùng không phải người bắt lỗi này. (bài học từ dự án)
 
+> Tự review chưa đủ: người làm dễ bỏ qua lỗi của chính mình, kiểu hay gặp là viết quá điều đã test. Sau khi tự review, gọi
+> `qa-deliverable-check` (skill `qa` §5) rồi mới báo. (bài học từ dự án)
+
 ## 1. Trước khi review — độ phủ đã đủ chưa
 - [ ] **Mọi item trong phạm vi có case normal + abnormal** đã chạy thật — ô nhập, ô chọn, nút, phím tắt, tìm kiếm,
       điều kiện lọc / in / xuất, danh sách. Normal: giá trị đúng, biên, trống, ≥ 2 bộ có dữ liệu + 1 bộ không dữ liệu.
